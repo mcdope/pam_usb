@@ -266,6 +266,25 @@ Example:
 </user>
 ```
 
+Example for multiple devices:
+
+```xml
+<user id="scox">
+    <device>MyDevice</device>
+    <device>MyDevice2</device>
+
+    <!-- When the user "scox" removes the usb device MyDevice, lock the screen -->
+    <agent event="lock" device="MyDevice">gnome-screensaver-command --lock</agent>
+    
+    <!-- Pause beep-media-player when MyDevice2 is removed for user "scox" -->
+    <agent event="lock" device="MyDevice2">beep-media-player --pause</agent>
+    
+    <!-- Resume operations when any usb device is plugged back and authenticated -->
+    <agent event="unlock">gnome-screensaver-command --deactivate</agent>
+    <agent event="unlock">beep-media-player --play</agent>
+</user>
+```
+
 Services
 --------
 

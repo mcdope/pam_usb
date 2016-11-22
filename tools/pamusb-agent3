@@ -36,6 +36,7 @@ userName = ''
 options = ''
 events = ''
 logger = ''
+identities = {}
 
 
 # hotplug handler that registers callbacks to dbus
@@ -47,6 +48,7 @@ class HotPlugDevice():
         self.__uids = []
         self.__serials = serial
         self.__callbacks = []
+        self.__identities = {}
 
         # the dbus connection
         self.__dbus_mainloop = DBusGMainLoop()
@@ -106,10 +108,14 @@ class HotPlugDevice():
 
         # connect the dbus object through the interface
         deviceProperties = dbus.Interface(deviceObj, dbus.PROPERTIES_IFACE)
-        
+
         # check if the device has the DriveSerial property set in dbus
         if deviceProperties.Get('org.freedesktop.UDisks.Device', 'DriveSerial') not in self.__serials:
             return
+
+        # save uid to serial conversion
+        if uid not in self.__identities:
+            self.__identities[uid] = str(deviceProperties.Get('org.freedesktop.UDisks.Device', 'DriveSerial'))
 
         # save the device uid to the handlers uid
         if not uid[-1:].isdigit():
@@ -121,7 +127,7 @@ class HotPlugDevice():
 
         # run the callback functions
         if self.__running:
-            [cb('added') for cb in self.__callbacks]
+            [cb('added', self.__identities[uid]) for cb in self.__callbacks]
        
     # callback for the deviceRemoved signal
     def __deviceRemoved(self, uid):
@@ -134,7 +140,7 @@ class HotPlugDevice():
 
         # run the callback functions
         if self.__running:
-            [cb('removed') for cb in self.__callbacks]
+            [cb('removed', self.__identities[uid]) for cb in self.__callbacks]
 
 
 # logger object
@@ -166,16 +172,18 @@ def usage():
 	sys.exit(1)
 
 
-def authChangeCallback(event):
+def authChangeCallback(event, uid):
     if event == 'removed': # if a device is removed
         # log information
         logger.info('Device {0} has been removed, ' \
-            'locking down user {1}...'.format(deviceName, username))
+            'locking down user {1}...'.format(identities[uid], username))
 
         # run the commands that are defined in the config file
         for cmd in events['lock']:
-            logger.info('Running {0}'.format(cmd))
-            os.system(cmd)
+            # check of the lock command is for this device
+            if cmd[1] == identities[uid] or cmd[1] == None:
+                logger.info('Running {0}'.format(cmd))
+                os.system(cmd[0])
         
         # log, that the system is now locked
         logger.info('Locked.')
@@ -185,7 +193,7 @@ def authChangeCallback(event):
     
     # log information
     logger.info('Device {0} has been inserted. ' \
-        'Performing verification...'.format(deviceName))
+        'Performing verification...'.format(identities[uid]))
     
     # check, if the device is authentic for the user
     cmdLine = "%s --quiet --config=%s --service=pamusb-agent %s" % (
@@ -200,15 +208,17 @@ def authChangeCallback(event):
         
         # perform unlock commands, defined in the config file
         for cmd in events['unlock']:
-            logger.info('Running {0}'.format(cmd))
-            os.system(cmd)
+            # check of the unlock command is for this device
+            if cmd[1] == identities[uid] or cmd[1] == None:
+                logger.info('Running {0}'.format(cmd))
+                os.system(cmd[0])
         
         # log, that the system is unlocked now
         logger.info('Unlocked.')
     else: # if the device is not authentic
         # log the authentication failure
         logger.info('Authentication failed for device {0}. ' \
-            'Keeping user {1} locked down.'.format(deviceName, username))
+            'Keeping user {1} locked down.'.format(identities[uid], username))
         return
 
 
@@ -277,39 +287,34 @@ def main():
 
     # set lock and unlock in global events
     for hotplug in user.findall('agent'):
-        events[hotplug.get('event')].append(hotplug.text)
+        events[hotplug.get('event')].append((hotplug.text, hotplug.get('device')))
 
     hotplugs = []
 
     # get the defined device in the user section of the config file
     global deviceName # and set it to the global deviceName
-    deviceName = user.find('device').text.strip()
     deviceNames = user.findall('device')
     for deviceName in deviceNames:
         deviceNames[deviceNames.index(deviceName)] = deviceName.text.strip()
-    print(deviceNames)
-    deviceName = deviceNames[0]
 
     # find every defined device in the config file
     devices = doc.findall('devices/device')
 
-    # check if the device in the user section is defined in the config file
-    found_devices = []
+    # check if the devices in the user section is defined in the config file
+    global identities
     serials = []
     for device in devices:
         if device.get('id') in deviceNames:
-            found_devices.append(device)
-            serials.append(device.find('serial').text.strip())
+            # find the serial for every device and save it
             serial = device.find('serial').text.strip()
+            serials.append(serial)
+
+            # save the serial to id conversion
+            identities[serial] = device.get('id')
 
     if len(devices) == 0:
-        logger.error('Device {0} not found in configurtion file'.format(deviceName))
+        logger.error('Device {0} not found in configuration file'.format(deviceName))
         sys.exit(1)
-
-    device = found_devices[0]
-
-    # get the device serial number
-    serial = device.find('serial').text.strip()
     
     # create the hotplug object, that handles the plug and unplug callbacks
     hpDev = HotPlugDevice(serials) # from dbus
@@ -323,7 +328,7 @@ def main():
 
     # log and print startup information
     logger.info('pamusb-agent up and running.')
-    logger.info('Watching device {0} for user {1}'.format(deviceName, username))
+    logger.info('Watching devices {0} for user {1}'.format(deviceNames, username))
 
     # run the hotplug handler
     try:

@@ -23,6 +23,8 @@ Tools
 * `pamusb-conf`: configuration helper.
 * `pamusb-check`: integrate pam\_usb's authentication engine within your scripts or applications.
 
+**For multiple devices check the example for multiple devices in [Configuration](./doc/CONFIGURATION.md)**
+
 Getting Started
 ----------------
 * [Install](https://wiki.github.com/aluzzardi/pam_usb/Install) pam_usb on your system
