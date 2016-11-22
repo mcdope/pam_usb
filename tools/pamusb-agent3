@@ -182,7 +182,7 @@ def authChangeCallback(event, uid):
         for cmd in events['lock']:
             # check of the lock command is for this device
             if cmd[1] == identities[uid] or cmd[1] == None:
-                logger.info('Running {0}'.format(cmd))
+                logger.info('Running {0}'.format(cmd[0]))
                 os.system(cmd[0])
         
         # log, that the system is now locked
@@ -210,7 +210,7 @@ def authChangeCallback(event, uid):
         for cmd in events['unlock']:
             # check of the unlock command is for this device
             if cmd[1] == identities[uid] or cmd[1] == None:
-                logger.info('Running {0}'.format(cmd))
+                logger.info('Running {0}'.format(cmd[0]))
                 os.system(cmd[0])
         
         # log, that the system is unlocked now
