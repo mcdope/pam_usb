@@ -89,32 +89,27 @@ int pusb_xpath_get_string(xmlDocPtr doc, const char *path,
 	if (!(result = pusb_xpath_match(doc, path)))
 		return (0);
 
-	if (result->nodesetval->nodeNr > 1)
-	{
-		xmlXPathFreeObject(result);
-		log_debug("Syntax error: %s: more than one record found\n", path);
-		return (0);
-	}
-
-	node = result->nodesetval->nodeTab[0]->xmlChildrenNode;
-	result_string = xmlNodeListGetString(doc, node, 1);
-	if (!result_string)
-	{
-		xmlXPathFreeObject(result);
-		log_debug("Empty value for %s\n", path);
-		return (0);
-	}
-	if (!pusb_xpath_strip_string(value, (const char *)result_string, size))
-	{
-		xmlFree(result_string);
-		xmlXPathFreeObject(result);
-		log_debug("Result for %s (%s) is too long (max: %d)\n",
-				path, (const char *)result_string, size);
-		return (0);
-	}
-	xmlFree(result_string);
-	xmlXPathFreeObject(result);
-	return (1);
+    for (int i=0; i < result->nodesetval->nodeNr; ++i) {
+        node = result->nodesetval->nodeTab[i]->xmlChildrenNode;
+        result_string = xmlNodeListGetString(doc, node, 1);
+        if (!result_string)
+        {
+            xmlXPathFreeObject(result);
+            log_debug("Empty value for %s\n", path);
+            return (0);
+        }
+        if (!pusb_xpath_strip_string(value, (const char *)result_string, size))
+        {
+            xmlFree(result_string);
+            xmlXPathFreeObject(result);
+            log_debug("Result for %s (%s) is too long (max: %d)\n",
+                    path, (const char *)result_string, size);
+            return (0);
+        }
+        xmlFree(result_string);
+        xmlXPathFreeObject(result);
+        return (1);
+    }
 }
 
 int pusb_xpath_get_string_from(xmlDocPtr doc,

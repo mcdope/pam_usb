@@ -44,8 +44,8 @@ class HotPlugDevice():
     # initialize the handler
     def __init__(self, serial):
         # some constants
-        self.__uid = None
-        self.__serial = serial
+        self.__uids = []
+        self.__serials = serial
         self.__callbacks = []
 
         # the dbus connection
@@ -101,22 +101,23 @@ class HotPlugDevice():
 
     # callback for the deviceAdded signal
     def __deviceAdded(self, uid):
-        # check if uids array exists
-        if self.__uid is not None:
-            return
-
         # create dbus object to org.freedesktop.UDisks with the uid
         deviceObj = self.__bus.get_object('org.freedesktop.UDisks', uid)
 
         # connect the dbus object through the interface
         deviceProperties = dbus.Interface(deviceObj, dbus.PROPERTIES_IFACE)
-
+        
         # check if the device has the DriveSerial property set in dbus
-        if deviceProperties.Get('org.freedesktop.UDisks.Device', 'DriveSerial') != self.__serial:
+        if deviceProperties.Get('org.freedesktop.UDisks.Device', 'DriveSerial') not in self.__serials:
             return
 
         # save the device uid to the handlers uid
-        self.__uid = uid
+        if not uid[-1:].isdigit():
+            return
+        if uid not in self.__uids:
+            self.__uids.append(uid)
+        else:
+            return
 
         # run the callback functions
         if self.__running:
@@ -124,16 +125,12 @@ class HotPlugDevice():
        
     # callback for the deviceRemoved signal
     def __deviceRemoved(self, uid):
-        # check if uids array exists
-        if self.__uid is None:
-            return
-
         # check if the uid is not stored into the handlers uid
-        if self.__uid != uid:
+        if uid not in self.__uids:
             return
 
         # set handlers uid to none
-        self.__uid = None
+        self.__uids.remove(uid)
 
         # run the callback functions
         if self.__running:
@@ -282,26 +279,40 @@ def main():
     for hotplug in user.findall('agent'):
         events[hotplug.get('event')].append(hotplug.text)
 
+    hotplugs = []
+
     # get the defined device in the user section of the config file
     global deviceName # and set it to the global deviceName
     deviceName = user.find('device').text.strip()
+    deviceNames = user.findall('device')
+    for deviceName in deviceNames:
+        deviceNames[deviceNames.index(deviceName)] = deviceName.text.strip()
+    print(deviceNames)
+    deviceName = deviceNames[0]
 
     # find every defined device in the config file
     devices = doc.findall('devices/device')
 
     # check if the device in the user section is defined in the config file
+    found_devices = []
+    serials = []
     for device in devices:
-        if device.get('id') == deviceName:
-            break
-    else:
+        if device.get('id') in deviceNames:
+            found_devices.append(device)
+            serials.append(device.find('serial').text.strip())
+            serial = device.find('serial').text.strip()
+
+    if len(devices) == 0:
         logger.error('Device {0} not found in configurtion file'.format(deviceName))
         sys.exit(1)
+
+    device = found_devices[0]
 
     # get the device serial number
     serial = device.find('serial').text.strip()
     
     # create the hotplug object, that handles the plug and unplug callbacks
-    hpDev = HotPlugDevice(serial) # from dbus
+    hpDev = HotPlugDevice(serials) # from dbus
 
     # add the callback to the hotplug handler
     hpDev.addCallback(authChangeCallback)
