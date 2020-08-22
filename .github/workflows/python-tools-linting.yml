@@ -18,6 +18,7 @@ jobs:
         sudo apt install libudisks2-dev libxml2-dev python libpam0g-dev
         python -m pip install --upgrade pip
         pip install pylint
-    - name: Test with pytest
+    - name: Run pylint
       run: |
-        pylint ./tools
+        cd tools
+        pylint `ls -R|xargs`
