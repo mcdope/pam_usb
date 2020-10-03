@@ -65,12 +65,10 @@ static int pusb_conf_parse_options(t_pusb_options *opts,
 	int					i;
 	struct s_opt_list	opt_list[] = {
 		{ CONF_DEVICE_XPATH, opts->device.name },
-		{ CONF_USER_XPATH, "" },
-		{ CONF_SERVICE_XPATH, "" },
+		{ CONF_USER_XPATH, (char *)user },
+		{ CONF_SERVICE_XPATH, (char *)service },
 		{ NULL, NULL }
 	};
-	sprintf(opt_list[1], "%s", (char *)user);
-	sprintf(opt_list[2], "%s", (char *)service);
 
 	pusb_conf_options_get_from(opts, "//configuration/defaults/", doc);
 	for (i = 0; opt_list[i].name != NULL; ++i)
@@ -78,7 +76,7 @@ static int pusb_conf_parse_options(t_pusb_options *opts,
 		xpath_size = strlen(opt_list[i].name) + strlen(opt_list[i].value) + 1;
 		xpath = xmalloc(xpath_size);
 		memset(xpath, 0x00, xpath_size);
-		snprintf(xpath, xpath_size, opt_list[i].name, opt_list[i].value, "");
+		snprintf(xpath, xpath_size, opt_list[i].name, opt_list[i].value);
 		pusb_conf_options_get_from(opts, xpath, doc);
 		xfree(xpath);
 	}
