@@ -78,6 +78,7 @@ static FILE *pusb_pad_open_system(t_pusb_options *opts,
 	if (!(user_ent = getpwnam(user)) || !(user_ent->pw_dir))
 	{
 		log_error("Unable to retrieve information for user \"%s\": %s\n",
+			  	user,
 				strerror(errno));
 		return (0);
 	}
@@ -123,6 +124,7 @@ static int pusb_pad_protect(const char *user, int fd)
 	if (!(user_ent = getpwnam(user)))
 	{
 		log_error("Unable to retrieve information for user \"%s\": %s\n",
+			  	user,
 				strerror(errno));
 		return (0);
 	}
