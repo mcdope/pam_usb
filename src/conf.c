@@ -65,10 +65,12 @@ static int pusb_conf_parse_options(t_pusb_options *opts,
 	int					i;
 	struct s_opt_list	opt_list[] = {
 		{ CONF_DEVICE_XPATH, opts->device.name },
-		{ CONF_USER_XPATH, sprintf("%s", (char *)user) },
-		{ CONF_SERVICE_XPATH, sprintf("%s", (char *)service) },
+		{ CONF_USER_XPATH, "" },
+		{ CONF_SERVICE_XPATH, "" },
 		{ NULL, NULL }
 	};
+	sprintf(opt_list[1], "%s", (char *)user);
+	sprintf(opt_list[2], "%s", (char *)service);
 
 	pusb_conf_options_get_from(opts, "//configuration/defaults/", doc);
 	for (i = 0; opt_list[i].name != NULL; ++i)
