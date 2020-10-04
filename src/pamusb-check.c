@@ -127,7 +127,7 @@ int main(int argc, char **argv)
 	}
 
 	if ((argc - 1) == optind)
-		snprintf(user, 32, "%s", argv[optind]); 
+		sprintf(user, "%s", argv[optind]);
 	else
 	{
 		pusb_check_usage(argv[0]);
