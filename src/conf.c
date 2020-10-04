@@ -76,7 +76,7 @@ static int pusb_conf_parse_options(t_pusb_options *opts,
 		xpath_size = strlen(opt_list[i].name) + strlen(opt_list[i].value) + 1;
 		xpath = xmalloc(xpath_size);
 		memset(xpath, 0x00, xpath_size);
-		snprintf(xpath, xpath_size, opt_list[i].name, opt_list[i].value);
+		snprintf(xpath, xpath_size, opt_list[i].name, opt_list[i].value, "");
 		pusb_conf_options_get_from(opts, xpath, doc);
 		xfree(xpath);
 	}
