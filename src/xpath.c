@@ -205,7 +205,7 @@ int pusb_xpath_get_time(xmlDocPtr doc, const char *path, time_t *value)
 		}
 	if (!isdigit(*last))
 		*last = '\0';
-	*value = atoi(ret) * coef;
+	*value = (time_t) atoi(ret) * coef;
 
 	return (0);
 }
