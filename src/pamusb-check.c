@@ -83,7 +83,7 @@ int main(int argc, char **argv)
 	t_pusb_options	opts;
 	char			*conf_file = PUSB_CONF_FILE;
 	char			*service = "pamusb-check";
-	char			user[32] = { };
+	char			*user = NULL;
 	int				quiet = 0;
 	int				dump = 0;
 	int				debug = 0;
@@ -127,7 +127,7 @@ int main(int argc, char **argv)
 	}
 
 	if ((argc - 1) == optind)
-		sprintf(user, "%s", argv[optind]);
+		user = argv[optind];
 	else
 	{
 		pusb_check_usage(argv[0]);
