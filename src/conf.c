@@ -65,10 +65,10 @@ static int pusb_conf_parse_options(t_pusb_options *opts,
 	int					i;
 	
 	// these can come from argv, so make sure nothing messes up snprintf later
-	char *xpath_user = NULL;
-	char *xpath_service = NULL;
-	sprintf(xpath_user, "%s", user);
-	sprintf(xpath_service, "%s", service);
+	char xpath_user[32] = { };
+	char xpath_service[32] = { };
+	snprintf(xpath_user, 32, "%s", user);
+	snprintf(xpath_service, 32, "%s", service);
 
 	struct s_opt_list	opt_list[] = {
 		{ CONF_DEVICE_XPATH, opts->device.name },
