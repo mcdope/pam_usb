@@ -19,6 +19,6 @@ jobs:
       run: make deb
     - name: check that deb can be installed
       run: sudo apt install ../*.deb
-    . name: check that installed package can be used
+    - name: check that installed package can be used
       run: cd tests/can-actually-be-used && ./run-tests.sh
 
