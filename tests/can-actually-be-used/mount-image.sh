@@ -13,9 +13,9 @@ echo "Info: fake device registered as /dev/$CREATED_DEVICE"
 echo "Info: creating partition..."
 echo 'type=83' | sudo sfdisk /dev/$CREATED_DEVICE
 echo "Info: formatting partition as vfat..."
-sudo mkfs.vfat /dev/$CREATED_DEVICE
+sudo mkfs.vfat "/dev/"$CREATED_DEVICE"1"
 
 # Create mountpoint and mount fake stick
 mkdir /tmp/fakestick
-sudo mount /dev/$CREATED_DEVICE /tmp/fakestick
+sudo mount "/dev/"$CREATED_DEVICE"1" /tmp/fakestick
 
