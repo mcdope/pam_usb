@@ -19,14 +19,3 @@ jobs:
       run: make deb
     - name: check that deb can be installed
       run: sudo apt install ../*.deb
-    # - name: setup g_mass_storage module for fake usb stick
-    #   run: cd tests/can-actually-be-used && ./setup-dummyhcd.sh
-    # - name: load dummy-hcd module
-    #   run: cd tests/can-actually-be-used && ./prepare-mounting.sh
-    # - name: create fake usb stick image
-    #   run: cd tests/can-actually-be-used && ./create-image.sh
-    # - name: insert and mount fake usb stick
-    #   run: cd tests/can-actually-be-used && ./mount-image.sh
-    # - name: check that installed package can be used
-    #   run: cd tests/can-actually-be-used && ./run-tests.sh
-

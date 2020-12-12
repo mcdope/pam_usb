@@ -55,14 +55,49 @@ jobs:
         TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
         TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
       run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb && sudo apt install --reinstall --yes ../*.deb"
-    # - name: setup g_mass_storage module for fake usb stick
+    - name: install created .deb package
+      env:
+        TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
+        TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
+        TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
+      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb && sudo apt install --reinstall --yes ../*.deb"
+    # - name: setup dummy-hcd module for fake usb stick
     #   run: cd tests/can-actually-be-used && ./setup-dummyhcd.sh
-    # - name: load dummy-hcd module
-    #   run: cd tests/can-actually-be-used && ./prepare-mounting.sh
-    # - name: create fake usb stick image
-    #   run: cd tests/can-actually-be-used && ./create-image.sh
-    # - name: insert and mount fake usb stick
-    #   run: cd tests/can-actually-be-used && ./mount-image.sh
-    # - name: check that installed package can be used
-    #   run: cd tests/can-actually-be-used && ./run-tests.sh
+    - name: load dummy-hcd module (if not loaded already)
+      env:
+        TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
+        TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
+        TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
+      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb/tests/can-actually-be-used && ./prepare-mounting.sh"
+    - name: create fake usb stick image
+      env:
+        TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
+        TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
+        TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
+      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb/tests/can-actually-be-used && ./create-image.sh"
+    - name: Insert/partition/format/mount fake usb stick
+      env:
+        TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
+        TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
+        TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
+      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb/tests/can-actually-be-used && ./mount-image.sh"
+    - name: execute test cases
+      env:
+        TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
+        TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
+        TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
+      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb/tests/can-actually-be-used && ./run-tests.sh"
+    - name: cleanup - umount & remove image file
+      env:
+        TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
+        TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
+        TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
+      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb/tests/can-actually-be-used && ./umount-image.sh"
+    - name: cleanup - remove installed package
+      env:
+        TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
+        TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
+        TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
+      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb/tests/can-actually-be-used && apt purge --yes libpam-usb
+
 
