@@ -1,8 +1,6 @@
 name: Build & test on own server
 
 on:
-  push:
-    branches: [ master ]
   pull_request:
     branches: [ master ]
 
@@ -51,8 +49,8 @@ jobs:
         TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
         TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
       run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb && make deb"
-    # - name: check that deb can be installed
-    #   run: sudo apt install ../*.deb
+    - name: install created .deb package
+      run: sudo apt install --reinstall --yes ../libpam-usb*.deb
     # - name: setup g_mass_storage module for fake usb stick
     #   run: cd tests/can-actually-be-used && ./setup-dummyhcd.sh
     # - name: load dummy-hcd module
