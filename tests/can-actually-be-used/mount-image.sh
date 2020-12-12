@@ -16,6 +16,6 @@ echo "Info: formatting partition as vfat..."
 sudo mkfs.vfat "/dev/"$CREATED_DEVICE"1"
 
 # Create mountpoint and mount fake stick
-mkdir /tmp/fakestick
+mkdir -p /tmp/fakestick
 sudo mount "/dev/"$CREATED_DEVICE"1" /tmp/fakestick
 
