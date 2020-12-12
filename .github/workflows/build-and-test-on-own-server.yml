@@ -60,7 +60,7 @@ jobs:
         TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
         TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
         TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
-      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "sudo sed -i 's/<defaults>/<defaults><option name=\"deny_remote\">true<\/option>/g' /etc/security/pam_usb.conf"
+      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "sudo sed -i 's/<defaults>/<defaults><option name=\"deny_remote\">false<\/option>/g' /etc/security/pam_usb.conf"
     # @todo: to include this, we need an uninstall at the end first - currently we require this to be present on the target host
     # - name: setup dummy-hcd module for fake usb stick
     #   run: cd tests/can-actually-be-used && ./setup-dummyhcd.sh
