@@ -12,3 +12,4 @@ debian/libpam-usb.postrm.debhelper
 debian/libpam-usb.prerm.debhelper
 changelog-from-v0.5.0
 changelog-for-deb
+tests/can-actually-be-used/virtual_usb.img
