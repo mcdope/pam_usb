@@ -12,7 +12,9 @@ jobs:
     runs-on: ubuntu-20.04
 
     steps:
-    - name: Install requirements
+    - name: Install local requirements
+      run: sudo apt install sshpass
+    - name: Install requirements on server
       env: # Or as an environment variable
         TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
         TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
