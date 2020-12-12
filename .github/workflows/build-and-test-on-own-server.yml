@@ -19,7 +19,7 @@ jobs:
         TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
         TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
         TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
-      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST -c "sudo apt install libudisks2-dev libxml2-dev python libpam0g-dev devscripts debhelper dh-systemd dkms pkg-config gir1.2-glib-2.0 libglib2.0-dev"
+      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "sudo apt install libudisks2-dev libxml2-dev python libpam0g-dev devscripts debhelper dh-systemd dkms pkg-config gir1.2-glib-2.0 libglib2.0-dev"
     # - name: make deb
     #   run: make deb
     # - name: check that deb can be installed
