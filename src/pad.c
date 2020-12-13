@@ -59,7 +59,7 @@ static FILE *pusb_pad_open_device(t_pusb_options *opts,
 	if (!f)
 	{
 		log_debug("Cannot open device file: %s\n", strerror(errno));
-		log_debug("device file was: %s/%s/%s.%s.pad\n", mnt_point, opts->device_pad_directory, user, opts->hostname);
+		log_debug("mode was: %s, device file was: %s/%s/%s.%s.pad\n", mode, mnt_point, opts->device_pad_directory, user, opts->hostname);
 		return (NULL);
 	}
 	return (f);
