@@ -17,5 +17,5 @@ sudo mkfs.vfat "/dev/"$CREATED_DEVICE"1"
 
 # Create mountpoint and mount fake stick
 mkdir -p /tmp/fakestick
-sudo mount "/dev/"$CREATED_DEVICE"1" /tmp/fakestick
+sudo mount -o noacl "/dev/"$CREATED_DEVICE"1" /tmp/fakestick
 
