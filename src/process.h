@@ -29,4 +29,6 @@ void get_process_name(const pid_t pid, char * name);
 
 void get_process_parent_id(const pid_t pid, pid_t * ppid);
 
+void get_process_tty(const pid_t pid, char * name);
+
 #endif /* !PUSB_PROCESS_H_ */

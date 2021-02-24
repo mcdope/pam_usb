@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <dirent.h>
 #include "process.h"
 
 /**
@@ -73,4 +74,35 @@ void get_process_parent_id(const pid_t pid, pid_t * ppid) {
 		}
 		fclose(fp);
 	}
+}
+
+/**
+ * Get TTY for process from its PID.
+ * @param pid PID of the process
+ * @param name Will receive TTY of the process
+ * 
+ * @author Tobias Bäumer <tobiasbaeumer@gmail.com>
+ */
+void get_process_tty(const pid_t pid, char * name) {
+	DIR *dir;
+    struct dirent *entry;
+	char procdir[BUFSIZ];
+	sprintf(procdir, "/proc/%d/fd", pid);
+
+    if (!(dir = opendir(procdir))) {
+		return;
+	}
+
+    while ((entry = readdir(dir)))
+    {
+		if (entry->d_type == DT_LNK && strcmp(entry->d_name, "..") != 0 && strcmp(entry->d_name, ".") != 0) {
+			if (strstr(entry->d_name, "/dev/") != NULL) {
+				realpath(entry->d_name, name);
+
+				break;
+			}
+		}
+    }
+
+    closedir(dir);
 }
