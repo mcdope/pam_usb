@@ -52,7 +52,7 @@ int pusb_local_login(t_pusb_options *opts, const char *user)
 			struct utmp	utsearch;
 			struct utmp	*utent;
 			const char	*from;
-			from = ttyname(STDIN_FILENO);
+			from = ttyname(STDIN_FILENO); // @todo should use get_process_tty() for pid
 			int	i;
 
 			if (!from || !(*from))
