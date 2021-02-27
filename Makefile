@@ -14,9 +14,11 @@ endif
 # compiler/linker options
 CC		:= gcc
 CFLAGS		:= $(CFLAGS) -Wall -fPIC `pkg-config --cflags libxml-2.0` \
-	`pkg-config --cflags udisks2`
+	`pkg-config --cflags udisks2` \
+	`pkg-config --cflags libprocps`
 LIBS		:= `pkg-config --libs libxml-2.0` \
-	`pkg-config --libs udisks2`
+	`pkg-config --libs udisks2` \
+	`pkg-config --libs libprocps`
 
 # common source files
 SRCS		:= src/conf.c \

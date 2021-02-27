@@ -19,6 +19,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <utmp.h>
+#include <stdlib.h>
 #include "log.h"
 #include "conf.h"
 #include "process.h"
@@ -34,12 +35,16 @@ int pusb_local_login(t_pusb_options *opts, const char *user)
 	log_debug("Checking whether the caller is local or not...\n");
 	
 	pid_t pid = getpid();
+	pid_t current_pid;
+
 	while (pid != 0) {
 		char name[BUFSIZ];
+		current_pid = pid;
+
 		get_process_name(pid, name);
-		log_debug("    Checking pid %6d (%s)...\n", pid, name);
 		get_process_parent_id(pid, & pid);
 
+		log_debug("    Checking pid %6d (%s)...\n", current_pid, name);
 		if (strstr(name, "sshd") != NULL || strstr(name, "telnetd") != NULL) {
 			log_error("One of the parent processes found to be a remote access daemon, denying.\n");
 			return (0);
@@ -47,26 +52,36 @@ int pusb_local_login(t_pusb_options *opts, const char *user)
 
 		// Check for multiplexer, in case found > use utmp approach on top
 		if (strstr(name, "tmux") != NULL || strstr(name, "byobu") != NULL) {
-			log_debug("    Multiplexer detected - checking utmp...\n");
+			log_debug("    Multiplexer detected - checking utmp for 'remoteness'...\n");
 			
 			struct utmp	utsearch;
 			struct utmp	*utent;
 			const char	*from;
-			from = ttyname(STDIN_FILENO); // @todo should use get_process_tty() for pid
-			int	i;
+			char	*tty;
+			const char	*display = getenv("DISPLAY");
 
-			if (!from || !(*from))
-			{
-				log_error("        Couldn't retrieve the tty name, assuming remote\n");
-				return (0);
+			if (display == NULL) {
+				from = ttyname(STDIN_FILENO);
+				get_process_tty(current_pid, tty);
+				log_debug("    Process uses TTY (ttyname): %s\n", from);
+				log_debug("    Process uses TTY (get_process_tty): %s\n", tty);
+				if (!strncmp(from, "/dev/", strlen("/dev/"))) {
+					from += strlen("/dev/");
+				}
+
+				if (!from || !(*from))
+				{
+					log_error("Couldn't retrieve login tty, assuming remote\n");
+					return (0);
+				}
+
+				log_debug("        Using TTY %s for search\n", from);
+				strncpy(utsearch.ut_line, from, sizeof(utsearch.ut_line) - 1);
+			} else {
+				log_debug("        Using DISPLAY %s for search\n", display);
+				strncpy(utsearch.ut_line, display, sizeof(utsearch.ut_line) - 1);
 			}
 
-			if (!strncmp(from, "/dev/", strlen("/dev/"))) {
-				from += strlen("/dev/");
-			}
-
-			log_debug("        TTY used: %s\n", from);
-			strncpy(utsearch.ut_line, from, sizeof(utsearch.ut_line) - 1);
 			setutent();
 			utent = getutline(&utsearch);
 			endutent();
@@ -75,8 +90,13 @@ int pusb_local_login(t_pusb_options *opts, const char *user)
 			{
 				log_error("No utmp entry found for tty \"%s\", assuming remote\n", from);
 				return (0);
+			} else {
+				log_debug("        utmp entry found\n");
+				log_debug("            utmp->ut_pid: %d\n", utent->ut_pid);
+				log_debug("            utmp->ut_user: %s\n", utent->ut_user);
 			}
 
+			int	i;
 			for (i = 0; i < 4; ++i)
 			{
 				/** 
@@ -85,10 +105,14 @@ int pusb_local_login(t_pusb_options *opts, const char *user)
 				 **/
 				if (utent->ut_addr_v6[i] != 0) 
 				{
-					log_error("        Remote authentication request: %s\n", utent->ut_host);
+					log_error("Remote authentication request: %s\n", utent->ut_host);
 					return (0);
+				} else {
+					log_debug("        Checking utmp->ut_addr_v6[%d]\n", i);
 				}
 			}
+
+			log_debug("    utmp check successful!\n");
 		}
 	}
 	
