@@ -57,10 +57,46 @@ int pusb_local_login(t_pusb_options *opts, const char *user)
 			struct utmp	utsearch;
 			struct utmp	*utent;
 			const char	*from;
-			char	*tty;
+			char	*tty = NULL;
 			const char	*display = getenv("DISPLAY");
 
-			if (display == NULL) {
+            if (strstr(name, "tmux") != NULL && display == NULL) { // ... if display is not NULL, we can verify using the Xsession
+                // For tmux we read the envvar holding the client id, that will be used to fetch the tty and be set in utsearch
+                const char *tmux_details = getenv("TMUX");
+                if (tmux_details == NULL) {
+                    log_error("tmux detected, but TMUX env var missing. Denying since remote check impossible without it!\n");
+                    return (0);
+                }
+
+                char *tmux_client_id = strrchr(tmux_details, ',');
+                tmux_client_id++; // strip leading comma
+                log_debug("        Got tmux_client_id: %s\n", tmux_client_id);
+
+                char get_tmux_session_details_cmd[32];
+                sprintf(get_tmux_session_details_cmd, "tmux list-clients -t %s", tmux_client_id);
+                log_debug("        Built get_tmux_session_details_cmd: %s\n", get_tmux_session_details_cmd);
+
+                char buf[BUFSIZ];
+                FILE *fp;
+                if ((fp = popen(get_tmux_session_details_cmd, "r")) == NULL) {
+                    log_error("tmux detected, but couldn't get session details. Denying since remote check impossible without it!\n");
+                    return (0);
+                }
+
+                char *tmux_client_tty = NULL;
+                if (fgets(buf, BUFSIZ, fp) != NULL) {
+                    tmux_client_tty = strtok(buf, ":");
+                    tmux_client_tty += strlen("/dev/");
+                    log_debug("        Got tmux_client_tty: %s\n", tmux_client_tty);
+                }
+
+                if(pclose(fp)) {
+                    log_debug("        Closing pipe for 'tmux list-clients' failed, this is quite a wtf...");
+                }
+
+                strncpy(utsearch.ut_line, tmux_client_tty, sizeof(utsearch.ut_line) - 1);
+            } else if (display == NULL) {
+                // No tmux, no Xsession detected, set process tty in utsearch
 				from = ttyname(STDIN_FILENO);
 				get_process_tty(current_pid, tty);
 				log_debug("    Process uses TTY (ttyname): %s\n", from);
@@ -78,6 +114,7 @@ int pusb_local_login(t_pusb_options *opts, const char *user)
 				log_debug("        Using TTY %s for search\n", from);
 				strncpy(utsearch.ut_line, from, sizeof(utsearch.ut_line) - 1);
 			} else {
+                // No tmux, Xsession detected, set DISPLAY in utsearch
 				log_debug("        Using DISPLAY %s for search\n", display);
 				strncpy(utsearch.ut_line, display, sizeof(utsearch.ut_line) - 1);
 			}
@@ -88,7 +125,7 @@ int pusb_local_login(t_pusb_options *opts, const char *user)
 			
 			if (!utent)
 			{
-				log_error("No utmp entry found for tty \"%s\", assuming remote\n", from);
+				log_error("No utmp entry found for tty \"%s\", assuming remote\n", utsearch.ut_line);
 				return (0);
 			} else {
 				log_debug("        utmp entry found\n");
