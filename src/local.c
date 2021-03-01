@@ -56,8 +56,7 @@ int pusb_local_login(t_pusb_options *opts, const char *user)
 
     struct utmp	utsearch;
     struct utmp	*utent;
-    const char	*from;
-    char	*tty = NULL;
+    const char	*session_tty;
     const char	*display = getenv("DISPLAY");
 
     /**
@@ -100,22 +99,20 @@ int pusb_local_login(t_pusb_options *opts, const char *user)
         strncpy(utsearch.ut_line, tmux_client_tty, sizeof(utsearch.ut_line) - 1);
     } else if (display == NULL) {
         // No tmux, no Xsession detected, set process tty in utsearch
-        from = ttyname(STDIN_FILENO);
-        get_process_tty(current_pid, tty);
-        log_debug("    Process uses TTY (ttyname): %s\n", from);
-        log_debug("    Process uses TTY (get_process_tty): %s\n", tty);
-        if (!strncmp(from, "/dev/", strlen("/dev/"))) {
-            from += strlen("/dev/");
+        session_tty = ttyname(STDIN_FILENO);
+        log_debug("    Process uses TTY (ttyname): %s\n", session_tty);
+        if (!strncmp(session_tty, "/dev/", strlen("/dev/"))) {
+            session_tty += strlen("/dev/");
         }
 
-        if (!from || !(*from))
+        if (!session_tty || !(*session_tty))
         {
             log_error("Couldn't retrieve login tty, assuming remote\n");
             return (0);
         }
 
-        log_debug("        Using TTY %s for search\n", from);
-        strncpy(utsearch.ut_line, from, sizeof(utsearch.ut_line) - 1);
+        log_debug("        Using TTY %s for search\n", session_tty);
+        strncpy(utsearch.ut_line, session_tty, sizeof(utsearch.ut_line) - 1);
     } else {
         // No tmux, Xsession detected, set DISPLAY in utsearch
         log_debug("        Using DISPLAY %s for search\n", display);

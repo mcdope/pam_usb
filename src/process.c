@@ -76,35 +76,3 @@ void get_process_parent_id(const pid_t pid, pid_t * ppid) {
 		fclose(fp);
 	}
 }
-
-/**
- * Get TTY for process from its PID.
- * @param pid PID of the process
- * @param name Will receive TTY of the process
- * 
- * @author Tobias Bäumer <tobiasbaeumer@gmail.com>
- */
-void get_process_tty(const pid_t pid, char * name) 
-{  
-	printf("process.c -> get_process_tty() -> invoked for pid: %d\n", pid);
-	PROCTAB *proctab = openproc(PROC_FILLMEM | PROC_FILLSTAT | PROC_FILLSTATUS);
-	proc_t procinfo;
-	memset(&procinfo, 0, sizeof(procinfo));
-	char tty_name[TTY_NAME_MAX];
-	
-	while (readproc(proctab, &procinfo) != NULL)
-	{
-		if (procinfo.tid == pid) {
-			printf("process.c -> get_process_tty() -> tid: %d\n", procinfo.tid);
-			printf("process.c -> get_process_tty() -> cmdline: %s\n", procinfo.cmd);
-			printf("process.c -> get_process_tty() -> tty: %d\n", procinfo.tty);
-
-			dev_to_tty(tty_name, TTY_NAME_MAX, procinfo.tty, pid, ABBREV_DEV);
-			printf("process.c -> get_process_tty() -> tty written back: %s\n", tty_name);
-			
-			break;
-		}
-	}
-	
-	closeproc(proctab);
-}
