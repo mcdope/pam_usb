@@ -3,6 +3,7 @@ Section: admin
 Priority: optional
 Maintainer: Tobias Bäumer <tobiasbaeumer@gmail.com>
 Build-Depends: debhelper (>= 10), devscripts, libxml2-dev, libpam0g-dev, libudisks2-dev, pkg-config, libglib2.0-dev, libprocps-dev
+Standards-Version: 4.5.0
 Homepage: https://github.com/mcdope/pam_usb
 
 Package: libpam-usb
