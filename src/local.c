@@ -58,7 +58,7 @@ int pusb_local_login(t_pusb_options *opts, const char *user)
 	const char	*display = getenv("DISPLAY");
 
 	/**
-	 * Magic for tmux, use env var to get tmux client id, which willich  be used to get tty, to set it in utsearch
+	 * Magic for tmux, use env var to get tmux client id, which will be used to get tty, to set it in utsearch
 	 * If display != null we can use that to verify the session, even on tmux.
 	 */
 	if (strstr(name, "tmux") != NULL && display == NULL) {
@@ -90,7 +90,7 @@ int pusb_local_login(t_pusb_options *opts, const char *user)
 			log_debug("		Got tmux_client_tty: %s\n", tmux_client_tty);
 		}
 
-		if(pclose(fp)) {
+		if (pclose(fp)) {
 			log_debug("		Closing pipe for 'tmux list-clients' failed, this is quite a wtf...");
 		}
 
@@ -131,8 +131,7 @@ int pusb_local_login(t_pusb_options *opts, const char *user)
 		log_debug("			utmp->ut_user: %s\n", utent->ut_user);
 	}
 
-	int	i;
-	for (i = 0; i < 4; ++i)
+	for (int i = 0; i < 4; ++i)
 	{
 		/**
 		 * Note: despite the property name this also works for IPv4, v4 addr would be in ut_addr_v6[0] solely.
