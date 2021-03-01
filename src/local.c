@@ -40,7 +40,7 @@ int pusb_local_login(t_pusb_options *opts, const char *user)
 	while (pid != 0) {
 		get_process_name(pid, name);
 		log_debug("	Checking pid %6d (%s)...\n", pid, name);
-        get_process_parent_id(pid, & pid);
+		get_process_parent_id(pid, & pid);
 
 		
 		if (strstr(name, "sshd") != NULL || strstr(name, "telnetd") != NULL) {
