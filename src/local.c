@@ -36,15 +36,13 @@ int pusb_local_login(t_pusb_options *opts, const char *user)
 
 	char name[BUFSIZ];
 	pid_t pid = getpid();
-	pid_t current_pid;
 
 	while (pid != 0) {
-		current_pid = pid;
-
 		get_process_name(pid, name);
-		get_process_parent_id(pid, & pid);
+		log_debug("	Checking pid %6d (%s)...\n", pid, name);
+        get_process_parent_id(pid, & pid);
 
-		log_debug("	Checking pid %6d (%s)...\n", current_pid, name);
+		
 		if (strstr(name, "sshd") != NULL || strstr(name, "telnetd") != NULL) {
 			log_error("One of the parent processes found to be a remote access daemon, denying.\n");
 			return (0);
