@@ -26,8 +26,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <proc/readproc.h>
-#include <proc/devname.h>
 #include "process.h"
 
 /**

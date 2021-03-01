@@ -2,7 +2,7 @@ Source: libpam-usb
 Section: admin
 Priority: optional
 Maintainer: Tobias Bäumer <tobiasbaeumer@gmail.com>
-Build-Depends: debhelper (>= 10), devscripts, libxml2-dev, libpam0g-dev, libudisks2-dev, pkg-config, libglib2.0-dev, libprocps-dev
+Build-Depends: debhelper (>= 10), devscripts, libxml2-dev, libpam0g-dev, libudisks2-dev, pkg-config, libglib2.0-dev
 Standards-Version: 4.5.0
 Homepage: https://github.com/mcdope/pam_usb
 
@@ -10,6 +10,6 @@ Package: libpam-usb
 Architecture: any
 # Multi-Arch: same
 Pre-Depends: libpam-runtime (>= 1.0.1-6~), ${misc:Pre-Depends}
-Depends: ${shlibs:Depends}, ${misc:Depends}, python3, python3-gi, udisks2, gir1.2-udisks-2.0, libpam0g, libxml2, libglib2.0-0, libprocps8
+Depends: ${shlibs:Depends}, ${misc:Depends}, python3, python3-gi, udisks2, gir1.2-udisks-2.0, libpam0g, libxml2, libglib2.0-0
 Description: Adds auth over usb-stick to pam
  Provides a new pam module, pam_usb.so, that can be used in pam.d/common-auth
