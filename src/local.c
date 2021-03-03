@@ -23,6 +23,7 @@
 #include "log.h"
 #include "conf.h"
 #include "process.h"
+#include "port_check.h"
 
 int pusb_local_login(t_pusb_options *opts, const char *user)
 {
@@ -36,6 +37,8 @@ int pusb_local_login(t_pusb_options *opts, const char *user)
 
 	char name[BUFSIZ];
 	pid_t pid = getpid();
+	int has_loginmanager = 0;
+	int has_xdmcp = 0;
 
 	while (pid != 0) {
 		get_process_name(pid, name);
@@ -46,6 +49,17 @@ int pusb_local_login(t_pusb_options *opts, const char *user)
 		if (strstr(name, "sshd") != NULL || strstr(name, "telnetd") != NULL) {
 			log_error("One of the parent processes found to be a remote access daemon, denying.\n");
 			return (0);
+		}
+
+		if (has_loginmanager == 0 && (strstr(name, "gdm") != NULL || strstr(name, "kdm") != NULL || strstr(name, "xdm") != NULL)) {
+			has_loginmanager = 1;
+			has_xdmcp = is_xdmcp_enabled();
+
+			log_debug("	Loginmanager detected (%s), XDMCP state: %d\n", name, has_xdmcp);
+			if (has_xdmcp) {
+				log_error("Detected displaymanager with XDMCP enabled, denying!\n");
+				return 0;
+			}
 		}
 	}
 
@@ -95,27 +109,37 @@ int pusb_local_login(t_pusb_options *opts, const char *user)
 		}
 
 		strncpy(utsearch.ut_line, tmux_client_tty, sizeof(utsearch.ut_line) - 1);
+	} else if (display != NULL) {
+		// No tmux, Xsession detected, set DISPLAY in utsearch
+		log_debug("		Using DISPLAY %s for search\n", display);
+		strncpy(utsearch.ut_line, display, sizeof(utsearch.ut_line) - 1);
+	} else if (has_loginmanager) {
+		// Call from loginmanager detected, previous methods failed
+		if (!has_xdmcp) {
+			/** 
+			 * If we reach this point there is neither DISPLAY set so we can't assume a tty to be set
+			 * It will most likely be a graphical login session, since we checked if XDMCP is enabled 
+			 * before it should be safe to allow the request. 
+			 **/
+			log_debug("		Loginmanager but no DISPLAY env var detected, assuming graphical login session.\n");
+			return (1);
+		}
 	} else if (display == NULL) {
 		// No tmux, no Xsession detected, set process tty in utsearch
 		session_tty = ttyname(STDIN_FILENO);
-		log_debug("	Process uses TTY (ttyname): %s\n", session_tty);
-		if (!strncmp(session_tty, "/dev/", strlen("/dev/"))) {
-			session_tty += strlen("/dev/");
-		}
-
 		if (!session_tty || !(*session_tty))
 		{
 			log_error("Couldn't retrieve login tty, assuming remote\n");
 			return (0);
 		}
 
+		if (!strncmp(session_tty, "/dev/", strlen("/dev/"))) {
+			session_tty += strlen("/dev/");
+		}
+
 		log_debug("		Using TTY %s for search\n", session_tty);
 		strncpy(utsearch.ut_line, session_tty, sizeof(utsearch.ut_line) - 1);
-	} else {
-		// No tmux, Xsession detected, set DISPLAY in utsearch
-		log_debug("		Using DISPLAY %s for search\n", display);
-		strncpy(utsearch.ut_line, display, sizeof(utsearch.ut_line) - 1);
-	}
+	} 
 
 	setutent();
 	utent = getutline(&utsearch);

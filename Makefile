@@ -26,6 +26,7 @@ SRCS		:= src/conf.c \
 		   src/pad.c \
 		   src/volume.c \
 		   src/process.c \
+		   src/port_check.c \
 		   src/local.c \
 		   src/device.c
 OBJS		:= $(SRCS:.c=.o)
