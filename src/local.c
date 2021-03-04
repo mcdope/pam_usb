@@ -24,20 +24,18 @@
 #include "conf.h"
 #include "process.h"
 
-int pusb_local_login(t_pusb_options *opts, const char *user)
+int pusb_local_login(t_pusb_options *opts, const char *user, const char *service)
 {
 	if (!opts->deny_remote)
 	{
-	  log_debug("deny_remote is disabled. Skipping local check.\n");
-	  return (1);
+		log_debug("deny_remote is disabled. Skipping local check.\n");
+		return (1);
 	}
 
 	log_debug("Checking whether the caller is local or not...\n");
 
 	char name[BUFSIZ];
 	pid_t pid = getpid();
-	int has_loginmanager = 0;
-	int has_xdmcp = 0;
 
 	while (pid != 0) {
 		get_process_name(pid, name);
@@ -48,19 +46,15 @@ int pusb_local_login(t_pusb_options *opts, const char *user)
 			log_error("One of the parent processes found to be a remote access daemon, denying.\n");
 			return (0);
 		}
-
-		if (has_loginmanager == 0 && (strstr(name, "gdm") != NULL || strstr(name, "kdm") != NULL || strstr(name, "xdm") != NULL)) {
-			has_loginmanager = 1;
-			
-			log_debug("	Loginmanager detected (%s), XDMCP state: %d\n", name, has_xdmcp);
-			if (has_xdmcp) {
-				log_error("Detected displaymanager with XDMCP enabled, denying!\n");
-				return 0;
-			}
-		}
 	}
 
-	// No obvious remote access found, use utmp approach on top
+	if (strcmp(service, "gdm-password") == 0 || strcmp(service, "xdm") == 0 || strcmp(service, "lightdm") == 0) {
+		log_debug("	Graphical login request, allowing.");
+		
+		return 1;
+	}
+
+	// No obvious remote access found, use utmp approach on top to secure sudo / tty requests
 	log_debug("	Checking utmp...\n");
 
 	struct utmp	utsearch;
@@ -110,17 +104,6 @@ int pusb_local_login(t_pusb_options *opts, const char *user)
 		// No tmux, Xsession detected, set DISPLAY in utsearch
 		log_debug("		Using DISPLAY %s for search\n", display);
 		strncpy(utsearch.ut_line, display, sizeof(utsearch.ut_line) - 1);
-	} else if (has_loginmanager) {
-		// Call from loginmanager detected, previous methods failed
-		if (!has_xdmcp) {
-			/** 
-			 * If we reach this point there is neither DISPLAY set so we can't assume a tty to be set
-			 * It will most likely be a graphical login session, since we checked if XDMCP is enabled 
-			 * before it should be safe to allow the request. 
-			 **/
-			log_debug("		Loginmanager but no DISPLAY env var detected, assuming graphical login session.\n");
-			return (1);
-		}
 	} else if (display == NULL) {
 		// No tmux, no Xsession detected, set process tty in utsearch
 		session_tty = ttyname(STDIN_FILENO);
