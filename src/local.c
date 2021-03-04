@@ -23,7 +23,6 @@
 #include "log.h"
 #include "conf.h"
 #include "process.h"
-#include "port_check.h"
 
 int pusb_local_login(t_pusb_options *opts, const char *user)
 {
@@ -45,7 +44,6 @@ int pusb_local_login(t_pusb_options *opts, const char *user)
 		log_debug("	Checking pid %6d (%s)...\n", pid, name);
 		get_process_parent_id(pid, & pid);
 
-		
 		if (strstr(name, "sshd") != NULL || strstr(name, "telnetd") != NULL) {
 			log_error("One of the parent processes found to be a remote access daemon, denying.\n");
 			return (0);
@@ -53,8 +51,7 @@ int pusb_local_login(t_pusb_options *opts, const char *user)
 
 		if (has_loginmanager == 0 && (strstr(name, "gdm") != NULL || strstr(name, "kdm") != NULL || strstr(name, "xdm") != NULL)) {
 			has_loginmanager = 1;
-			has_xdmcp = is_xdmcp_enabled();
-
+			
 			log_debug("	Loginmanager detected (%s), XDMCP state: %d\n", name, has_xdmcp);
 			if (has_xdmcp) {
 				log_error("Detected displaymanager with XDMCP enabled, denying!\n");
