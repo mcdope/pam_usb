@@ -104,7 +104,7 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 		// No tmux, Xsession detected, set DISPLAY in utsearch
 		log_debug("		Using DISPLAY %s for search\n", display);
 		strncpy(utsearch.ut_line, display, sizeof(utsearch.ut_line) - 1);
-	} else if (display == NULL) {
+	} else {
 		// No tmux, no Xsession detected, set process tty in utsearch
 		session_tty = ttyname(STDIN_FILENO);
 		if (!session_tty || !(*session_tty))
