@@ -20,4 +20,6 @@
 
 int pusb_local_login(t_pusb_options *opts, const char *user, const char *service);
 
+int pusb_is_tty_local(char *tty);
+
 #endif /* !PUSB_LOCAL_H_ */

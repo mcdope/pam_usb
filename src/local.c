@@ -23,6 +23,47 @@
 #include "log.h"
 #include "conf.h"
 #include "process.h"
+#include "tmux.h"
+
+int pusb_is_tty_local(char *tty)
+{
+    struct utmp	utsearch;
+    struct utmp	*utent;
+
+    strncpy(utsearch.ut_line, tty, sizeof(utsearch.ut_line) - 1);
+
+    setutent();
+    utent = getutline(&utsearch);
+    endutent();
+
+    if (!utent)
+    {
+        log_error("No utmp entry found for tty \"%s\"\n", utsearch.ut_line);
+        return (0);
+    } else {
+        log_debug("		utmp entry for tty \"%s\" found\n", tty);
+        log_debug("			utmp->ut_pid: %d\n", utent->ut_pid);
+        log_debug("			utmp->ut_user: %s\n", utent->ut_user);
+    }
+
+    for (int i = 0; i < 4; ++i)
+    {
+        /**
+         * Note: despite the property name this also works for IPv4, v4 addr would be in ut_addr_v6[0] solely.
+         * See utmp man (http://manpages.ubuntu.com/manpages/bionic/de/man5/utmp.5.html)
+         **/
+        if (utent->ut_addr_v6[i] != 0)
+        {
+            log_error("Remote authentication request: %s\n", utent->ut_host);
+            return (0);
+        } else {
+            log_debug("		Checking utmp->ut_addr_v6[%d]\n", i);
+        }
+    }
+
+    log_debug("	utmp check successful, request originates from a local source!\n");
+    return (1);
+}
 
 int pusb_local_login(t_pusb_options *opts, const char *user, const char *service)
 {
@@ -36,6 +77,7 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 
 	char name[BUFSIZ];
 	pid_t pid = getpid();
+    int local_request = 0;
 
 	while (pid != 0) {
 		get_process_name(pid, name);
@@ -49,16 +91,10 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 	}
 
 	if (strcmp(service, "gdm-password") == 0 || strcmp(service, "xdm") == 0 || strcmp(service, "lightdm") == 0) {
-		log_debug("	Graphical login request, allowing.");
-		
-		return 1;
+		log_debug("	Graphical login request detected, assuming local.");
+		local_request = 1;
 	}
 
-	// No obvious remote access found, use utmp approach on top to secure sudo / tty requests
-	log_debug("	Checking utmp...\n");
-
-	struct utmp	utsearch;
-	struct utmp	*utent;
 	const char	*session_tty;
 	const char	*display = getenv("DISPLAY");
 
@@ -66,92 +102,37 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 	 * Magic for tmux, use env var to get tmux client id, which will be used to get tty, to set it in utsearch
 	 * If display != null we can use that to verify the session, even on tmux.
 	 */
-	if (strstr(name, "tmux") != NULL && display == NULL) {
-		const char *tmux_details = getenv("TMUX");
-		if (tmux_details == NULL) {
-			log_error("tmux detected, but TMUX env var missing. Denying since remote check impossible without it!\n");
-			return (0);
-		}
+	if (!local_request && strstr(name, "tmux") != NULL && display == NULL) {
+		char *tmux_client_tty = tmux_get_client_tty();
+		local_request = pusb_is_tty_local(tmux_client_tty);
+	}
 
-		char *tmux_client_id = strrchr(tmux_details, ',');
-		tmux_client_id++; // ... to strip leading comma
-		log_debug("		Got tmux_client_id: %s\n", tmux_client_id);
+	if (!local_request && display != NULL) {
+		log_debug("		Using DISPLAY %s for utmp search\n", display);
+		local_request = pusb_is_tty_local((char *) display);
+	}
 
-		char get_tmux_session_details_cmd[32];
-		sprintf(get_tmux_session_details_cmd, "tmux list-clients -t %s", tmux_client_id);
-		log_debug("		Built get_tmux_session_details_cmd: %s\n", get_tmux_session_details_cmd);
-
-		char buf[BUFSIZ];
-		FILE *fp;
-		if ((fp = popen(get_tmux_session_details_cmd, "r")) == NULL) {
-			log_error("tmux detected, but couldn't get session details. Denying since remote check impossible without it!\n");
-			return (0);
-		}
-
-		char *tmux_client_tty = NULL;
-		if (fgets(buf, BUFSIZ, fp) != NULL) {
-			tmux_client_tty = strtok(buf, ":");
-			tmux_client_tty += strlen("/dev/");
-			log_debug("		Got tmux_client_tty: %s\n", tmux_client_tty);
-		}
-
-		if (pclose(fp)) {
-			log_debug("		Closing pipe for 'tmux list-clients' failed, this is quite a wtf...");
-		}
-
-		strncpy(utsearch.ut_line, tmux_client_tty, sizeof(utsearch.ut_line) - 1);
-	} else if (display != NULL) {
-		// No tmux, Xsession detected, set DISPLAY in utsearch
-		log_debug("		Using DISPLAY %s for search\n", display);
-		strncpy(utsearch.ut_line, display, sizeof(utsearch.ut_line) - 1);
-	} else {
-		// No tmux, no Xsession detected, set process tty in utsearch
+	if (!local_request) {
 		session_tty = ttyname(STDIN_FILENO);
 		if (!session_tty || !(*session_tty))
 		{
 			log_error("Couldn't retrieve login tty, assuming remote\n");
-			return (0);
-		}
-
-		if (!strncmp(session_tty, "/dev/", strlen("/dev/"))) {
-			session_tty += strlen("/dev/");
-		}
-
-		log_debug("		Using TTY %s for search\n", session_tty);
-		strncpy(utsearch.ut_line, session_tty, sizeof(utsearch.ut_line) - 1);
-	} 
-
-	setutent();
-	utent = getutline(&utsearch);
-	endutent();
-
-	if (!utent)
-	{
-		log_error("No utmp entry found for tty \"%s\", assuming remote\n", utsearch.ut_line);
-		return (0);
-	} else {
-		log_debug("		utmp entry found\n");
-		log_debug("			utmp->ut_pid: %d\n", utent->ut_pid);
-		log_debug("			utmp->ut_user: %s\n", utent->ut_user);
-	}
-
-	for (int i = 0; i < 4; ++i)
-	{
-		/**
-		 * Note: despite the property name this also works for IPv4, v4 addr would be in ut_addr_v6[0] solely.
-		 * See utmp man (http://manpages.ubuntu.com/manpages/bionic/de/man5/utmp.5.html)
-		 **/
-		if (utent->ut_addr_v6[i] != 0)
-		{
-			log_error("Remote authentication request: %s\n", utent->ut_host);
-			return (0);
 		} else {
-			log_debug("		Checking utmp->ut_addr_v6[%d]\n", i);
+            if (!strncmp(session_tty, "/dev/", strlen("/dev/"))) {
+                session_tty += strlen("/dev/");
+            }
+
+            log_debug("		Using TTY %s for search\n", session_tty);
+            local_request = pusb_is_tty_local((char *) session_tty);
 		}
 	}
 
-	log_debug("	utmp check successful!\n");
-	
-	log_debug("No remote daemons or multiplexer sessions found in process chain, seems to be local request - allowing.\n");
-	return (1);
+    if (local_request) {
+        log_debug("No remote access detected, seems to be local request - allowing.\n");
+    } else {
+        log_debug("Couldn't confirm login tty to be local - denying.\n");
+    }
+
+    return local_request;
 }
+
