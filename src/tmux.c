@@ -19,21 +19,31 @@
 #include <string.h>
 #include <stdlib.h>
 #include "log.h"
+#include "process.h"
 
-char* tmux_get_client_tty()
+char *tmux_get_client_tty(pid_t env_pid)
 {
-    const char *tmux_details = getenv("TMUX");
+    char *tmux_details = getenv("TMUX");
     if (tmux_details == NULL) {
-        log_error("tmux detected, but TMUX env var missing. Denying since remote check impossible without it!\n");
-        return (0);
+        log_debug("		No TMUX env var, checking parent process in case this is a sudo request\n");
+
+        tmux_details = (char *)malloc(BUFSIZ);
+        tmux_details = get_process_envvar(env_pid, "TMUX");
+
+        if (tmux_details == NULL) {
+            return NULL;
+        }
     }
 
     char *tmux_client_id = strrchr(tmux_details, ',');
     tmux_client_id++; // ... to strip leading comma
     log_debug("		Got tmux_client_id: %s\n", tmux_client_id);
 
-    char get_tmux_session_details_cmd[32];
-    sprintf(get_tmux_session_details_cmd, "tmux list-clients -t %s", tmux_client_id);
+    char *tmux_socket_path = strtok(tmux_details, ",");
+    log_debug("		Got tmux_socket_path: %s\n", tmux_socket_path);
+
+    char get_tmux_session_details_cmd[64];
+    sprintf(get_tmux_session_details_cmd, "tmux -S %s list-clients -t %s", tmux_socket_path, tmux_client_id);
     log_debug("		Built get_tmux_session_details_cmd: %s\n", get_tmux_session_details_cmd);
 
     char buf[BUFSIZ];
@@ -48,11 +58,14 @@ char* tmux_get_client_tty()
         tmux_client_tty = strtok(buf, ":");
         tmux_client_tty += strlen("/dev/");
         log_debug("		Got tmux_client_tty: %s\n", tmux_client_tty);
-    }
 
-    if (pclose(fp)) {
-        log_debug("		Closing pipe for 'tmux list-clients' failed, this is quite a wtf...");
-    }
+        if (pclose(fp)) {
+            log_debug("		Closing pipe for 'tmux list-clients' failed, this is quite a wtf...\n");
+        }
 
-    return tmux_client_tty;
+        return tmux_client_tty;
+    } else {
+        log_error("tmux detected, but couldn't get client details. Denying since remote check impossible without it!\n");
+        return (0);
+    }
 }

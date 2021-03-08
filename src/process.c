@@ -74,3 +74,40 @@ void get_process_parent_id(const pid_t pid, pid_t * ppid) {
 		fclose(fp);
 	}
 }
+
+/**
+ * Read environment variable of another process
+ *
+ * @param pid pid of process to read the environment of
+ * @param var envvar to look up
+ *
+ * @return content of var if found, else NULL
+ */
+char *get_process_envvar(pid_t pid, char *var)
+{
+	char buffer[BUFSIZ];
+	sprintf(buffer, "/proc/%d/environ", pid);
+	FILE* fp = fopen(buffer, "r");
+	char *variable_content = (char *)malloc(BUFSIZ);
+	if (fp) {
+		size_t size = fread(buffer, sizeof (char), sizeof (buffer), fp);
+		fclose(fp);
+		for (int i = 0 ; i < size; i++) {
+			if (!buffer[i] && i != size) buffer[i] = '#'; // replace \0 with "#" since strtok uses \0 internally
+		}
+
+		if (size > 0) {
+			variable_content = strtok(buffer, "#");
+			while (variable_content != NULL)
+			{
+				if (strncmp(var, variable_content, strlen(var)) == 0) {
+					return variable_content + strlen(var) + 1;
+				}
+
+				variable_content = strtok(NULL, "#");
+			}
+		}
+	}
+
+	return NULL;
+}
