@@ -21,14 +21,14 @@
 #include "log.h"
 #include "process.h"
 
-char *tmux_get_client_tty(pid_t env_pid)
+char *pusb_tmux_get_client_tty(pid_t env_pid)
 {
     char *tmux_details = getenv("TMUX");
     if (tmux_details == NULL) {
         log_debug("		No TMUX env var, checking parent process in case this is a sudo request\n");
 
         tmux_details = (char *)malloc(BUFSIZ);
-        tmux_details = get_process_envvar(env_pid, "TMUX");
+        tmux_details = pusb_get_process_envvar(env_pid, "TMUX");
 
         if (tmux_details == NULL) {
             return NULL;

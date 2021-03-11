@@ -35,7 +35,7 @@
  * 
  * Source: http://stackoverflow.com/questions/15545341/process-name-from-its-pid-in-linux
  */
-void get_process_name(const pid_t pid, char * name) {
+void pusb_get_process_name(const pid_t pid, char * name) {
 	char procfile[BUFSIZ];
 	sprintf(procfile, "/proc/%d/cmdline", pid);
 	FILE* f = fopen(procfile, "r");

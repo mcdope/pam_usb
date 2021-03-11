@@ -25,10 +25,10 @@
 
 #include <unistd.h>
 
-void get_process_name(const pid_t pid, char * name);
+void pusb_get_process_name(const pid_t pid, char * name);
 
-void get_process_parent_id(const pid_t pid, pid_t * ppid);
+void pusb_get_process_parent_id(const pid_t pid, pid_t * ppid);
 
-char *get_process_envvar(pid_t pid, char *var);
+char *pusb_get_process_envvar(pid_t pid, char *var);
 
 #endif /* !PUSB_PROCESS_H_ */

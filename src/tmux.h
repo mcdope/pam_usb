@@ -18,6 +18,6 @@
 #ifndef PUSB_TMUX_H_
 # define PUSB_TMUX_H_
 
-char *tmux_get_client_tty(pid_t tmux_pid);
+char *pusb_tmux_get_client_tty(pid_t tmux_pid);
 
 #endif /* !PUSB_TMUX_H_ */

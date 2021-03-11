@@ -183,7 +183,7 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 	int local_request = 0;
 
 	while (pid != 0) {
-		get_process_name(pid, name);
+		pusb_get_process_name(pid, name);
 		log_debug("	Checking pid %6d (%s)...\n", pid, name);
 
 		if (strstr(name, "tmux") != NULL) {
@@ -192,7 +192,7 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 		}
 
 		previous_pid = pid;
-		get_process_parent_id(pid, & pid);
+		pusb_get_process_parent_id(pid, & pid);
 		if (strstr(name, "sshd") != NULL || strstr(name, "telnetd") != NULL) {
 			log_error("One of the parent processes found to be a remote access daemon, denying.\n");
 			return (0);
@@ -208,7 +208,7 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 	const char	*display = getenv("DISPLAY");
 
 	if (local_request == 0 && strstr(name, "tmux") != NULL) {
-		char *tmux_client_tty = tmux_get_client_tty(tmux_pid);
+		char *tmux_client_tty = pusb_tmux_get_client_tty(tmux_pid);
 		if (tmux_client_tty != NULL) {
 			local_request = pusb_is_tty_local(tmux_client_tty);
 		}
