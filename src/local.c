@@ -71,7 +71,7 @@ int pusb_is_tty_local(char *tty)
 	return (1);
 }
 
-char *pusb_get_xorg_tty(const char *display)
+char *pusb_get_tty_from_xorg_process(const char *display)
 {
 	DIR *d_proc = opendir("/proc");
 	if (d_proc == NULL)
@@ -143,6 +143,25 @@ char *pusb_get_xorg_tty(const char *display)
 	return NULL;
 }
 
+char *pusb_get_tty_by_xorg_display(const char *display, const char *user)
+{
+	struct utmp	*utent;
+
+	setutent();
+	while ((utent = getutent())) {
+		if (strncmp(utent->ut_host, display, strlen(display)) == 0
+			&& strncmp(utent->ut_line, "tty", strlen("tty")) == 0
+			&& strncmp(utent->ut_user, user, strlen(user)) == 0
+		) {
+			endutent();
+			return utent->ut_line;
+		}
+	}
+
+	endutent();
+	return NULL;
+}
+
 int pusb_local_login(t_pusb_options *opts, const char *user, const char *service)
 {
 	if (!opts->deny_remote)
@@ -196,10 +215,26 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 		local_request = pusb_is_tty_local((char *) display);
 
 		char *xorg_tty = (char *)malloc(32);
-		xorg_tty = pusb_get_xorg_tty(display);
-		if (!local_request && xorg_tty != NULL) {
-			log_debug("	Retrying with tty %s, obtained from Xorg, for utmp search\n", xorg_tty);
-			local_request = pusb_is_tty_local(xorg_tty);
+		if (!local_request)
+		{
+			xorg_tty = pusb_get_tty_from_xorg_process(display);
+
+			if (xorg_tty != NULL)
+			{
+				log_debug("	Retrying with tty %s, obtained from Xorg, for utmp search\n", xorg_tty);
+				local_request = pusb_is_tty_local(xorg_tty);
+			}
+
+			if (!local_request)
+			{
+				xorg_tty = pusb_get_tty_by_xorg_display(display, user);
+
+				if (xorg_tty != NULL)
+				{
+					log_debug("	Retrying with tty %s, obtained by DISPLAY, for utmp search\n", xorg_tty);
+					local_request = pusb_is_tty_local(xorg_tty);
+				}
+			}
 		}
 	}
 

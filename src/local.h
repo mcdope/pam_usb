@@ -22,6 +22,8 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 
 int pusb_is_tty_local(char *tty);
 
-char *pusb_get_xorg_tty(const char *display);
+char *pusb_get_tty_from_xorg_process(const char *display);
+
+char *pusb_get_tty_by_xorg_display(const char *display, const char *user);
 
 #endif /* !PUSB_LOCAL_H_ */
