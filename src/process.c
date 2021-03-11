@@ -57,7 +57,7 @@ void pusb_get_process_name(const pid_t pid, char * name) {
  * 
  * Note: init is 1 and it has a parent id of 0.
  */
-void get_process_parent_id(const pid_t pid, pid_t * ppid) {
+void pusb_get_process_parent_id(const pid_t pid, pid_t * ppid) {
 	char buffer[BUFSIZ];
 	sprintf(buffer, "/proc/%d/stat", pid);
 	FILE* fp = fopen(buffer, "r");
@@ -83,7 +83,7 @@ void get_process_parent_id(const pid_t pid, pid_t * ppid) {
  *
  * @return content of var if found, else NULL
  */
-char *get_process_envvar(pid_t pid, char *var)
+char *pusb_get_process_envvar(pid_t pid, char *var)
 {
 	char buffer[BUFSIZ];
 	sprintf(buffer, "/proc/%d/environ", pid);
