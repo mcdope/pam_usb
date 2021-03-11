@@ -174,7 +174,7 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 		return (1);
 	}
 
-	log_debug("Checking whether the caller is local or not...\n");
+	log_debug("Checking whether the caller (%s) is local or not...\n", service);
 
 	char name[BUFSIZ];
 	pid_t pid = getpid();
@@ -199,7 +199,7 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 		}
 	}
 
-	if (strcmp(service, "gdm-password") == 0 || strcmp(service, "xdm") == 0 || strcmp(service, "lightdm") == 0) {
+	if (strcmp(service, "gdm-password") == 0 || strcmp(service, "xdm") == 0 || strcmp(service, "lightdm") == 0 || strcmp(service, "sddm") == 0) {
 		log_debug("	Graphical login request detected, assuming local.");
 		local_request = 1;
 	}
