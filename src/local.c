@@ -150,8 +150,12 @@ char *pusb_get_tty_by_xorg_display(const char *display, const char *user)
 	setutent();
 	while ((utent = getutent())) {
 		if (strncmp(utent->ut_host, display, strlen(display)) == 0
-			&& strncmp(utent->ut_line, "tty", strlen("tty")) == 0
 			&& strncmp(utent->ut_user, user, strlen(user)) == 0
+			&& (
+				strncmp(utent->ut_line, "tty", strlen("tty")) == 0
+				|| strncmp(utent->ut_line, "console", strlen("console")) == 0
+				|| strncmp(utent->ut_line, "pts", strlen("pts")) == 0
+			)
 		) {
 			endutent();
 			return utent->ut_line;
@@ -215,8 +219,9 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 		local_request = pusb_is_tty_local((char *) display);
 
 		char *xorg_tty = (char *)malloc(32);
-		if (!local_request)
+		if (local_request == 0)
 		{
+			log_debug("	Trying to get tty from Xorg process\n");
 			xorg_tty = pusb_get_tty_from_xorg_process(display);
 
 			if (xorg_tty != NULL)
@@ -225,8 +230,9 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 				local_request = pusb_is_tty_local(xorg_tty);
 			}
 
-			if (!local_request)
+			if (local_request == 0)
 			{
+				log_debug("	Trying to get tty by DISPLAY\n");
 				xorg_tty = pusb_get_tty_by_xorg_display(display, user);
 
 				if (xorg_tty != NULL)
