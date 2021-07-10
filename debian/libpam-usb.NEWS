@@ -1,4 +1,16 @@
-libpam-usb (0.7.0) focal; urgency=medium
+libpam-usb (0.7.4) unstable; urgency=high
+
+  Reworked deny_remote option / local check. It now tries all known
+  methods to obtain the session/login tty and will deny if none confirms
+  a local session.
+
+  Note: this could very well break some things. If you get unexpected 
+  denials please open an issue at https://github.com/mcdope/pam_usb
+  providing the output with debug option enabled.
+
+ -- Tobias Bäumer <tobiasbaeumer@gmail.com>  Sun, 14 Mar 2021 22:23:34 +0100
+
+libpam-usb (0.7.0) unstable; urgency=medium
 
   Configuration format for pamusb-agent events has changed. You will need
   to adjust your config in case you're using it. See the Wiki or the file
