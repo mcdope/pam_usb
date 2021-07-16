@@ -26,6 +26,12 @@ import subprocess
 import sys
 import syslog
 import threading
+import datetime
+import dbus
+import time
+from dbus.mainloop.glib import DBusGMainLoop
+
+DBusGMainLoop(set_as_default=True)
 
 gi.require_version('UDisks', '2.0')
 
@@ -49,6 +55,12 @@ class HotPlugDevice:
 
 	def addCallback(self, callback):
 		self.__callbacks.append(callback)
+
+	def isDeviceConnected(self):
+		if self.__udi is not None:
+			return True
+
+		return False
 
 	def __scanDevices(self):
 		for udi in udisksObjectManager.get_objects():
@@ -153,6 +165,13 @@ logger = Log()
 doc = et.parse(options['configFile'])
 users = doc.findall('users/user')
 
+def login1ManagerDBusIface():
+        system_bus = dbus.SystemBus()
+        proxy = system_bus.get_object('org.freedesktop.login1',
+                                        '/org/freedesktop/login1')
+        login1 = dbus.Interface(proxy, 'org.freedesktop.login1.Manager')
+        return login1
+
 def userDeviceThread(user):
 
 	userName = user.get('id')
@@ -209,16 +228,23 @@ def userDeviceThread(user):
 
 	serial = device.find('serial').text.strip()
 
+	resumeTimestamp = datetime.datetime.min
+
 	def authChangeCallback(event):
 		if event == 'removed':
+			nonlocal resumeTimestamp
+			currentTimestamp = datetime.datetime.now()
+			difference = currentTimestamp - resumeTimestamp
+			if difference.total_seconds() < 5.0:
+				logger.info('Device is removed during suspend, ignoring')
+				return
+
 			logger.info('Device "%s" has been removed, ' \
 					'locking down user "%s"...' % (deviceName, userName))
 
 			for l in events['lock']:
-
 				if len(l['cmd']) != 0:
 					for cmd in l['cmd']:
-
 						logger.info('Running "%s" (as %d:%d)' % (cmd, uid, gid))
 						subprocess.run(cmd.split(), env=l['env'], preexec_fn=runAs(uid, gid))
 
@@ -228,8 +254,10 @@ def userDeviceThread(user):
 			logger.info('Locked.')
 			return
 
+
 		logger.info('Device "%s" has been inserted. ' \
 				'Performing verification...' % deviceName)
+
 		cmdLine = "%s --debug --config=%s --service=pamusb-agent %s" % (
 				options['check'], options['configFile'], userName)
 		logger.info('Executing "%s"' % cmdLine)
@@ -238,10 +266,8 @@ def userDeviceThread(user):
 					'Unlocking user "%s"...' % userName)
 
 			for l in events['unlock']:
-
 				if len(l['cmd']) != 0:
 					for cmd in l['cmd']:
-
 						logger.info('Running "%s" (as %d:%d)' % (cmd, uid, gid))
 						subprocess.run(cmd.split(), env=l['env'], preexec_fn=runAs(uid, gid))
 				
@@ -254,6 +280,25 @@ def userDeviceThread(user):
 		else:
 			logger.info('Authentication failed for device %s. ' \
 				'Keeping user "%s" locked down.' % (deviceName, userName))
+
+	def onSuspendOrResume(start, member=None):
+		nonlocal resumeTimestamp
+		nonlocal hpDev
+
+		if start == True:
+			logger.info('Suspending user "%s"' % (userName))
+			resumeTimestamp = datetime.datetime.max
+		else:
+			logger.info('Resuming user "%s"' % (userName))
+			if hpDev.isDeviceConnected() == True:
+				logger.info('Device is connected for user "%s", unlocking' % (userName))
+				authChangeCallback('added')
+
+			resumeTimestamp = datetime.datetime.now()
+
+	login1Interface = login1ManagerDBusIface()
+	for signal in ['PrepareForSleep', 'PrepareForShutdown']:
+		login1Interface.connect_to_signal(signal, onSuspendOrResume, member_keyword='member')
 
 	hpDev = HotPlugDevice(serial)
 	hpDev.addCallback(authChangeCallback)
