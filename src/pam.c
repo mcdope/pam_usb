@@ -67,7 +67,7 @@ int pam_sm_authenticate(pam_handle_t *pamh, int flags,
 	log_info("Authentication request for user \"%s\" (%s)\n",
 			user, service);
 
-	if (!pusb_local_login(&opts, user, service))
+	if (pusb_local_login(&opts, user, service) != 1)
 	{
 		log_error("Access denied.\n");
 		return (PAM_AUTH_ERR);
@@ -131,7 +131,7 @@ int pam_sm_acct_mgmt(pam_handle_t *pamh, int flags,
 	log_info("Account request for user \"%s\" (%s)\n",
 			user, service);
 
-	if (!pusb_local_login(&opts, user, service))
+	if (pusb_local_login(&opts, user, service) != 1)
 	{
 		log_error("Access denied.\n");
 		return (PAM_AUTH_ERR);

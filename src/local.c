@@ -258,7 +258,9 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 	if (local_request == 1) {
 		log_debug("No remote access detected, seems to be local request - allowing.\n");
 	} else if (local_request == 0) {
-		log_debug("Couldn't confirm login tty to be local - denying.\n");
+		log_debug("Couldn't confirm login tty to be neither local or remote - denying.\n");
+	} else if (local_request == -1) {
+		log_debug("Confirmed remote request - denying.\n");
 	}
 
 	return local_request;

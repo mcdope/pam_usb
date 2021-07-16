@@ -58,7 +58,7 @@ static int pusb_check_perform_authentication(t_pusb_options *opts,
 	}
 	log_info("Authentication request for user \"%s\" (%s)\n",
 			user, service);
-	if (!pusb_local_login(opts, user, service))
+	if (pusb_local_login(opts, user, service) != 0)
 	{
 		log_error("Access denied.\n");
 		return (0);
