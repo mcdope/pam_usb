@@ -19,7 +19,7 @@ source=(
   "pamusb-agent.service"
 )
 sha256sums=('SKIP'
-            'ec4a59f7ed86a7f0dd8e0cca8c8181343e1b69ab95a2d71b80530e0a5f6d07dc')
+            'f5875f0669b2638f36885c305d719072798b5097b15e6c94a8a852bb896bfc5c')
 
 pkgver() {
   cd $pkgname
