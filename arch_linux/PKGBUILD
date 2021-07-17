@@ -14,12 +14,12 @@ backup=(
   "etc/security/pam_usb.conf"
 )
 source=(
-  "git+https://github.com/Fincer/${pkgname}.git"
+  "git+https://github.com/mcdope/${pkgname}.git"
 #  "git+https://github.com/aluzzardi/${pkgname}.git"
   "pamusb-agent.service"
 )
 sha256sums=('SKIP'
-            'f5875f0669b2638f36885c305d719072798b5097b15e6c94a8a852bb896bfc5c')
+            'ec4a59f7ed86a7f0dd8e0cca8c8181343e1b69ab95a2d71b80530e0a5f6d07dc')
 
 pkgver() {
   cd $pkgname
