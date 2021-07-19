@@ -17,7 +17,8 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <stdlib.h>
+#include <stdlib.h>,
+#include <regex.h>
 #include "log.h"
 #include "process.h"
 
@@ -68,4 +69,67 @@ char *pusb_tmux_get_client_tty(pid_t env_pid)
         log_error("tmux detected, but couldn't get client details. Denying since remote check impossible without it!\n");
         return (0);
     }
+}
+
+int pusb_tmux_has_remote_clients(char* username)
+{
+    char buf[BUFSIZ];
+    FILE *fp;
+    if ((fp = popen("w", "r")) == NULL) {
+        log_error("tmux detected, but couldn't get `w`. Denying since remote check for tmux impossible without it!\n");
+        return (-1);
+    }
+
+    regex_t regex;
+    char regex_raw[BUFSIZ];
+    int status;
+    char msgbuf[100];
+    char expr[2][BUFSIZ] = {
+        "(.+)([0-9]{1,3})\\.([0-9]{1,3})\\.([0-9]{1,3})\\.([0-9]{1,3})(.+)tmux a", //v4
+        "(.+)([0-9A-F]{1,4}):([0-9A-F]{1,4}):([0-9A-F]{1,4}):([0-9A-F]{1,4})(.+)tmux a" // v6
+    }; // ... yes, these allow invalid addresses. No, I don't care. This isn't about validation but detecting remote access. Good enough ¯\_(ツ)_/¯
+
+    for (int i = 0; i <= 1; i++) {
+        while (fgets(buf, BUFSIZ, fp) != NULL) {
+            log_debug("Checking w line: %s", buf);
+            sprintf(regex_raw, "%s%s", username, expr[i]);
+            log_debug("Current regex: %s\n", regex_raw);
+
+            /* Compile regular expression */
+            status = regcomp(&regex, regex_raw, REG_EXTENDED);
+            if (status) {
+                log_debug("Couldn't compile regex!\n");
+                regfree(&regex);
+                return (-1);
+            }
+
+            /* Execute regular expression */
+            status = regexec(&regex, buf, 0, NULL, 0);
+            if (!status) {
+                log_error("tmux detected and at least one remote client is connected to the session, denying!\n");
+                regfree(&regex);
+                return 1;
+            }
+            else if (status == REG_NOMATCH) {
+                log_debug("		who line checked, no match (this is good :P)\n");
+            }
+            else {
+                regerror(status, &regex, msgbuf, sizeof(msgbuf));
+                log_debug("wtf - regex match failed: %s\n", msgbuf);
+                regfree(&regex);
+                return -1;
+            }
+
+            regfree(&regex);
+        }
+
+        rewind(fp); //@todo this doesnt work for pipe streams, need to re-open the pipe
+    }
+
+    if (pclose(fp)) {
+        log_debug("		Closing pipe for 'who' failed, this is quite a wtf...\n");
+    }
+
+    // If we would have detected a remote access we would have returned by now. Safe to return 0 now
+    return 0;
 }

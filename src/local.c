@@ -214,6 +214,11 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 		}
 	}
 
+	if (local_request == 0 && strstr(name, "tmux") != NULL && pusb_tmux_has_remote_clients(user) != 0) {
+		// tmux has at least one remote client, can't be sure it isn't this one so denying...
+		return 0;
+	}
+
 	if (local_request == 0 && display != NULL) {
 		log_debug("	Using DISPLAY %s for utmp search\n", display);
 		local_request = pusb_is_tty_local((char *) display);
