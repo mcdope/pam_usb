@@ -17,7 +17,7 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <stdlib.h>,
+#include <stdlib.h>
 #include <regex.h>
 #include "log.h"
 #include "process.h"
@@ -71,6 +71,11 @@ char *pusb_tmux_get_client_tty(pid_t env_pid)
     }
 }
 
+/**
+ * @todo: Github user @fuseteam will still find ways to circumvent this, guess this will need
+ *        refactoring into a generic check with variable command name to also cover other
+ *        multiplexers
+ */
 int pusb_tmux_has_remote_clients(char* username)
 {
     char buf[BUFSIZ];
