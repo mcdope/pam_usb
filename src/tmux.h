@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003-2007 Andrea Luzzardi <scox@sig11.org>
+ * Copyright (c) 2021 Tobias Bäumer <tobiasbaeumer@gmail.com>
  *
  * This file is part of the pam_usb project. pam_usb is free software;
  * you can redistribute it and/or modify it under the terms of the GNU General
@@ -15,15 +15,11 @@
  * Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef PUSB_LOCAL_H_
-# define PUSB_LOCAL_H_
+#ifndef PUSB_TMUX_H_
+# define PUSB_TMUX_H_
 
-int pusb_local_login(t_pusb_options *opts, const char *user, const char *service);
+char *pusb_tmux_get_client_tty(pid_t tmux_pid);
 
-int pusb_is_tty_local(char *tty);
+int pusb_tmux_has_remote_clients(char* username);
 
-char *pusb_get_tty_from_xorg_process(const char *display);
-
-char *pusb_get_tty_by_xorg_display(const char *display, const char *user);
-
-#endif /* !PUSB_LOCAL_H_ */
+#endif /* !PUSB_TMUX_H_ */
