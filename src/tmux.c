@@ -126,7 +126,7 @@ int pusb_tmux_has_remote_clients(const char* username)
         }
 
         if (pclose(fp)) {
-            log_debug("		Closing pipe for 'who' failed, this is quite a wtf...\n");
+            log_debug("		Closing pipe for 'w' failed, this is quite a wtf...\n");
         }
     }
 
