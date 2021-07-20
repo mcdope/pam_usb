@@ -178,8 +178,8 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 
 	char name[BUFSIZ];
 	pid_t pid = getpid();
-	pid_t previous_pid;
-	pid_t tmux_pid;
+	pid_t previous_pid = 0;
+	pid_t tmux_pid = 0;
 	int local_request = 0;
 
 	while (pid != 0) {
@@ -207,7 +207,7 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 	const char	*session_tty;
 	const char	*display = getenv("DISPLAY");
 
-	if (local_request == 0 && strstr(name, "tmux") != NULL) {
+	if (local_request == 0 && strstr(name, "tmux") != NULL && tmux_pid != 0) {
 		char *tmux_client_tty = pusb_tmux_get_client_tty(tmux_pid);
 		if (tmux_client_tty != NULL) {
 			local_request = pusb_is_tty_local(tmux_client_tty);
