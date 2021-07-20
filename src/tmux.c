@@ -80,21 +80,21 @@ int pusb_tmux_has_remote_clients(char* username)
 {
     char buf[BUFSIZ];
     FILE *fp;
-    if ((fp = popen("w", "r")) == NULL) {
-        log_error("tmux detected, but couldn't get `w`. Denying since remote check for tmux impossible without it!\n");
-        return (-1);
-    }
-
     regex_t regex;
     char regex_raw[BUFSIZ];
     int status;
     char msgbuf[100];
     char expr[2][BUFSIZ] = {
         "(.+)([0-9]{1,3})\\.([0-9]{1,3})\\.([0-9]{1,3})\\.([0-9]{1,3})(.+)tmux a", //v4
-        "(.+)([0-9A-F]{1,4}):([0-9A-F]{1,4}):([0-9A-F]{1,4}):([0-9A-F]{1,4})(.+)tmux a" // v6
+        "(.+)([0-9A-Fa-f]{1,4}):([0-9A-Fa-f]{1,4}):([0-9A-Fa-f]{1,4}):([0-9A-Fa-f]{1,4})(.+)tmux a" // v6
     }; // ... yes, these allow invalid addresses. No, I don't care. This isn't about validation but detecting remote access. Good enough ¯\_(ツ)_/¯
 
     for (int i = 0; i <= 1; i++) {
+        if ((fp = popen("w", "r")) == NULL) {
+            log_error("tmux detected, but couldn't get `w`. Denying since remote check for tmux impossible without it!\n");
+            return (-1);
+        }
+
         while (fgets(buf, BUFSIZ, fp) != NULL) {
             log_debug("Checking w line: %s", buf);
             sprintf(regex_raw, "%s%s", username, expr[i]);
@@ -128,11 +128,9 @@ int pusb_tmux_has_remote_clients(char* username)
             regfree(&regex);
         }
 
-        rewind(fp); //@todo this doesnt work for pipe streams, need to re-open the pipe
-    }
-
-    if (pclose(fp)) {
-        log_debug("		Closing pipe for 'who' failed, this is quite a wtf...\n");
+        if (pclose(fp)) {
+            log_debug("		Closing pipe for 'who' failed, this is quite a wtf...\n");
+        }
     }
 
     // If we would have detected a remote access we would have returned by now. Safe to return 0 now
