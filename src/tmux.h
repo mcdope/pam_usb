@@ -20,6 +20,6 @@
 
 char *pusb_tmux_get_client_tty(pid_t tmux_pid);
 
-int pusb_tmux_has_remote_clients(char* username);
+int pusb_tmux_has_remote_clients(const char* username);
 
 #endif /* !PUSB_TMUX_H_ */

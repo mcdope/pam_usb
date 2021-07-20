@@ -76,34 +76,34 @@ char *pusb_tmux_get_client_tty(pid_t env_pid)
  *        refactoring into a generic check with variable command name to also cover other
  *        multiplexers
  */
-int pusb_tmux_has_remote_clients(char* username)
+int pusb_tmux_has_remote_clients(const char* username)
 {
-    char buf[BUFSIZ];
+    int status;
     FILE *fp;
     regex_t regex;
     char regex_raw[BUFSIZ];
-    int status;
+    char buf[BUFSIZ];
     char msgbuf[100];
-    char expr[2][BUFSIZ] = {
+    char regex_tpl[2][BUFSIZ] = {
         "(.+)([0-9]{1,3})\\.([0-9]{1,3})\\.([0-9]{1,3})\\.([0-9]{1,3})(.+)tmux a", //v4
         "(.+)([0-9A-Fa-f]{1,4}):([0-9A-Fa-f]{1,4}):([0-9A-Fa-f]{1,4}):([0-9A-Fa-f]{1,4})(.+)tmux a" // v6
     }; // ... yes, these allow invalid addresses. No, I don't care. This isn't about validation but detecting remote access. Good enough ¯\_(ツ)_/¯
 
     for (int i = 0; i <= 1; i++) {
+        log_debug("		Checking for IPv%d connections...\n", (4 + (i * 2)));
+
         if ((fp = popen("w", "r")) == NULL) {
             log_error("tmux detected, but couldn't get `w`. Denying since remote check for tmux impossible without it!\n");
             return (-1);
         }
 
         while (fgets(buf, BUFSIZ, fp) != NULL) {
-            log_debug("Checking w line: %s", buf);
-            sprintf(regex_raw, "%s%s", username, expr[i]);
-            log_debug("Current regex: %s\n", regex_raw);
+            sprintf(regex_raw, "%s%s", username, regex_tpl[i]);
 
             /* Compile regular expression */
             status = regcomp(&regex, regex_raw, REG_EXTENDED);
             if (status) {
-                log_debug("Couldn't compile regex!\n");
+                log_debug("		Couldn't compile regex!\n");
                 regfree(&regex);
                 return (-1);
             }
@@ -115,12 +115,9 @@ int pusb_tmux_has_remote_clients(char* username)
                 regfree(&regex);
                 return 1;
             }
-            else if (status == REG_NOMATCH) {
-                log_debug("		who line checked, no match (this is good :P)\n");
-            }
-            else {
+            else if (status != REG_NOMATCH) {
                 regerror(status, &regex, msgbuf, sizeof(msgbuf));
-                log_debug("wtf - regex match failed: %s\n", msgbuf);
+                log_debug("		Regex match failed: %s\n", msgbuf);
                 regfree(&regex);
                 return -1;
             }
