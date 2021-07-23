@@ -18,7 +18,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-#include <utmp.h>
+#include <utmpx.h>
 #include <stdlib.h>
 #include <dirent.h>
 #include <fcntl.h>
@@ -29,8 +29,8 @@
 
 int pusb_is_tty_local(char *tty)
 {
-	struct utmp	utsearch;
-	struct utmp	*utent;
+	struct utmpx	utsearch;
+	struct utmpx	*utent;
 
 	if (strstr(tty, "/dev/") != NULL) {
 		tty += strlen("/dev/");
@@ -38,9 +38,9 @@ int pusb_is_tty_local(char *tty)
 
 	strncpy(utsearch.ut_line, tty, sizeof(utsearch.ut_line) - 1);
 
-	setutent();
-	utent = getutline(&utsearch);
-	endutent();
+	setutxent();
+	utent = getutxline(&utsearch);
+	endutxent();
 
 	if (!utent)
 	{
@@ -145,10 +145,10 @@ char *pusb_get_tty_from_xorg_process(const char *display)
 
 char *pusb_get_tty_by_xorg_display(const char *display, const char *user)
 {
-	struct utmp	*utent;
+	struct utmpx	*utent;
 
-	setutent();
-	while ((utent = getutent())) {
+	setutxent();
+	while ((utent = getutxent())) {
 		if (strncmp(utent->ut_host, display, strlen(display)) == 0
 			&& strncmp(utent->ut_user, user, strlen(user)) == 0
 			&& (
@@ -157,12 +157,12 @@ char *pusb_get_tty_by_xorg_display(const char *display, const char *user)
 				|| strncmp(utent->ut_line, "pts", strlen("pts")) == 0
 			)
 		) {
-			endutent();
+			endutxent();
 			return utent->ut_line;
 		}
 	}
 
-	endutent();
+	endutxent();
 	return NULL;
 }
 
