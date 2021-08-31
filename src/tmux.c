@@ -100,7 +100,6 @@ int pusb_tmux_has_remote_clients(const char* username)
         while (fgets(buf, BUFSIZ, fp) != NULL) {
             sprintf(regex_raw, "%s%s", username, regex_tpl[i]);
 
-            /* Compile regular expression */
             status = regcomp(&regex, regex_raw, REG_EXTENDED);
             if (status) {
                 log_debug("		Couldn't compile regex!\n");
@@ -108,7 +107,6 @@ int pusb_tmux_has_remote_clients(const char* username)
                 return (-1);
             }
 
-            /* Execute regular expression */
             status = regexec(&regex, buf, 0, NULL, 0);
             if (!status) {
                 log_error("tmux detected and at least one remote client is connected to the session, denying!\n");

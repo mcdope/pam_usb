@@ -1,4 +1,4 @@
-libpam-usb (0.7.0) unstable; urgency=medium
+libpam-usb (0.7.0) focal; urgency=medium
 
   Configuration format for pamusb-agent events has changed. You will need
   to adjust your config in case you're using it. See the Wiki or the file
