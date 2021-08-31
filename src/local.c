@@ -209,8 +209,10 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 
 	if (local_request == 0 && strstr(name, "tmux") != NULL && tmux_pid != 0) {
 		char *tmux_client_tty = pusb_tmux_get_client_tty(tmux_pid);
-		if (tmux_client_tty != NULL) {
+		if (tmux_client_tty != NULL && tmux_client_tty != 0) {
 			local_request = pusb_is_tty_local(tmux_client_tty);
+		} else if (tmux_client_tty == 0) {
+			return 0;
 		}
 	}
 
