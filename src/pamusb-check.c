@@ -73,7 +73,7 @@ static int pusb_check_perform_authentication(t_pusb_options *opts,
 
 static void pusb_check_usage(const char *name)
 {
-	fprintf(stderr, "Usage: %s [--help] [--debug] [--config=path] [--service=name] [--dump] [--quiet] [--debug]" \
+	fprintf(stderr, "Usage: %s [--help] [--debug] [--config=path] [--service=name] [--dump] [--quiet] [--debug] [--version]" \
 			" <username>\n", name);
 }
 
@@ -97,6 +97,7 @@ int main(int argc, char **argv)
 		{ "dump", 0, 0, 0 },
 		{ "quiet", 0, 0, 0 },
 		{ "debug", 0, 0, 0 },
+		{ "version", 0, 0, 0 },
 		{ 0, 0, 0, 0 }
 	};
 
@@ -118,6 +119,10 @@ int main(int argc, char **argv)
 			quiet = 1;
 		else if (opt == 'D' || (!opt && !strcmp(long_options[opt_index].name, "debug")))
 			debug = 1;
+		else if (opt == 'v' || (!opt && !strcmp(long_options[opt_index].name, "version"))) {
+			fprintf(stderr, "Version 0.8.0\n");
+			return (1);
+		}
 		else if (opt == '?')
 		{
 			pusb_check_usage(argv[0]);
