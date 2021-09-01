@@ -1,3 +1,19 @@
+libpam-usb (0.8.0) unstable; urgency=high
+
+  SECURITY NOTICE:
+
+  Starting with this version most graphical login managers are whitelisted for
+  the local check. This means there will be no check performed if the authentication
+  request is local or not. If you leave your auth medium connected, and have XDMCP 
+  enabled on a public facing network interface you will basicly open your system to 
+  everyone finding it!
+
+  XDMCP is an insecure protocol anyway and you shouldn't use it in public facing
+  scenarios. So this is considered as a non-issue. If you need to use it for 
+  whatever reason do so using a VPN link or similiar closed loops. 
+
+ -- Tobias Bäumer <tobiasbaeumer@gmail.com>  Wed, 01 Sep 2021 22:23:34 +0200
+
 libpam-usb (0.7.0) focal; urgency=medium
 
   Configuration format for pamusb-agent events has changed. You will need

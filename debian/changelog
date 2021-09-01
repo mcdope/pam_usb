@@ -1,3 +1,12 @@
+libpam-usb (0.8.0) unstable; urgency=high
+
+  * [SECURITY!] Massive rework of local check, now properly denies when remote clients are connected via multiplexers (tmux, screen) - huge thanks to Github user @fuseteam for extensive testing [issue #51]
+  * [Enhancement] Whitelisted most login managers for local check
+  * [Enhancement] Agent: workaround for devices being disconnected because of power management events (thx to Github user @uszie)
+  * [Bugfix] fixed pad file syncing behaviour during heavy file IO [issue #57]
+
+ -- Tobias Bäumer <tobiasbaeumer@gmail.com>  Wed, 01 Sep 2021 22:23:34 +0200
+
 libpam-usb (0.7.3) unstable; urgency=high
 
   * Reworked deny_remote option
