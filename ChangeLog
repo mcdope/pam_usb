@@ -1,3 +1,10 @@
+* 0.8.0
+- [SECURITY!] Massive rework of local check, now properly denies when remote clients are connected via multiplexers (tmux, screen) - huge thanks to Github user @fuseteam for extensive testing [issue #51]
+- [Enhancement] Whitelisted most login managers for local check
+- [Enhancement] Agent: workaround for devices being disconnected because of power management events (thx to Github user @uszie)
+- [Bugfix] fixed pad file syncing behaviour during heavy file IO [issue #57]
+- [Enhancement] Added version info to pamusb-conf and pamusb-check
+
 * 0.7.3
 - Reworked deny_remote option
 - Removed unknown_pts_as_local option (not needed anymore)
