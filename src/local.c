@@ -225,6 +225,13 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 
 	if (local_request == 0 && display != NULL) {
 		log_debug("	Using DISPLAY %s for utmp search\n", display);
+
+		if (strstr(display, ".0") != NULL) {
+			// DISPLAY contains not only display but also default screen, truncate screen part in this case
+			log_debug("	DISPLAY contains screen, truncating...\n");
+			memset(display + strlen(display) - 2, 0, 2);
+		}
+
 		local_request = pusb_is_tty_local((char *) display);
 
 		char *xorg_tty = (char *)malloc(32);
