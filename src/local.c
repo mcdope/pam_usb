@@ -180,7 +180,6 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 	pid_t pid = getpid();
 	pid_t previous_pid = 0;
 	pid_t tmux_pid = 0;
-	pid_t polkit_agent_pid = 0;
 	int local_request = 0;
 
 	while (pid != 0) {
@@ -192,12 +191,6 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 			tmux_pid = previous_pid;
 		}
 
-		if (strstr(name, "polkit-agent-helper-1") != NULL) {
-			// contrary to tmux check we want the actual PID here, not the parent pid
-			log_debug("		Setting pid %d for PolicyKit check\n", pid);
-			polkit_agent_pid = pid;
-		}
-
 		previous_pid = pid;
 		pusb_get_process_parent_id(pid, & pid);
 		if (strstr(name, "sshd") != NULL || strstr(name, "telnetd") != NULL) {
@@ -207,19 +200,12 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 	}
 
 	if (strcmp(service, "gdm-password") == 0 || strcmp(service, "xdm") == 0 || strcmp(service, "lightdm") == 0 || strcmp(service, "sddm") == 0) {
-		log_debug("	Graphical login request detected, assuming local.\n");
+		log_debug("	Graphical login request detected, assuming local.");
 		local_request = 1;
 	}
 
 	const char	*session_tty;
-	
-	char* display;
-	display = getenv("DISPLAY");
-	if (strcmp(service, "polkit-1") == 0 && polkit_agent_pid != 0) {
-		log_debug("	PolicyKit detected, obtaining DISPLAY from polkit-agent-helper...\n");
-		display = pusb_get_process_envvar(polkit_agent_pid, "DISPLAY");
-		log_debug("	Got DISPLAY %s\n", display);
-	}
+	const char	*display = getenv("DISPLAY");
 
 	if (local_request == 0 && strstr(name, "tmux") != NULL && tmux_pid != 0) {
 		char *tmux_client_tty = pusb_tmux_get_client_tty(tmux_pid);
