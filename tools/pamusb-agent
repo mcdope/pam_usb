@@ -246,7 +246,7 @@ def userDeviceThread(user):
 				if len(l['cmd']) != 0:
 					for cmd in l['cmd']:
 						logger.info('Running "%s" (as %d:%d)' % (cmd, uid, gid))
-						subprocess.run(cmd.split(), env=l['env'], preexec_fn=runAs(uid, gid))
+						subprocess.run(['sh', '-c', cmd], env=l['env'], preexec_fn=runAs(uid, gid))
 
 				else:
 					logger.info('No commands defined for lock!')
@@ -269,7 +269,7 @@ def userDeviceThread(user):
 				if len(l['cmd']) != 0:
 					for cmd in l['cmd']:
 						logger.info('Running "%s" (as %d:%d)' % (cmd, uid, gid))
-						subprocess.run(cmd.split(), env=l['env'], preexec_fn=runAs(uid, gid))
+						subprocess.run(['sh', '-c', cmd], env=l['env'], preexec_fn=runAs(uid, gid))
 				
 				else:
 					logger.info('No commands defined for unlock!')
