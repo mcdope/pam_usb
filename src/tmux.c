@@ -44,7 +44,7 @@ char *pusb_tmux_get_client_tty(pid_t env_pid)
     log_debug("		Got tmux_socket_path: %s\n", tmux_socket_path);
 
     char get_tmux_session_details_cmd[64];
-    sprintf(get_tmux_session_details_cmd, "tmux -S %s list-clients -t %s", tmux_socket_path, tmux_client_id);
+    sprintf(get_tmux_session_details_cmd, "tmux -S %s list-clients -t \\$%s", tmux_socket_path, tmux_client_id);
     log_debug("		Built get_tmux_session_details_cmd: %s\n", get_tmux_session_details_cmd);
 
     char buf[BUFSIZ];
