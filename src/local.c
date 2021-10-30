@@ -71,7 +71,7 @@ int pusb_is_tty_local(char *tty)
 	return (1);
 }
 
-char *pusb_get_tty_from_xorg_process(const char *display)
+char *pusb_get_tty_from_display_server(const char *display)
 {
 	DIR *d_proc = opendir("/proc");
 	if (d_proc == NULL)
@@ -102,14 +102,15 @@ char *pusb_get_tty_from_xorg_process(const char *display)
 				if (!cmdline[i] && i != bytes_read) cmdline[i] = ' '; // replace \0 with [space]
 			}
 
-			if (strstr(cmdline, "Xorg") != NULL && strstr(cmdline, expected_core) != NULL)
+			if ((strstr(cmdline, "Xorg") != NULL && strstr(cmdline, expected_core) != NULL)
+				|| strstr(cmdline, "gnome-session-binary") != NULL) //@todo: find & add other wayland hosts
 			{
 				memset(fd_path, 0, 32);
 				sprintf(fd_path, "/proc/%s/fd", dent_proc->d_name);
 
 				DIR *d_fd = opendir(fd_path);
 				if (d_fd == NULL) {
-					log_debug("	Determining tty by Xorg failed (running 'pamusb-check' as user?)\n", fd_path);
+					log_debug("	Determining tty by display server failed (running 'pamusb-check' as user?)\n", fd_path);
 					return NULL;
 				}
 
@@ -246,12 +247,12 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 		char *xorg_tty = (char *)malloc(32);
 		if (local_request == 0)
 		{
-			log_debug("	Trying to get tty from Xorg process\n");
-			xorg_tty = pusb_get_tty_from_xorg_process(display);
+			log_debug("	Trying to get tty from display server\n");
+			xorg_tty = pusb_get_tty_from_display_server(display);
 
 			if (xorg_tty != NULL)
 			{
-				log_debug("	Retrying with tty %s, obtained from Xorg, for utmp search\n", xorg_tty);
+				log_debug("	Retrying with tty %s, obtained from display server, for utmp search\n", xorg_tty);
 				local_request = pusb_is_tty_local(xorg_tty);
 			}
 
