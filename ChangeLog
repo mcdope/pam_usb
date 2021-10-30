@@ -1,3 +1,12 @@
+* 0.8.1
+  [CI] Fixed "build & test on own server" job
+  [Enhancement] Fix obtaining tty by DISPLAY if DISPLAY contains a screen identifier
+  [Enhancement] Whitelist policykit since obtaining the session tty is impossible in some scenarios (exploiting would require an already authenticated session)
+  [Enhancement] Indicate to tmux we specify an id by prepending it with '$'
+  [Enhancement] Fix versioning informations
+  [Enhancement] Fix compatibility with Wayland
+  [Enhancement] Allow execution of complex commands in pamusb-agent
+
 * 0.8.0
 - [SECURITY!] Massive rework of local check, now properly denies when remote clients are connected via multiplexers (tmux, screen) - huge thanks to Github user @fuseteam for extensive testing [issue #51]
 - [Enhancement] Whitelisted most login managers for local check
