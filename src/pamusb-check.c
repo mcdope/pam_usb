@@ -22,6 +22,7 @@
 #include "log.h"
 #include "device.h"
 #include "local.h"
+#include "version.h"
 
 static void pusb_check_conf_dump(t_pusb_options *opts, const char *username,
 		const char *service)
@@ -120,7 +121,7 @@ int main(int argc, char **argv)
 		else if (opt == 'D' || (!opt && !strcmp(long_options[opt_index].name, "debug")))
 			debug = 1;
 		else if (opt == 'v' || (!opt && !strcmp(long_options[opt_index].name, "version"))) {
-			fprintf(stderr, "Version 0.8.0\n");
+			fprintf(stderr, "Version %s\n", PUSB_VERSION);
 			return (1);
 		}
 		else if (opt == '?')
