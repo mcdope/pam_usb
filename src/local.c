@@ -199,8 +199,17 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 		}
 	}
 
-	if (strcmp(service, "gdm-password") == 0 || strcmp(service, "xdm") == 0 || strcmp(service, "lightdm") == 0 || strcmp(service, "sddm") == 0) {
-		log_debug("	Graphical login request detected, assuming local.");
+	/**
+	 * These services are whitelisted because either a) they are graphical login managers and we assume these
+	 * to be available only locally or b) they are authorization agents afters successful authentication.
+	 */
+	if (strcmp(service, "gdm-password") == 0 ||
+		strcmp(service, "xdm") == 0 ||
+		strcmp(service, "lightdm") == 0 ||
+		strcmp(service, "sddm") == 0 ||
+		strcmp(service, "polkit-1") == 0
+	) {
+		log_debug("	Whitelisted request by %s detected, assuming local.\n", service);
 		local_request = 1;
 	}
 
@@ -225,6 +234,13 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 
 	if (local_request == 0 && display != NULL) {
 		log_debug("	Using DISPLAY %s for utmp search\n", display);
+
+		if (strstr(display, ".0") != NULL) {
+			// DISPLAY contains not only display but also default screen, truncate screen part in this case
+			log_debug("	DISPLAY contains screen, truncating...\n");
+			memset(display + strlen(display) - 2, 0, 2);
+		}
+
 		local_request = pusb_is_tty_local((char *) display);
 
 		char *xorg_tty = (char *)malloc(32);
