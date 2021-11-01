@@ -26,4 +26,6 @@ char *pusb_get_tty_from_display_server(const char *display);
 
 char *pusb_get_tty_by_xorg_display(const char *display, const char *user);
 
+char *pusb_get_tty_by_loginctl();
+
 #endif /* !PUSB_LOCAL_H_ */

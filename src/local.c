@@ -167,6 +167,31 @@ char *pusb_get_tty_by_xorg_display(const char *display, const char *user)
 	return NULL;
 }
 
+char *pusb_get_tty_by_loginctl()
+{
+    char loginctl_cmd[90] = "loginctl show-session $(awk '/tty/ {print $1}' <(loginctl)) -p TTY | awk -F= '{print $2}'";
+    char buf[BUFSIZ];
+    FILE *fp;
+
+    if ((fp = popen(loginctl_cmd, "r")) == NULL) {
+        log_debug("		Opening pipe for 'loginctl' failed, this is quite a wtf...\n");
+        return (0);
+    }
+
+    if (fgets(buf, BUFSIZ, fp) != NULL) {
+        log_debug("		Got tty: %s\n", buf);
+
+        if (pclose(fp)) {
+            log_debug("		Closing pipe for 'tmux loginctl-clients' failed, this is quite a wtf...\n");
+        }
+
+        return buf;
+    } else {
+        log_debug("		'loginctl' returned nothing.'\n");
+        return (0);
+    }
+}
+
 int pusb_local_login(t_pusb_options *opts, const char *user, const char *service)
 {
 	if (!opts->deny_remote)
@@ -254,6 +279,8 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 			{
 				log_debug("	Retrying with tty %s, obtained from display server, for utmp search\n", xorg_tty);
 				local_request = pusb_is_tty_local(xorg_tty);
+			} else {
+				log_debug("		Failed, no result while trying to get TTY from display server %s\n", display);
 			}
 
 			if (local_request == 0)
@@ -265,8 +292,23 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 				{
 					log_debug("	Retrying with tty %s, obtained by DISPLAY, for utmp search\n", xorg_tty);
 					local_request = pusb_is_tty_local(xorg_tty);
+				} else {
+					log_debug("		Failed, no result while searching utmp for display %s owned by user %s\n", display, user);
 				}
 			}
+		}
+	}
+
+	if (local_request == 0) {
+		log_debug("	Trying to get tty by loginctl\n");
+
+		session_tty = pusb_get_tty_by_loginctl();
+		if (session_tty != 0)
+		{
+			log_debug("	Retrying with tty %s, obtained by loginctl, for utmp search\n", session_tty);
+			local_request = pusb_is_tty_local(session_tty);
+		} else {
+			log_debug("		Failed, no result while searching utmp for tty %s\n", session_tty);
 		}
 	}
 
@@ -276,7 +318,7 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 		{
 			log_error("Couldn't retrieve login tty, assuming remote\n");
 		} else {
-			log_debug("	Using TTY %s for search\n", session_tty);
+			log_debug("	Fallback: Using TTY %s from ttyname() for search\n", session_tty);
 			local_request = pusb_is_tty_local((char *) session_tty);
 		}
 	}
@@ -291,4 +333,3 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 
 	return local_request;
 }
-
