@@ -180,8 +180,8 @@ char *pusb_get_tty_by_loginctl()
 
     char *tty = NULL;
     if (fgets(buf, BUFSIZ, fp) != NULL) {
-        log_debug("		Got tty: %s\n", buf);
-		tty = strtok(buf, "\n");
+        tty = strtok(buf, "\n");
+        log_debug("		Got tty: %s\n", tty);
 
         if (pclose(fp)) {
             log_debug("		Closing pipe for 'tmux loginctl-clients' failed, this is quite a wtf...\n");
