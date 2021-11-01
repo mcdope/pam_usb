@@ -302,13 +302,15 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 	if (local_request == 0) {
 		log_debug("	Trying to get tty by loginctl\n");
 
-		session_tty = pusb_get_tty_by_loginctl();
-		if (session_tty != 0)
+
+		char *loginctl_tty = (char *)malloc(32);
+		loginctl_tty = pusb_get_tty_by_loginctl();
+		if (loginctl_tty != 0)
 		{
-			log_debug("	Retrying with tty %s, obtained by loginctl, for utmp search\n", session_tty);
-			local_request = pusb_is_tty_local(session_tty);
+			log_debug("	Retrying with tty %s, obtained by loginctl, for utmp search\n", loginctl_tty);
+			local_request = pusb_is_tty_local(loginctl_tty);
 		} else {
-			log_debug("		Failed, no result while searching utmp for tty %s\n", session_tty);
+			log_debug("		Failed, no result while searching utmp for tty %s\n", loginctl_tty);
 		}
 	}
 
