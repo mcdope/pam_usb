@@ -170,7 +170,8 @@ char *pusb_get_tty_by_xorg_display(const char *display, const char *user)
 
 char *pusb_get_tty_by_loginctl()
 {
-	if (stat("/usr/bin/loginctl") != 0) {
+	struct stat sb;
+	if (stat("/usr/bin/loginctl", sb) != 0) {
 		log_debug("		loginctl is not available, skipping\n");
 		return (0);
 	}
