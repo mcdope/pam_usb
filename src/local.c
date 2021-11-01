@@ -178,14 +178,16 @@ char *pusb_get_tty_by_loginctl()
         return (0);
     }
 
+    char *tty = NULL;
     if (fgets(buf, BUFSIZ, fp) != NULL) {
         log_debug("		Got tty: %s\n", buf);
+		tty = strtok(buf, "\n");
 
         if (pclose(fp)) {
             log_debug("		Closing pipe for 'tmux loginctl-clients' failed, this is quite a wtf...\n");
         }
 
-        return buf;
+        return tty;
     } else {
         log_debug("		'loginctl' returned nothing.'\n");
         return (0);
@@ -280,7 +282,7 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 				log_debug("	Retrying with tty %s, obtained from display server, for utmp search\n", xorg_tty);
 				local_request = pusb_is_tty_local(xorg_tty);
 			} else {
-				log_debug("		Failed, no result while trying to get TTY from display server %s\n", display);
+				log_debug("		Failed, no result while trying to get TTY from display server\n");
 			}
 
 			if (local_request == 0)
