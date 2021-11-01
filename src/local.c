@@ -170,6 +170,11 @@ char *pusb_get_tty_by_xorg_display(const char *display, const char *user)
 
 char *pusb_get_tty_by_loginctl()
 {
+	if (stat("/usr/bin/loginctl") != 0) {
+		log_debug("		loginctl is not available, skipping\n");
+		return (0);
+	}
+
     char loginctl_cmd[90] = "loginctl show-session $(awk '/tty/ {print $1}' <(loginctl)) -p TTY | awk -F= '{print $2}'";
     char buf[BUFSIZ];
     FILE *fp;
