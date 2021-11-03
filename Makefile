@@ -3,8 +3,8 @@ DEBUG		:= no
 
 PREFIX		?= /usr
 ARCH := $(shell uname -m)
-UID := $(id -u)
-GID := $(id -g)
+UID := $(shell id -u)
+GID := $(shell id -g)
 
 ifeq ($(ARCH), x86_64)
 	LIBDIR ?= lib/x86_64-linux-gnu
