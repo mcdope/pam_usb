@@ -72,6 +72,7 @@ INSTALL		:= install
 MKDIR		:= mkdir
 DEBUILD := debuild -b -uc -us --lintian-opts --profile debian
 MANCOMPILE := gzip -kf
+DOCKER := docker
 
 ifeq (yes, ${DEBUG})
 	CFLAGS := ${CFLAGS} -ggdb
@@ -119,5 +120,16 @@ debchangelog :
 deb : clean all
 	$(DEBUILD)
 
-deb-sign : deb
-	debsign -S -k$(APT_SIGNING_KEY) `ls -t ../*.changes | head -1`
+deb-sign : build
+	debsign -S -k$(APT_SIGNING_KEY) `ls -t .build/*.changes | head -1`
+
+buildenv :
+	$(DOCKER) build -t mcdope/pam_usb-ubuntu-build .
+
+build : buildenv
+	mkdir -p .build
+	$(DOCKER) run -it \
+		-v`pwd`/.build:/usr/local/src \
+		-v`pwd`:/usr/local/src/pam_usb \
+		--rm mcdope/pam_usb-ubuntu-build \
+		make deb

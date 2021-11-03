@@ -16,4 +16,4 @@ tests/can-actually-be-used/virtual_usb.img
 doc/*.1.gz
 .idea
 .vscode
-
+.build
