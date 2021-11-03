@@ -124,14 +124,12 @@ deb-sign : build
 	debsign -S -k$(APT_SIGNING_KEY) `ls -t .build/*.changes | head -1`
 
 buildenv :
-	$(DOCKER) build -t mcdope/pam_usb-build .
+	$(DOCKER) build -t mcdope/pam_usb-ubuntu-build .
 
 build : buildenv
 	mkdir -p .build
 	$(DOCKER) run -it \
 		-v`pwd`/.build:/usr/local/src \
 		-v`pwd`:/usr/local/src/pam_usb \
-		--rm mcdope/pam_usb-build \
+		--rm mcdope/pam_usb-ubuntu-build \
 		make deb
-	rm -rf .build/pam_usb
-	chown -R `whoami` .build
