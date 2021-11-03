@@ -3,6 +3,8 @@ DEBUG		:= no
 
 PREFIX		?= /usr
 ARCH := $(shell uname -m)
+UID := $(id -u)
+GID := $(id -g)
 
 ifeq ($(ARCH), x86_64)
 	LIBDIR ?= lib/x86_64-linux-gnu
@@ -132,4 +134,4 @@ build : buildenv
 		-v`pwd`/.build:/usr/local/src \
 		-v`pwd`:/usr/local/src/pam_usb \
 		--rm mcdope/pam_usb-ubuntu-build \
-		make deb
+		sh -c "make deb && chown $(UID):$(GID) ../libpam-usb*"
