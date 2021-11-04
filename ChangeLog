@@ -3,7 +3,7 @@
   [Enhancement] Fix obtaining tty by DISPLAY if DISPLAY contains a screen identifier
   [Enhancement] Whitelist policykit since obtaining the session tty is impossible in some scenarios (exploiting would require an already authenticated session)
   [Enhancement] Indicate to tmux we specify an id by prepending it with '$'
-  [Enhancement] Fix versioning informations
+  [Enhancement] Fix versioning information
   [Enhancement] Fix compatibility with Wayland
   [Enhancement] Allow execution of complex commands in pamusb-agent
 

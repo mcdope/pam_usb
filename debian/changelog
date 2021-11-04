@@ -6,11 +6,11 @@ libpam-usb (0.8.1) unstable; urgency=medium
     impossible in some scenarios (exploiting would require an already 
     authenticated session)
   * [Enhancement] Indicate to tmux we specify an id by prepending it with '$'
-  * [Enhancement] Fix versioning informations
+  * [Enhancement] Fix versioning information
   * [Enhancement] Fix compatibility with Wayland
   * [Enhancement] Allow execution of complex commands in pamusb-agent
 
- -- Tobias Bäumer <tobiasbaeumer@gmail.com>  Wed, 31 Oct 2021 18:00:00 +0200
+ -- Tobias Bäumer <tobiasbaeumer@gmail.com>  Thu, 04 Nov 2021 18:00:00 +0100
 
 libpam-usb (0.8.0) unstable; urgency=high
 
