@@ -15,11 +15,8 @@ fi
 # Read UNLOCK_PASSWORD from ~/.keyring_unlock_password
 . ~/.keyring_unlock_password
 
-# Kill maybe autostarted daemon
-killall -q gnome-keyring-daemon
-
-# Perform unlock and start daemon
-echo -n $UNLOCK_PASSWORD | gnome-keyring-daemon --daemonize --login && gnome-keyring-daemon --start
+# Perform unlock
+echo -n $UNLOCK_PASSWORD | gnome-keyring-daemon --daemonize --login
 logger -p local0.notice -t ${0##*/}[$$] Keyring unlocked.
 
 exit 0
