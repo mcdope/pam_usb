@@ -48,7 +48,7 @@ PAMUSB_CHECK		:= pamusb-check
 # Tools
 PAMUSB_CONF		:= pamusb-conf
 PAMUSB_AGENT		:= pamusb-agent
-PAMUSB_KEYRING_GNOME		:= pamusb-keyring-unlock-gnome.sh
+PAMUSB_KEYRING_GNOME		:= pamusb-keyring-unlock-gnome
 TOOLS_DEST		:= $(DESTDIR)$(PREFIX)/bin
 TOOLS_SRC		:= tools
 
