@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# Check for valid authentication
+pamusb-check `whoami` > /dev/null 2>&1 || (logger -p local0.error -t ${0##*/}[$$] pamusb-check failed. && exit 1)
+
 # Check if password file exists and has correct permissions
 if [ ! -f ~/.keyring_unlock_password ]; then
     logger -p local0.notice -t ${0##*/}[$$] No password file found, exiting.
@@ -20,7 +23,7 @@ killall -q gnome-keyring-daemon
 
 # Perform unlock
 echo -n $UNLOCK_PASSWORD | gnome-keyring-daemon --daemonize --login \
-    && gnome-keyring-daemon --start; UNLOCKED=$? \
+    && gnome-keyring-daemon --start  > /dev/null 2>&1; UNLOCKED=$? \
     && logger -p local0.notice -t ${0##*/}[$$] Keyring unlocked. \
     || logger -p local0.error -t ${0##*/}[$$] Keyring unlock failed.
 
