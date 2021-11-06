@@ -1,6 +1,10 @@
 #!/bin/bash
 
-# Check if password file has correct permissions
+# Check if password file exists and has correct permissions
+if [ ! -f "~/.keyring_unlock_password" ]; then
+    exit 0
+fi
+
 PERMISSIONS=`stat -c "%a %n" ~/.keyring_unlock_password | awk '{print $1}'`
 if [[ $PERMISSIONS -lt 600 || $PERMISSIONS -gt 600 ]]
 then
