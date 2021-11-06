@@ -12,11 +12,16 @@ if [ ! "$PERMISSIONS" = "600" ]; then
     exit 1
 fi
 
+# Kill existing keyring instance
+killall -q gnome-keyring-daemon
+
 # Read UNLOCK_PASSWORD from ~/.keyring_unlock_password
 . ~/.keyring_unlock_password
 
 # Perform unlock
-echo -n $UNLOCK_PASSWORD | gnome-keyring-daemon --daemonize --login
-logger -p local0.notice -t ${0##*/}[$$] Keyring unlocked.
+echo -n $UNLOCK_PASSWORD | gnome-keyring-daemon --daemonize --login \
+    && gnome-keyring-daemon --start; UNLOCKED=$? \
+    && logger -p local0.notice -t ${0##*/}[$$] Keyring unlocked. \
+    || logger -p local0.error -t ${0##*/}[$$] Keyring unlock failed.
 
-exit 0
+exit $UNLOCKED
