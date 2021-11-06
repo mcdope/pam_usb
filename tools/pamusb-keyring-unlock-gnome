@@ -2,12 +2,13 @@
 
 # Check if password file exists and has correct permissions
 if [ ! -f ~/.keyring_unlock_password ]; then
+    logger -p local0.notice -t ${0##*/}[$$] No password file found, exiting.
     exit 0
 fi
 
 PERMISSIONS=`stat -c "%a %n" ~/.keyring_unlock_password | awk '{print $1}'`
 if [ ! "$PERMISSIONS" = "600" ]; then
-    echo "Error: bad permissions on ~/.keyring_unlock_password. Please change them to 0600."
+    logger -p local0.error -t ${0##*/}[$$] Bad permissions on ~/.keyring_unlock_password. Please change them to 0600.
     exit 1
 fi
 
@@ -19,5 +20,6 @@ killall -q gnome-keyring-daemon
 
 # Perform unlock and start daemon
 echo -n $UNLOCK_PASSWORD | gnome-keyring-daemon --daemonize --login && gnome-keyring-daemon --start
+logger -p local0.notice -t ${0##*/}[$$] Keyring unlocked.
 
 exit 0
