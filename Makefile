@@ -5,9 +5,14 @@ PREFIX		?= /usr
 ARCH := $(shell uname -m)
 UID := $(shell id -u)
 GID := $(shell id -g)
+USE_FEDORA_LIBDIR := $(shell test -d /lib64/security && echo 1 || echo 0)
 
 ifeq ($(ARCH), x86_64)
-	LIBDIR ?= lib/x86_64-linux-gnu
+	ifeq ($(USE_FEDORA_LIBDIR), 1)
+        LIBDIR ?= lib64/security
+	else
+		LIBDIR ?= lib/x86_64-linux-gnu
+    endif
 endif
 ifeq ($(ARCH), i686)
 	LIBDIR ?= lib
