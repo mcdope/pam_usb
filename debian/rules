@@ -1,11 +1,12 @@
 #!/usr/bin/make -f
 
 %:
-	dh $@
+	dh $@ --with=systemd
 
 override_dh_installinit:
-	dh_installsystemd -plibpam-usb --no-restart-on-upgrade --name=pamusb-agent pamusb-agent.service
+	dh_systemd_enable -plibpam-usb --name=pamusb-agent pamusb-agent.service
 	dh_installinit -plibpam-usb --no-start --noscripts
+	dh_systemd_start -plibpam-usb --no-restart-on-upgrade
 
 override_dh_systemd_start:
 	echo "Not running dh_systemd_start"
