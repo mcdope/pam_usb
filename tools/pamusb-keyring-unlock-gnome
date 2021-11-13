@@ -40,7 +40,7 @@ else
 fi
 
 # Read UNLOCK_PASSWORD from $KEYFILE
-. $KEYFILE
+. ~/.keyring_unlock_password
 
 # Perform unlock
 echo -n $UNLOCK_PASSWORD | gnome-keyring-daemon --daemonize --login \
