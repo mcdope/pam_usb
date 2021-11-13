@@ -20,39 +20,24 @@ pamusb-check `whoami` > /dev/null 2>&1 || (logger -p local0.error -t ${0##*/}[$$
 
 # Check if password file exists, first try $HOME then the auth device
 if [ ! -f ~/.keyring_unlock_password ]; then
-    #   Get UUID for auth device
-    UUID=`pamusb-check \`whoami\` 2>&1 | grep "Searching for volume with uuid" | awk '{print $7}' | sed -e "s/\.//g"`
-    #   Get mountpoint for UUID
-    MOUNTPOINT=`findmnt -rn -S UUID=$UUID -o TARGET`
-    
-    #   Check for keyfile on auth device
-    if [ -f $MOUNTPOINT/.keyring_unlock_password ]; then
-        KEYFILE=$MOUNTPOINT/.keyring_unlock_password
-
-        MOUNTPOINT_FS=`df -T | grep $MOUNTPOINT | awk '{print $2}'`
-        case "$MOUNTPOINT_FS" in
-        *fat*) SUPPORTS_ACCESS_RIGHTS=0 ;;
-        *ntfs*) SUPPORTS_ACCESS_RIGHTS=0 ;;
-        *) SUPPORTS_ACCESS_RIGHTS=1 ;;
-        esac
-    else
-        logger -p local0.notice -t ${0##*/}[$$] No password file found, exiting.
-        exit 0
-    fi
-else
-    SUPPORTS_ACCESS_RIGHTS=1
-    KEYFILE=~/.keyring_unlock_password
+    logger -p local0.notice -t ${0##*/}[$$] No password file found, exiting.
+    exit 0
 fi
 
 # Ensure file has 0600 (if FS supports it)
-PERMISSIONS=`stat -c "%a %n" $KEYFILE | awk '{print $1}'`
-if [ "$SUPPORTS_ACCESS_RIGHTS" = "1" ] && [ ! "$PERMISSIONS" = "600" ]; then
-    logger -p local0.error -t ${0##*/}[$$] Bad permissions on $KEYFILE. Please change them to 0600.
+PERMISSIONS=`stat -c "%a %n" ~/.keyring_unlock_password | awk '{print $1}'`
+if [ ! "$PERMISSIONS" = "600" ]; then
+    logger -p local0.error -t ${0##*/}[$$] Bad permissions on ~/.keyring_unlock_password. Please change them to 0600.
     exit 1
 fi
 
 # Kill existing keyring instance
-killall -q gnome-keyring-daemon
+kill `pidof gnome-keyring-daemon`
+if [ ! "$?" = "0" ]; then
+    logger -p local0.notice -t ${0##*/}[$$] Couldn\'t kill existing gnome-keyring-instance - was it launched already?
+else
+    logger -p local0.notice -t ${0##*/}[$$] Killed existing gnome-keyring-instance.
+fi
 
 # Read UNLOCK_PASSWORD from $KEYFILE
 . $KEYFILE
