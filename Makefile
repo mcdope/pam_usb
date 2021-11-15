@@ -9,7 +9,7 @@ USE_FEDORA_LIBDIR := $(shell test -d /lib64/security && echo 1 || echo 0)
 
 ifeq ($(ARCH), x86_64)
 	ifeq ($(USE_FEDORA_LIBDIR), 1)
-        LIBDIR ?= lib64/security
+        LIBDIR ?= lib64
 	else
 		LIBDIR ?= lib/x86_64-linux-gnu
     endif
