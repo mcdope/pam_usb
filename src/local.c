@@ -242,7 +242,6 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 		strcmp(service, "xdm") == 0 ||
 		strcmp(service, "lightdm") == 0 ||
 		strcmp(service, "sddm") == 0 ||
-		strcmp(service, "ly") == 0 ||
 		strcmp(service, "polkit-1") == 0
 	) {
 		log_debug("	Whitelisted request by %s detected, assuming local.\n", service);
