@@ -1,0 +1,9 @@
+name: Support request
+description: Request support
+title: "[Invalid] [Support]: "
+labels: ["invalid", "question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This is not the right place for questions, please use [https://github.com/mcdope/pam_usb/discussions](discussions) for support requests.
