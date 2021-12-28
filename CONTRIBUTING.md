@@ -20,7 +20,7 @@ submitting bug reports and feature requests or writing code which can be incorpo
 - Create issues for any major changes and enhancements that you wish to make. Discuss things transparently and get community feedback
 - Adopt the existing code-style (yes, it's bad in many places but for now we keep it)
 - Keep feature versions as small as possible, preferably one new feature per version
-- Be welcoming to newcomers and encourage diverse new contributors from all backgrounds. See CODE_OF_CONDUCT. Any contributor in the future will be expected to follow it so contributing to pam_usb will be taken as a "silent approval" of the CoC
+- Be welcoming to newcomers and encourage diverse new contributors from all backgrounds. See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). Any contributor in the future will be expected to follow it, so contributing to pam_usb will be taken as a "silent approval" of the CoC
 
 ## Your first contribution
 Unsure where to begin contributing to pam_usb? You can start by looking through these beginner and help-wanted issues: 
