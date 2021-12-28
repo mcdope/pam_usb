@@ -1,0 +1,40 @@
+name: Feature  / Enhancement request
+description: Request a new feature, or an enhancement of an existing one
+title: "[Enhancement]: "
+labels: ["enhancement"]
+assignees:
+  - mcdope
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file your suggestion! 
+  - type: input
+    id: contact
+    attributes:
+      label: Contact Details
+      description: How can we get in touch with you if we need more info?
+      placeholder: ex. email@example.com
+    validations:
+      required: false
+  - type: textarea
+    id: summary
+    attributes:
+      label: How would you summarize your request?
+      description: Descripe your request in a small sentence
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Descripe your request in detail
+      description: Please explain why you want this feature, what usecase you want to solve it etc.
+      render: shell
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Code of Conduct
+      description: By submitting this issue, you agree to follow our [Code of Conduct](CODE_OF_CONDUCT.md)
+      options:
+        - label: I agree to follow this project's Code of Conduct
+          required: true

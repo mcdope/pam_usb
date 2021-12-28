@@ -46,7 +46,7 @@ body:
   - type: textarea
     id: logs
     attributes:
-      label: pamusb-check --debug $USER output
+      label: `pamusb-check --debug $USER` output
       description: Please copy and paste output of `pamusb-check --debug $USER`. This will be automatically formatted into code, so no need for backticks.
       render: shell
   - type: checkboxes
