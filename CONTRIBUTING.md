@@ -15,6 +15,7 @@ submitting bug reports and feature requests or writing code which can be incorpo
 ## Responsibilities
 - Ensure that code works in each scenario, not only local but also remote and that it doesn't break remote check
 - Ensure that code is fully tested manually, and by the scripts provided in `tests`
+- Tackle the issue at the root, be sure you've found the correct place to fix it
 - If you change config related things, make sure it works for upgrade installs
 - Create issues for any major changes and enhancements that you wish to make. Discuss things transparently and get community feedback
 - Adopt the existing code-style (yes, it's bad in many places but for now we keep it)
