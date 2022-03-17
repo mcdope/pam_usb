@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <dirent.h>
 #include <fcntl.h>
+#include <sys/stat.h>
 #include "log.h"
 #include "conf.h"
 #include "process.h"
@@ -171,7 +172,7 @@ char *pusb_get_tty_by_xorg_display(const char *display, const char *user)
 char *pusb_get_tty_by_loginctl()
 {
 	struct stat sb;
-	if (stat("/usr/bin/loginctl", sb) != 0) {
+	if (stat("/usr/bin/loginctl", &sb) != 0) {
 		log_debug("		loginctl is not available, skipping\n");
 		return (0);
 	}
