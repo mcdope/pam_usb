@@ -1,3 +1,16 @@
+libpam-usb (0.8.2) unstable; urgency=medium
+  * [Tools/Docs] Add pamusb-keyring-unlock-gnome, to allow unlocking the
+  GNOME keyring (#11)
+  * [Bugfix] Whitelist "login" service name to prevent insta-logout on
+  TTY shells (#115)
+  * [Bugfix] Check PAM_RHOST if deny_remote is enable to fix vsftpd auth
+  breaking down (#100)
+  * [Bugfix] Fix type for argument to stat (community contribution)
+  * [Docs] Added code of conduct (#106) and updated AUTHORS
+  * [Makefile] Fix LIBDIR on non-debian systems
+
+ -- Tobias Bäumer <tobiasbaeumer@gmail.com>  Sun, 15 May 2022 21:00:00 +0200
+
 libpam-usb (0.8.1) unstable; urgency=medium
   * [CI] Fixed "build & test on own server" job
   * [Enhancement] Fix obtaining tty by DISPLAY if DISPLAY contains a screen 
