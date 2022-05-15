@@ -32,10 +32,22 @@ int pam_sm_authenticate(pam_handle_t *pamh, int flags,
 	t_pusb_options	opts;
 	const char		*service;
 	const char		*user;
+	const char		*rhost;
 	char			*conf_file = PUSB_CONF_FILE;
 	int				retval;
 
 	pusb_log_init(&opts);
+
+	retval = pam_get_item(pamh, PAM_RHOST, (const void **)(const void *)&rhost);
+	if (retval != PAM_SUCCESS)
+	{
+		log_error("Unable to retrieve PAM_RHOST.\n");
+		return (PAM_AUTH_ERR);
+	} else if (rhost != NULL) {
+		log_debug("RHOST is set (%s), must be a remote request - disabling myself for this request!\n", rhost);
+		return (PAM_IGNORE);
+	}
+
 	retval = pam_get_item(pamh, PAM_SERVICE,
 			(const void **)(const void *)&service);
 	if (retval != PAM_SUCCESS)
@@ -95,10 +107,23 @@ int pam_sm_acct_mgmt(pam_handle_t *pamh, int flags,
 	t_pusb_options	opts;
 	const char		*service;
 	const char		*user;
+	const char		*rhost;
 	char			*conf_file = PUSB_CONF_FILE;
 	int				retval;
 
 	pusb_log_init(&opts);
+
+
+	retval = pam_get_item(pamh, PAM_RHOST, (const void **)(const void *)&rhost);
+	if (retval != PAM_SUCCESS)
+	{
+		log_error("Unable to retrieve PAM_RHOST.\n");
+		return (PAM_AUTH_ERR);
+	} else if (rhost != NULL) {
+		log_debug("RHOST is set (%s), must be a remote request - disabling myself for this request!\n", rhost);
+		return (PAM_IGNORE);
+	}
+
 	retval = pam_get_item(pamh, PAM_SERVICE,
 			(const void **)(const void *)&service);
 	if (retval != PAM_SUCCESS)
