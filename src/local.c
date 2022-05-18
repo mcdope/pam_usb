@@ -157,7 +157,7 @@ char *pusb_get_tty_by_xorg_display(const char *display, const char *user)
 			&& (
 				strncmp(utent->ut_line, "tty", sizeof(utent->ut_line)) == 0
 				|| strncmp(utent->ut_line, "console", sizeof(utent->ut_line)) == 0
-				|| strncmp(utent->ut_line, "pts", sizeof(utent->ut_line)1) == 0
+				|| strncmp(utent->ut_line, "pts", sizeof(utent->ut_line)) == 0
 			)
 		) {
 			endutxent();
