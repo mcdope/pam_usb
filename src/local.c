@@ -27,6 +27,7 @@
 #include "conf.h"
 #include "process.h"
 #include "tmux.h"
+#include "mem.h"
 
 int pusb_is_tty_local(char *tty)
 {
@@ -78,12 +79,12 @@ char *pusb_get_tty_from_display_server(const char *display)
 	if (d_proc == NULL)
 		return NULL;
 
-	char *expected_core = (char *)malloc(12);
-	char *cmdline_path = (char *)malloc(32);
-	char *cmdline = (char *)malloc(4096);
-	char *fd_path = (char *)malloc(32);
-	char *link_path = (char *)malloc(32);
-	char *fd_target = (char *)malloc(32);
+	char *expected_core = (char *)xmalloc(12);
+	char *cmdline_path = (char *)xmalloc(32);
+	char *cmdline = (char *)xmalloc(4096);
+	char *fd_path = (char *)xmalloc(32);
+	char *link_path = (char *)xmalloc(32);
+	char *fd_target = (char *)xmalloc(32);
 
 	sprintf(expected_core, "-core %s", display);
 
@@ -282,7 +283,7 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 
 		local_request = pusb_is_tty_local((char *) display);
 
-		char *xorg_tty = (char *)malloc(32);
+		char *xorg_tty = (char *)xmalloc(32);
 		if (local_request == 0)
 		{
 			log_debug("	Trying to get tty from display server\n");
@@ -316,7 +317,7 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 		log_debug("	Trying to get tty by loginctl\n");
 
 
-		char *loginctl_tty = (char *)malloc(32);
+		char *loginctl_tty = (char *)xmalloc(32);
 		loginctl_tty = pusb_get_tty_by_loginctl();
 		if (loginctl_tty != 0)
 		{
