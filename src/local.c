@@ -251,7 +251,7 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 	}
 
 	const char	*session_tty;
-	const char	*display = getenv("DISPLAY");
+	char	*display = getenv("DISPLAY");
 
 	if (local_request == 0 && strstr(name, "tmux") != NULL && tmux_pid != 0) {
 		char *tmux_client_tty = pusb_tmux_get_client_tty(tmux_pid);
@@ -275,7 +275,9 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 		if (strstr(display, ".0") != NULL) {
 			// DISPLAY contains not only display but also default screen, truncate screen part in this case
 			log_debug("	DISPLAY contains screen, truncating...\n");
-			memset(display + strlen(display) - 2, 0, 2);
+			char display_tmp[sizeof(display)];
+			snprintf(display_tmp, sizeof(display) - 2, "%s", display);
+			display = display_tmp;
 		}
 
 		local_request = pusb_is_tty_local((char *) display);

@@ -20,5 +20,6 @@
 # include <udisks/udisks.h>
 
 int pusb_pad_check(t_pusb_options *opts, UDisksClient *udisks, const char *user);
+void generateRandom(char* output, int sizeBytes);
 
 #endif /* !PUSB_OTP_H_ */

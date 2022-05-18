@@ -26,6 +26,7 @@
 #ifdef __linux__
 # include <linux/limits.h>
 #endif
+# include <sys/utsname.h>
 # include <sys/time.h>
 # ifndef PATH_MAX
 #  define PATH_MAX 4096
@@ -50,7 +51,7 @@ typedef struct		pusb_options
 	int				one_time_pad;
 	time_t			pad_expiration;
 	int				deny_remote;
-	char			hostname[64];
+	char			hostname[_UTSNAME_NODENAME_LENGTH];
 	char			system_pad_directory[PATH_MAX];
 	char			device_pad_directory[PATH_MAX];
 	t_pusb_device	device;
