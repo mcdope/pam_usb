@@ -37,7 +37,7 @@ int pusb_is_tty_local(char *tty)
 		tty += strlen("/dev/");
 	}
 
-	snprintf(utsearch.ut_line, sizeof(utsearch.ut_line), "%s", tty);
+	snprintf(utsearch.ut_line, strnlen(tty, sizeof(utsearch.ut_line) - 1), "%s", tty);
 
 	setutxent();
 	utent = getutxline(&utsearch);
@@ -152,12 +152,12 @@ char *pusb_get_tty_by_xorg_display(const char *display, const char *user)
 
 	setutxent();
 	while ((utent = getutxent())) {
-		if (strncmp(utent->ut_host, display, strlen(display)) == 0
-			&& strncmp(utent->ut_user, user, strlen(user)) == 0
+		if (strncmp(utent->ut_host, display, strnlen(display, sizeof(display) - 1)) == 0
+			&& strncmp(utent->ut_user, user, strnlen(user, sizeof(user) -1)) == 0
 			&& (
-				strncmp(utent->ut_line, "tty", sizeof(utent->ut_line)) == 0
-				|| strncmp(utent->ut_line, "console", sizeof(utent->ut_line)) == 0
-				|| strncmp(utent->ut_line, "pts", sizeof(utent->ut_line)) == 0
+				strncmp(utent->ut_line, "tty", strnlen(utent->ut_line, sizeof(utent->ut_line) - 1)) == 0
+				|| strncmp(utent->ut_line, "console", strnlen(utent->ut_line, sizeof(utent->ut_line) - 1)) == 0
+				|| strncmp(utent->ut_line, "pts", strnlen(utent->ut_line, sizeof(utent->ut_line) - 1)) == 0
 			)
 		) {
 			endutxent();
@@ -275,8 +275,8 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 		if (strstr(display, ".0") != NULL) {
 			// DISPLAY contains not only display but also default screen, truncate screen part in this case
 			log_debug("	DISPLAY contains screen, truncating...\n");
-			char display_tmp[sizeof(display)];
-			snprintf(display_tmp, sizeof(display) - 2, "%s", display);
+			char display_tmp[strnlen(display, sizeof(display) - 1)];
+			snprintf(display_tmp, strnlen(display, sizeof(display) - 1) - 2, "%s", display);
 			display = display_tmp;
 		}
 

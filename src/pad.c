@@ -50,7 +50,7 @@ static FILE *pusb_pad_open_device(t_pusb_options *opts,
 	memset(path_devpad, 0x00, sizeof(path_devpad));
 	memset(path_userpad, 0x00, sizeof(path_userpad));
 
-	snprintf(path_devpad, sizeof(path_devpad), "%s/%s", mnt_point, opts->device_pad_directory);
+	snprintf(path_devpad, strnlen(path_devpad, sizeof(path_devpad) - 1), "%s/%s", mnt_point, opts->device_pad_directory);
 	if (stat(path_devpad, &sb) != 0)
 	{
 		log_debug("Directory %s does not exist, creating one.\n", path_devpad);
@@ -62,7 +62,7 @@ static FILE *pusb_pad_open_device(t_pusb_options *opts,
 		}
 	}
 
-	snprintf(path_userpad, sizeof(path_userpad), "%s/%s/%s.%s.pad", mnt_point,
+	snprintf(path_userpad, strnlen(path_userpad, sizeof(path_userpad) - 1), "%s/%s/%s.%s.pad", mnt_point,
 			opts->device_pad_directory, user, opts->hostname);
 	f = fopen(path_userpad, mode);
 	if (!f)
@@ -108,7 +108,7 @@ static FILE *pusb_pad_open_system(t_pusb_options *opts,
 		chmod(path, S_IRUSR | S_IWUSR | S_IXUSR);
 	}
 	/* change slashes in device name to underscores */
-	snprintf(device_name, sizeof(opts->device.name), "%s", opts->device.name);
+	snprintf(device_name, strnlen(opts->device.name, sizeof(opts->device.name) - 1), "%s", opts->device.name);
 	while(*device_name_ptr) {
 		if('/' == *device_name_ptr) *device_name_ptr = '_';
 		device_name_ptr++;
