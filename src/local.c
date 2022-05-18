@@ -35,7 +35,7 @@ int pusb_is_tty_local(char *tty)
 	struct utmpx	*utent;
 
 	if (strstr(tty, "/dev/") != NULL) {
-		tty += strlen("/dev/");
+		tty += 5; // cut "/dev/"
 	}
 
 	snprintf(utsearch.ut_line, strnlen(tty, sizeof(utsearch.ut_line) - 1), "%s", tty);
