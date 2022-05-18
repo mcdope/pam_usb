@@ -134,7 +134,7 @@ int pusb_conf_init(t_pusb_options *opts)
 		log_error("uname: %s\n", strerror(errno));
 		return (0);
 	}
-	strncpy(opts->hostname, u.nodename, sizeof(opts->hostname) - 1);
+	snprintf(opts->hostname, sizeof(opts->hostname), "%s", u.nodename);
 	if (strlen(u.nodename) > sizeof(opts->hostname))
 		log_info("Hostname \"%s\" is too long, truncating to \"%s\".\n",
 				u.nodename, opts->hostname);
