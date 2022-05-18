@@ -66,7 +66,7 @@ jobs:
         TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
         TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
         TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
-      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~ && rm *.deb"
+      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~ && rm -f *.deb"
     - name: make deb
       env:
         TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
