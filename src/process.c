@@ -100,8 +100,8 @@ char *pusb_get_process_envvar(pid_t pid, char *var)
 			variable_content = strtok(buffer, "#");
 			while (variable_content != NULL)
 			{
-				if (strncmp(var, variable_content, strlen(var)) == 0) {
-					return variable_content + strlen(var) + 1;
+				if (strncmp(var, variable_content, strnlen(var, sizeof(var) - 1)) == 0) {
+					return variable_content + strnlen(var, sizeof(var) - 1) + 1;
 				}
 
 				variable_content = strtok(NULL, "#");

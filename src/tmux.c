@@ -57,7 +57,7 @@ char *pusb_tmux_get_client_tty(pid_t env_pid)
     char *tmux_client_tty = NULL;
     if (fgets(buf, BUFSIZ, fp) != NULL) {
         tmux_client_tty = strtok(buf, ":");
-        tmux_client_tty += strlen("/dev/");
+        tmux_client_tty += 5; // cut "/dev/"
         log_debug("		Got tmux_client_tty: %s\n", tmux_client_tty);
 
         if (pclose(fp)) {
