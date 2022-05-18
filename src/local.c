@@ -37,7 +37,7 @@ int pusb_is_tty_local(char *tty)
 		tty += strlen("/dev/");
 	}
 
-	strncpy(utsearch.ut_line, tty, sizeof(utsearch.ut_line) - 1);
+	snprintf(utsearch.ut_line, sizeof(utsearch.ut_line), "%s", tty);
 
 	setutxent();
 	utent = getutxline(&utsearch);
