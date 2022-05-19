@@ -50,7 +50,7 @@ jobs:
     # 📚 https://git.io/JvXDl
       
     - name: Install requirements
-      run: sudo apt install libudisks2-dev libxml2-dev python libpam0g-dev devscripts debhelper dh-systemd dkms pkg-config gir1.2-glib-2.0 libglib2.0-dev
+      run: sudo apt install libudisks2-dev libxml2-dev python-is-python3 libpam0g-dev devscripts debhelper dkms pkg-config gir1.2-glib-2.0 libglib2.0-dev
     - name: make
       run: make
     #- run: |
