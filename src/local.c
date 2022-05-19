@@ -153,8 +153,8 @@ char *pusb_get_tty_by_xorg_display(const char *display, const char *user)
 
 	setutxent();
 	while ((utent = getutxent())) {
-		if (strncmp(utent->ut_host, display, strlen(display)) == 0
-			&& strncmp(utent->ut_user, user, strlen(user)) == 0
+		if (strncmp(utent->ut_host, display, strnlen(display, sizeof(display))) == 0
+			&& strncmp(utent->ut_user, user, strnlen(user, sizeof(user))) == 0
 			&& (
 				strncmp(utent->ut_line, "tty", sizeof(utent->ut_line)) == 0
 				|| strncmp(utent->ut_line, "console", sizeof(utent->ut_line)) == 0
