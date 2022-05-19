@@ -75,7 +75,7 @@ static int pusb_xpath_strip_string(char *dest, const char *src,
 	}
 
 	memset(dest, 0x0, size);
-	snprintf(dest, last_char + first_char + 1, "%s", &(src[first_char]))
+	strncpy(dest, &(src[first_char]), last_char - first_char + 1);
 	return (1);
 }
 
