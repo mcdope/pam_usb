@@ -135,7 +135,7 @@ int pusb_conf_init(t_pusb_options *opts)
 		return (0);
 	}
 	snprintf(opts->hostname, sizeof(opts->hostname), "%s", u.nodename);
-	if (strlen(u.nodename) > sizeof(opts->hostname))
+	if (strnlen(u.nodename, sizeof(u.nodename)) > sizeof(opts->hostname))
 		log_info("Hostname \"%s\" is too long, truncating to \"%s\".\n",
 				u.nodename, opts->hostname);
 	snprintf(opts->system_pad_directory, sizeof(opts->system_pad_directory), "%s", ".pamusb");
