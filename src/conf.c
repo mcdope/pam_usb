@@ -134,12 +134,12 @@ int pusb_conf_init(t_pusb_options *opts)
 		log_error("uname: %s\n", strerror(errno));
 		return (0);
 	}
-	snprintf(opts->hostname, strnlen(opts->hostname, sizeof(opts->hostname) - 1), "%s", u.nodename);
-	if (strnlen(u.nodename, sizeof(u.nodename) - 1) > sizeof(opts->hostname))
+	snprintf(opts->hostname, sizeof(opts->hostname), "%s", u.nodename);
+	if (strlen(u.nodename) > sizeof(opts->hostname))
 		log_info("Hostname \"%s\" is too long, truncating to \"%s\".\n",
 				u.nodename, opts->hostname);
-	snprintf(opts->system_pad_directory, strnlen(opts->system_pad_directory, sizeof(opts->system_pad_directory) - 1), "%s", ".pamusb");
-	snprintf(opts->device_pad_directory, strnlen(opts->device_pad_directory, sizeof(opts->device_pad_directory) - 1), "%s", ".pamusb");
+	snprintf(opts->system_pad_directory, sizeof(opts->system_pad_directory), "%s", ".pamusb");
+	snprintf(opts->device_pad_directory, sizeof(opts->device_pad_directory), "%s", ".pamusb");
 	opts->probe_timeout = 10;
 	opts->enable = 1;
 	opts->debug = 0;
