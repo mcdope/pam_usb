@@ -299,7 +299,7 @@ static int pusb_pad_compare(t_pusb_options *opts, const char *volume,
 	log_debug("Loading system pad...\n");
 	bytes_read = fread(magic_system, sizeof(char), sizeof(magic_system), f_system);
 	if (!bytes_read) {
-		log_error("Can't read device pad!\n");
+		log_error("Can't read system pad!\n");
 		fclose(f_system);
 		fclose(f_device);
 		return (0);
