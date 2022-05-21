@@ -237,7 +237,7 @@ static void pusb_pad_update(t_pusb_options *opts,
 	if (devrandom > 0)
 		close(devrandom);
 
-	generateRandom(magic, sizeof magic);
+	generateRandom(magic, sizeof(magic));
 
 	log_debug("Writing pad to the device...\n");
 	fwrite(magic, sizeof(char), sizeof(magic), f_system);
