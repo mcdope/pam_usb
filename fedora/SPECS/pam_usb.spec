@@ -23,23 +23,23 @@ Adds auth over usb-stick to pam
 
 %build
 ./configure
-make
+make all
 
 %install
 make install prefix=$RPM_BUILD_ROOT/usr
 
 %files
 %defattr(‑,root,root)
-/usr/lib64/pam_usb.so
-/usr/bin/pamusb-check
-/usr/bin/pamusb-agent
-/usr/bin/pamusb-keyring-unlock-gnome
+%attr(0755,root,root) /usr/lib64/pam_usb.so
+%attr(0755,root,root) /usr/bin/pamusb-check
+%attr(0755,root,root) /usr/bin/pamusb-agent
+%attr(0755,root,root) /usr/bin/pamusb-keyring-unlock-gnome
 
 %conf /etc/security/pam_usb.conf
 
-%doc %attr(0444,root,root) /usr/local/share/man/man1/pamusb-agent.1
-%doc %attr(0444,root,root) /usr/local/share/man/man1/pamusb-check.1
-%doc %attr(0444,root,root) /usr/local/share/man/man1/pamusb-conf.1
-%doc %attr(0444,root,root) /usr/local/share/man/man1/pamusb-keyring-unlock-gnome.1
-%doc %attr(0444,root,root) /usr/share/doc/pam_usb/CONFIGURATION
-%doc %attr(0444,root,root) /usr/share/doc/pam_usb/QUICKSTART
+%doc %attr(0644,root,root) /usr/local/share/man/man1/pamusb-agent.1
+%doc %attr(0644,root,root) /usr/local/share/man/man1/pamusb-check.1
+%doc %attr(0644,root,root) /usr/local/share/man/man1/pamusb-conf.1
+%doc %attr(0644,root,root) /usr/local/share/man/man1/pamusb-keyring-unlock-gnome.1
+%doc %attr(0644,root,root) /usr/share/doc/pam_usb/CONFIGURATION
+%doc %attr(0644,root,root) /usr/share/doc/pam_usb/QUICKSTART
