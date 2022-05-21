@@ -131,13 +131,27 @@ deb : clean all
 deb-sign : build
 	debsign -S -k$(APT_SIGNING_KEY) `ls -t .build/*.changes | head -1`
 
-buildenv :
-	$(DOCKER) build -t mcdope/pam_usb-ubuntu-build .
+rpm : clean all
+# @todo: add actual rpm build
 
-build : buildenv
+buildenv-debian :
+	$(DOCKER) build -f Dockerfile.debian -t mcdope/pam_usb-ubuntu-build .
+
+buildenv-fedora :
+	$(DOCKER) build -f Dockerfile.fedora -t mcdope/pam_usb-fedora-build .
+
+build-debian : buildenv-debian
 	mkdir -p .build
 	$(DOCKER) run -it \
 		-v`pwd`/.build:/usr/local/src \
 		-v`pwd`:/usr/local/src/pam_usb \
 		--rm mcdope/pam_usb-ubuntu-build \
 		sh -c "make deb && chown $(UID):$(GID) ../libpam-usb*"
+
+build-fedora : buildenv-fedora
+	mkdir -p .build
+	$(DOCKER) run -it \
+		-v`pwd`/.build:/usr/local/src \
+		-v`pwd`:/usr/local/src/pam_usb \
+		--rm mcdope/pam_usb-ubuntu-build \
+		sh -c "make rpm && chown $(UID):$(GID) ../libpam-usb*"
