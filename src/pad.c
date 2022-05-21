@@ -254,16 +254,16 @@ static void pusb_pad_update(t_pusb_options *opts,
 void generateRandom(char* output, int sizeBytes)
 {
 	// Based on https://www.cyrill-gremaud.ch/howto-generate-secure-random-number-on-nix/
-    int fd, bytes_read;
+	int fd, bytes_read;
 
-    if((fd = open("/dev/random", O_RDONLY)) == -1)
-        log_error("impossible to read randomness source\n");
+	if((fd = open("/dev/random", O_RDONLY)) == -1)
+		log_error("impossible to read randomness source\n");
 
-    bytes_read = read(fd, output, sizeBytes);
-    if (bytes_read != sizeBytes)
-        log_debug("read() failed (%d bytes read)\n", bytes_read);
+	bytes_read = read(fd, output, sizeBytes);
+	if (bytes_read != sizeBytes)
+		log_debug("read() failed (%d bytes read)\n", bytes_read);
 
-    close(fd);
+	close(fd);
 }
 
 static int pusb_pad_compare(t_pusb_options *opts, const char *volume,
