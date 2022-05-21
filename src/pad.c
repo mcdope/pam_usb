@@ -104,7 +104,11 @@ static FILE *pusb_pad_open_system(t_pusb_options *opts,
 					strerror(errno));
 			return (NULL);
 		}
-		chown(path, user_ent->pw_uid, user_ent->pw_gid);
+
+		if(chown(path, user_ent->pw_uid, user_ent->pw_gid) != 0) {
+			log_error("Unable to chown directory %s: %s\n", path, strerror(errno));
+		}
+
 		chmod(path, S_IRUSR | S_IWUSR | S_IXUSR);
 	}
 	/* change slashes in device name to underscores */
@@ -274,6 +278,7 @@ static int pusb_pad_compare(t_pusb_options *opts, const char *volume,
 	char	magic_device[1024];
 	char	magic_system[1024];
 	int		retval;
+	size_t  bytes_read;
 
 	if (!(f_system = pusb_pad_open_system(opts, user, "r")))
 		return (1);
@@ -283,12 +288,27 @@ static int pusb_pad_compare(t_pusb_options *opts, const char *volume,
 		return (0);
 	}
 	log_debug("Loading device pad...\n");
-	fread(magic_device, sizeof(char), sizeof(magic_device), f_device);
+	bytes_read = fread(magic_device, sizeof(char), sizeof(magic_device), f_device);
+	if (!bytes_read) {
+		log_error("Can't read device pad!\n");
+		fclose(f_system);
+		fclose(f_device);
+		return (0);
+	}
+
 	log_debug("Loading system pad...\n");
-	fread(magic_system, sizeof(char), sizeof(magic_system), f_system);
+	bytes_read = fread(magic_system, sizeof(char), sizeof(magic_system), f_system);
+	if (!bytes_read) {
+		log_error("Can't read device pad!\n");
+		fclose(f_system);
+		fclose(f_device);
+		return (0);
+	}
+
 	retval = memcmp(magic_system, magic_device, sizeof(magic_system));
 	fclose(f_system);
 	fclose(f_device);
+
 	if (!retval)
 		log_debug("Pad match.\n");
 	return (retval == 0);
