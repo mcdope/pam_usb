@@ -161,7 +161,7 @@ int pusb_conf_parse(const char *file, t_pusb_options *opts,
 
 	log_debug("Parsing settings...\n",
 			user, service);
-	if (strnlen(user, sizeof(user) - 1) > CONF_USER_MAXLEN)
+	if (strnlen(user, sizeof(user)) > CONF_USER_MAXLEN)
 	{
 		log_error("Username \"%s\" is too long (max: %d).\n", user,
 				CONF_USER_MAXLEN);
