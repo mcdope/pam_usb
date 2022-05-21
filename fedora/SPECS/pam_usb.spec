@@ -1,4 +1,4 @@
-%define _topdir         $PWD/..
+%define _topdir         /usr/local/src/pam_usb/fedora
 %define name            pam_usb 
 %define release         1
 %define version         0.8.2
@@ -10,7 +10,6 @@ License:         GPLv2
 Name:             %{name}
 Version:         %{version}
 Release:         %{release}
-Source:         %{name}‑%{version}.tar.gz
 Prefix:         /usr
 Group:             Development/Tools
 
@@ -19,27 +18,33 @@ Adds auth over usb-stick to pam
  Provides a new pam module, pam_usb.so, that can be used in pam.d/common-auth
 
 %prep
-%setup ‑q
+cd %{_topdir}/BUILD
+rm -rf %{name}-%{version}
+mkdir %{name}-%{version}
+rsync -a %{_topdir}/../ %{name}-%{version} --exclude fedora --exclude arch_linux --exclude .build --exclude .github  --exclude .idea  --exclude .vscode
+cd %{name}-%{version}
+chmod -Rf a+rX,u+w,g-w,o-w .
 
 %build
-./configure
+cd %{_topdir}/BUILD/%{name}-%{version}
 make all
 
 %install
-make install prefix=$RPM_BUILD_ROOT/usr
+cd %{_topdir}/BUILD/%{name}-%{version}
+make install DESTDIR=%{buildroot}
+rm -rf %{buildroot}/usr/share/pam-configs
 
 %files
-%defattr(‑,root,root)
-%attr(0755,root,root) /usr/lib64/pam_usb.so
-%attr(0755,root,root) /usr/bin/pamusb-check
+%attr(0755,root,root) /lib64/security/pam_usb.so
 %attr(0755,root,root) /usr/bin/pamusb-agent
+%attr(0755,root,root) /usr/bin/pamusb-check
+%attr(0755,root,root) /usr/bin/pamusb-conf
 %attr(0755,root,root) /usr/bin/pamusb-keyring-unlock-gnome
+%attr(0644,root,root) /etc/security/pam_usb.conf
 
-%conf /etc/security/pam_usb.conf
-
-%doc %attr(0644,root,root) /usr/local/share/man/man1/pamusb-agent.1
-%doc %attr(0644,root,root) /usr/local/share/man/man1/pamusb-check.1
-%doc %attr(0644,root,root) /usr/local/share/man/man1/pamusb-conf.1
-%doc %attr(0644,root,root) /usr/local/share/man/man1/pamusb-keyring-unlock-gnome.1
+%doc %attr(0644,root,root) /usr/share/man/man1/pamusb-agent.1.gz
+%doc %attr(0644,root,root) /usr/share/man/man1/pamusb-check.1.gz
+%doc %attr(0644,root,root) /usr/share/man/man1/pamusb-conf.1.gz
+%doc %attr(0644,root,root) /usr/share/man/man1/pamusb-keyring-unlock-gnome.1.gz
 %doc %attr(0644,root,root) /usr/share/doc/pam_usb/CONFIGURATION
 %doc %attr(0644,root,root) /usr/share/doc/pam_usb/QUICKSTART
