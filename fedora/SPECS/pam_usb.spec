@@ -11,11 +11,12 @@ Name:             %{name}
 Version:         %{version}
 Release:         %{release}
 Prefix:         /usr
-Group:             Development/Tools
+Group:          System Environment/Base
+Requires:       libxml2 pam libudisks2 glib2 python3-gobject gawk
 
 %description
 Adds auth over usb-stick to pam
- Provides a new pam module, pam_usb.so, that can be used in pam.d/common-auth
+ Provides a new pam module, pam_usb.so, that can be used in pam.d configurations
 
 %prep
 cd %{_topdir}/BUILD
