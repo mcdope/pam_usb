@@ -151,7 +151,7 @@ build-debian : buildenv-debian
 
 build-fedora : buildenv-fedora
 	mkdir -p .build
-	$(DOCKER) run -it \
+	$(DOCKER) run -i \
 		-v`pwd`/.build:/usr/local/src \
 		-v`pwd`:/usr/local/src/pam_usb \
 		--rm mcdope/pam_usb-fedora-build \
