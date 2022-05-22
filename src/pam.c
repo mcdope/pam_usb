@@ -72,7 +72,7 @@ int pam_sm_authenticate(pam_handle_t *pamh, int flags,
 		{
 			log_error("Unable to retrieve PAM_RHOST.\n");
 			return (PAM_AUTH_ERR);
-		} else if (rhost != NULL) {
+		} else if (rhost != NULL && strcmp(rhost, "") != 0) {
 			log_debug("RHOST is set (%s), must be a remote request - disabling myself for this request!\n", rhost);
 			return (PAM_IGNORE);
 		}
