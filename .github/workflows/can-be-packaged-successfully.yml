@@ -9,18 +9,12 @@ on:
 jobs:
   Debian:
 
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v2
-    - name: Install prerequisites
-      run: sudo apt install -y apt-transport-https ca-certificates curl software-properties-common
-    - name: Install docker GPG key
-      run: curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-    - name: Install docker repo
-      run: echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
     - name: Install docker
-      run: sudo apt update && sudo apt -y install docker-ce
+      run: sudo apt install -y docker
     - name: Build packaging environment
       run: make buildenv-debian
     - name: make build-debian
@@ -35,7 +29,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Install docker
-      run: sudo apt install -y docker.io
+      run: sudo apt install -y docker
     - name: Build packaging environment
       run: make buildenv-fedora
     - name: make build-fedora
