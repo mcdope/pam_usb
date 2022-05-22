@@ -7,6 +7,7 @@
 BuildRoot:    %{buildroot}
 Summary:         pam_usb
 License:         GPLv2
+URL:             https://github.com/mcdope/pam_usb/
 Name:             %{name}
 Version:         %{version}
 Release:         %{release}
@@ -50,3 +51,13 @@ rm -rf %{buildroot}/usr/share/pam-configs
 %doc %attr(0644,root,root) /usr/share/man/man1/pamusb-keyring-unlock-gnome.1.gz
 %doc %attr(0644,root,root) /usr/share/doc/pam_usb/CONFIGURATION
 %doc %attr(0644,root,root) /usr/share/doc/pam_usb/QUICKSTART
+
+%changelog
+* Sun May 22 2022 McDope <tobiasbaeumer@gmail.com> - 0.8.2-1
+- First version being packaged for RPM
+- [Tools/Docs] Add pamusb-keyring-unlock-gnome, to allow unlocking the GNOME keyring (#11)
+- [Bugfix] Whitelist "login" service name to prevent insta-logout on TTY shells (#115)
+- [Bugfix] Check PAM_RHOST if deny_remote is enable to fix vsftpd auth breaking down (#100)
+- [Bugfix] Fix type for argument to stat (community contribution)
+- [Docs] Added code of conduct (#106) and updated AUTHORS
+- [Makefile] Fix LIBDIR on non-debian systems
