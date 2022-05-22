@@ -143,7 +143,7 @@ buildenv-fedora :
 
 build-debian : buildenv-debian
 	mkdir -p .build
-	$(DOCKER) run -it \
+	$(DOCKER) run -i \
 		-v`pwd`/.build:/usr/local/src \
 		-v`pwd`:/usr/local/src/pam_usb \
 		--rm mcdope/pam_usb-ubuntu-build \
