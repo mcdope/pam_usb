@@ -7,15 +7,30 @@ on:
     branches: [ master ]
 
 jobs:
-  focal:
+  Debian:
 
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v2
-    - name: Install requirements
-      run: sudo apt install libudisks2-dev libxml2-dev python libpam0g-dev devscripts debhelper dh-systemd pkg-config gir1.2-glib-2.0 libglib2.0-dev
-    - name: make deb
-      run: make deb
+    - name: Install docker
+      run: sudo apt install -y docker
+    - name: Build packaging environment
+      run: make buildenv-debian
+    - name: make build-debian
+      run: make build-debian
     - name: check that deb can be installed
-      run: sudo apt install ../*.deb
+      run: sudo apt install ./.build/*.deb
+
+  Fedora:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install docker
+      run: sudo apt install -y docker
+    - name: Build packaging environment
+      run: make buildenv-fedora
+    - name: make build-fedora
+      run: make build-fedora
