@@ -41,7 +41,8 @@ rm -rf %{buildroot}/usr/share/pam-configs
 %attr(0755,root,root) /usr/bin/pamusb-check
 %attr(0755,root,root) /usr/bin/pamusb-conf
 %attr(0755,root,root) /usr/bin/pamusb-keyring-unlock-gnome
-%attr(0644,root,root) /etc/security/pam_usb.conf
+
+%config(noreplace) %attr(0644,root,root) /etc/security/pam_usb.conf
 
 %doc %attr(0644,root,root) /usr/share/man/man1/pamusb-agent.1.gz
 %doc %attr(0644,root,root) /usr/share/man/man1/pamusb-check.1.gz
