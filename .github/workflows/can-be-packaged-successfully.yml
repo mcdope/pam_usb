@@ -1,4 +1,4 @@
-name: Can be packaged for debian
+name: Can be packaged successfully
 
 on:
   push:
@@ -9,16 +9,34 @@ on:
 jobs:
   Debian:
 
-    runs:
-      using: 'docker'
-      image: 'Dockerfile.debian'
-      args:
-        - make build-debian
+    runs-on: ubuntu-22.04
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install prerequisites
+      run: sudo apt install -y apt-transport-https ca-certificates curl software-properties-common
+    - name: Install docker GPG key
+      run: curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+    - name: Install docker repo
+      run: echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+    - name: Install docker
+      run: sudo apt update && sudo apt -y install docker-ce
+    - name: Build packaging environment
+      run: make buildenv-debian
+    - name: make build-debian
+      run: make build-debian
+    - name: check that deb can be installed
+      run: sudo apt install ./.build/*.deb
 
   Fedora:
 
-    runs:
-      using: 'docker'
-      image: 'Dockerfile.debian'
-      args:
-        - make build-debian
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install docker
+      run: sudo apt install -y docker.io
+    - name: Build packaging environment
+      run: make buildenv-fedora
+    - name: make build-fedora
+      run: make build-fedora
