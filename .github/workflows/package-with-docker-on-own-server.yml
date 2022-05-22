@@ -12,24 +12,12 @@ jobs:
     steps:
     - name: Install local requirements
       run: sudo apt install sshpass
-    - name: Fresh clone
+    - name: git clone
       env:
         TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
         TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
         TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
       run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "rm -rf ~/pam_usb && mkdir ~/pam_usb && cd ~/pam_usb && git clone https://github.com/mcdope/pam_usb.git ."
-    - name: Set git user
-      env:
-        TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
-        TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
-        TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
-      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb && git config user.name $TEST_RUNNER_USER"
-    - name: Set git mail
-      env:
-        TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
-        TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
-        TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
-      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb && git config user.mail $TEST_RUNNER_MAIL"
     - name: git fetch --all
       env:
         TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
@@ -55,18 +43,6 @@ jobs:
         TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
         TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
       run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb && git pull"
-    - name: remove previously installed package (ensure no config)
-      env:
-        TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
-        TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
-        TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
-      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "sudo apt purge --yes libpam-usb || exit 0"
-    - name: remove previously built packages
-      env:
-        TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
-        TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
-        TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
-      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb/.build && rm *.deb"
     - name: Generate build environment
       env:
         TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
