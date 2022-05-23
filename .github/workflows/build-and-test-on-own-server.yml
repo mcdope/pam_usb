@@ -1,11 +1,11 @@
-name: Build & test on own server
+name: Build & test
 
 on:
   pull_request:
     branches: [ master ]
 
 jobs:
-  focal:
+  Do magic on configured custom runner:
 
     runs-on: ubuntu-20.04
 
