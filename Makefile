@@ -126,14 +126,17 @@ changelog :
 debchangelog : 
 		git log --pretty=format:"  * %s (%an <%ae>)" --date=short 40b17fa..HEAD > changelog-for-deb
 
-deb : clean all
+deb : clean
 	$(DEBUILD)
 
-deb-sign : build
+deb-sign : build-debian
 	debsign -S -k$(APT_SIGNING_KEY) `ls -t .build/*.changes | head -1`
 
 rpm : clean
 	$(RPMBUILD)
+
+rpm-sign: build-fedora
+	rpm --addsign `ls -t .build/*.rpm | head -1`
 
 buildenv-debian :
 	$(DOCKER) build -f Dockerfile.debian -t mcdope/pam_usb-ubuntu-build .
