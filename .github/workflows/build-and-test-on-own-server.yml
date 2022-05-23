@@ -18,31 +18,37 @@ jobs:
         TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
         TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
       run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "sudo apt install libudisks2-dev libxml2-dev python libpam0g-dev devscripts debhelper dh-systemd dkms pkg-config gir1.2-glib-2.0 libglib2.0-dev"
+    - name: git clone
+      env:
+        TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
+        TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
+        TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
+      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "rm -rf ~/pam_usb_$GITHUB_RUN_ID; mkdir ~/pam_usb_$GITHUB_RUN_ID; cd ~/pam_usb_$GITHUB_RUN_ID && git clone https://github.com/mcdope/pam_usb.git ."
     - name: git fetch --all
       env:
         TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
         TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
         TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
-      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb && git fetch --all"
+      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb_$GITHUB_RUN_ID && git fetch --all"
     - name: git reset --hard
       env:
         TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
         TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
         TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
-      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb && git reset --hard"
+      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb_$GITHUB_RUN_ID && git reset --hard"
     - name: git switch -f
       env:
         TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
         TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
         TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
         REF_TO_CHECKOUT: ${{ github.head_ref }}
-      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb && git switch -f $REF_TO_CHECKOUT"
+      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb_$GITHUB_RUN_ID && git switch -f $REF_TO_CHECKOUT"
     - name: git pull
       env:
         TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
         TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
         TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
-      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb && git pull"
+      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb_$GITHUB_RUN_ID && git pull"
     - name: remove previously installed package (ensure no config)
       env:
         TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
@@ -60,13 +66,13 @@ jobs:
         TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
         TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
         TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
-      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb && make deb"
+      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb_$GITHUB_RUN_ID && make deb"
     - name: install created .deb package
       env:
         TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
         TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
         TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
-      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb && sudo apt install --reinstall --yes ../*.deb"
+      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb_$GITHUB_RUN_ID && sudo apt install --reinstall --yes ../*.deb"
     - name: disable deny_remote option # ... else the verify test cant be successful if run from a remote host like Github actions runner
       env:
         TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
@@ -81,31 +87,31 @@ jobs:
         TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
         TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
         TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
-      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb/tests/can-actually-be-used && ./prepare-mounting.sh"
+      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb_$GITHUB_RUN_ID/tests/can-actually-be-used && ./prepare-mounting.sh"
     - name: create fake usb stick image
       env:
         TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
         TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
         TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
-      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb/tests/can-actually-be-used && ./create-image.sh"
+      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb_$GITHUB_RUN_ID/tests/can-actually-be-used && ./create-image.sh"
     - name: Insert/partition/format/mount fake usb stick
       env:
         TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
         TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
         TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
-      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb/tests/can-actually-be-used && ./mount-image.sh"
+      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb_$GITHUB_RUN_ID/tests/can-actually-be-used && ./mount-image.sh"
     - name: execute test cases
       env:
         TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
         TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
         TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
-      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb/tests/can-actually-be-used && ./run-tests.sh"
+      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb_$GITHUB_RUN_ID/tests/can-actually-be-used && ./run-tests.sh"
     - name: cleanup - umount & remove image file, pads, mountpoint
       env:
         TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
         TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
         TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
-      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb/tests/can-actually-be-used && ./umount-image.sh"
+      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb_$GITHUB_RUN_ID/tests/can-actually-be-used && ./umount-image.sh"
     - name: cleanup - remove installed package
       env:
         TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
@@ -114,3 +120,15 @@ jobs:
       run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "sudo apt purge --yes libpam-usb"
 
 
+  Cleanup:
+
+    runs-on: ubuntu-22.04
+
+    steps:
+
+    - name: Cleanup directory
+      env:
+        TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
+        TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
+        TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
+      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "rm -rf ~/pam_usb_$GITHUB_RUN_ID"
