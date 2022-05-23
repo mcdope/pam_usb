@@ -8,12 +8,13 @@ BuildRoot:    %{buildroot}
 Summary:         pam_usb
 License:         GPLv2
 URL:             https://github.com/mcdope/pam_usb/
+Packager:        Tobias Bäumer <tobiasbaeumer@gmail.com>
 Name:             %{name}
 Version:         %{version}
 Release:         %{release}
 Prefix:         /usr
 Group:          System Environment/Base
-Requires:       libxml2 pam libudisks2 glib2 python3-gobject gawk
+Requires:       pam python3-gobject gawk
 
 %description
 Adds auth over usb-stick to pam

@@ -138,6 +138,9 @@ rpm : clean
 rpm-sign: build-fedora
 	rpm --addsign `ls -t .build/*.rpm | head -1`
 
+rpm-lint: build-fedora
+	rpmlint `ls -t .build/*.rpm | head -1`
+
 buildenv-debian :
 	$(DOCKER) build -f Dockerfile.debian -t mcdope/pam_usb-ubuntu-build .
 
