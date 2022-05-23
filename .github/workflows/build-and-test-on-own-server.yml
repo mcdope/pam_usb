@@ -5,7 +5,7 @@ on:
     branches: [ master ]
 
 jobs:
-  Do magic on configured custom runner:
+  DoMagicOnConfiguredCustomRunner:
 
     runs-on: ubuntu-20.04
 
