@@ -10,10 +10,10 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-    - name: Install local requirements
+    - name: Install sshpass on Github runner
       run: sudo apt install sshpass
     - name: FURTHER STEPS EXECUTED ON CONFIGURED RUNNER
-      run: echo 0
+      run: exit 0
     - name: git clone
       env:
         TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}

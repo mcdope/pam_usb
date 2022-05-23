@@ -10,9 +10,11 @@ jobs:
     runs-on: ubuntu-20.04
 
     steps:
-    - name: Install local requirements
+    - name: Install sshpass on Github runner
       run: sudo apt install sshpass
-    - name: Install remote requirements (this and further actions will be executed on runner)
+    - name: FURTHER STEPS EXECUTED ON CONFIGURED RUNNER
+      run: exit 0
+    - name: Install requirements
       env:
         TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
         TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
