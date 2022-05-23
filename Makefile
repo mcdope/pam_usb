@@ -163,11 +163,3 @@ build-fedora : buildenv-fedora
 		--rm mcdope/pam_usb-fedora-build \
 		sh -c "make rpm && chown $(UID):$(GID) ./.build/pam_usb* && chown -R $(UID):$(GID) .build/pam_usb* fedora"
 	yes | cp -rf fedora/RPMS/$(ARCH)/*.rpm .build
-
-build-fedora-debug : buildenv-fedora
-	mkdir -p .build
-	$(DOCKER) run -it \
-		-v`pwd`/.build:/usr/local/src \
-		-v`pwd`:/usr/local/src/pam_usb \
-		--rm mcdope/pam_usb-fedora-build \
-		sh -c "bash"
