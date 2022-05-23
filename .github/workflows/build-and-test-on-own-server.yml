@@ -61,6 +61,12 @@ jobs:
         TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
         TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
       run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~ && rm *.deb || exit 0"
+    - name: remove previous fakestick if existing
+      env:
+        TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
+        TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
+        TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
+      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb_$GITHUB_RUN_ID/tests/can-actually-be-used && ./umount-image.sh"
     - name: make deb
       env:
         TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
@@ -82,12 +88,6 @@ jobs:
     # @todo: to include this, we need an uninstall at the end first - currently we require this to be present on the target host
     # - name: setup dummy-hcd module for fake usb stick
     #   run: cd tests/can-actually-be-used && ./setup-dummyhcd.sh
-    - name: remove previous fakestick if existing
-      env:
-        TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
-        TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
-        TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
-      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb_$GITHUB_RUN_ID/tests/can-actually-be-used && ./umount-image.sh"
     - name: load dummy-hcd module
       env:
         TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
