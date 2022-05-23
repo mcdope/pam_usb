@@ -5,7 +5,7 @@ on:
     branches: [ master ]
 
 jobs:
-  PrepareSystem:
+  DoMagicOnConfiguredCustomRunner:
 
     runs-on: ubuntu-20.04
 
@@ -61,49 +61,24 @@ jobs:
         TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
         TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
       run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~ && rm *.deb || exit 0"
-  
-  
-  BuildDebianPackage:
-
-    runs-on: ubuntu-20.04
-
-    steps:
     - name: make deb
       env:
         TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
         TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
         TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
       run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb_$GITHUB_RUN_ID && make deb"
-
-  InstallDebianPackage:
-
-    runs-on: ubuntu-20.04
-
-    steps:
     - name: install created .deb package
       env:
         TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
         TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
         TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
       run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb_$GITHUB_RUN_ID && sudo apt install --reinstall --yes ../*.deb"
-    
-  DisableDenyRemote:
-
-    runs-on: ubuntu-20.04
-
-    steps:    
     - name: disable deny_remote option # ... else the verify test cant be successful if run from a remote host like Github actions runner
       env:
         TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
         TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
         TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
       run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "sudo sed -i 's/<defaults>/<defaults><option name=\"deny_remote\">false<\/option>/g' /etc/security/pam_usb.conf"
-
-  MountFakeDevice:
-
-    runs-on: ubuntu-20.04
-
-    steps:
     # @todo: to include this, we need an uninstall at the end first - currently we require this to be present on the target host
     # - name: setup dummy-hcd module for fake usb stick
     #   run: cd tests/can-actually-be-used && ./setup-dummyhcd.sh
@@ -125,18 +100,25 @@ jobs:
         TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
         TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
       run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb_$GITHUB_RUN_ID/tests/can-actually-be-used && ./mount-image.sh"
-
-  RunTests:
-
-    runs-on: ubuntu-20.04
-
-    steps:
     - name: execute test cases
       env:
         TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
         TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
         TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
       run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb_$GITHUB_RUN_ID/tests/can-actually-be-used && ./run-tests.sh"
+    - name: cleanup - umount & remove image file, pads, mountpoint
+      env:
+        TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
+        TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
+        TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
+      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb_$GITHUB_RUN_ID/tests/can-actually-be-used && ./umount-image.sh"
+    - name: cleanup - remove installed package
+      env:
+        TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
+        TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
+        TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
+      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "sudo apt purge --yes libpam-usb"
+
 
   Cleanup:
 
@@ -144,19 +126,7 @@ jobs:
 
     steps:
 
-    - name: umount & remove image file, pads, mountpoint
-      env:
-        TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
-        TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
-        TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
-      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb_$GITHUB_RUN_ID/tests/can-actually-be-used && ./umount-image.sh"
-    - name: remove installed package
-      env:
-        TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
-        TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
-        TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
-      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "sudo apt purge --yes libpam-usb"
-    - name: remove directory
+    - name: Cleanup directory
       env:
         TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
         TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
