@@ -72,7 +72,7 @@ jobs:
         TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
         TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
         TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
-      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb_$GITHUB_RUN_ID && sudo DEBIAN_FRONTEND=noninteractive apt install --reinstall -yq ../*.deb"
+      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb_$GITHUB_RUN_ID && echo libpam-usb libpam-usb/user string \<Skip\> | sudo debconf-set-selections && echo libpam-usb libpam-usb/device string \<Skip\> | sudo debconf-set-selections && sudo DEBIAN_FRONTEND=noninteractive apt install --reinstall -yq ../*.deb"
     - name: disable deny_remote option # ... else the verify test cant be successful if run from a remote host like Github actions runner
       env:
         TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
