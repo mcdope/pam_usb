@@ -79,6 +79,7 @@ RM		:= rm
 INSTALL		:= install
 MKDIR		:= mkdir
 DEBUILD := debuild -b -uc -us --lintian-opts --profile debian
+RPMBUILD := rpmbuild -v -bb --clean fedora/SPECS/pam_usb.spec
 MANCOMPILE := gzip -kf
 DOCKER := docker
 
@@ -125,19 +126,40 @@ changelog :
 debchangelog : 
 		git log --pretty=format:"  * %s (%an <%ae>)" --date=short 40b17fa..HEAD > changelog-for-deb
 
-deb : clean all
+deb : clean
 	$(DEBUILD)
 
-deb-sign : build
+deb-sign : build-debian
 	debsign -S -k$(APT_SIGNING_KEY) `ls -t .build/*.changes | head -1`
 
-buildenv :
-	$(DOCKER) build -t mcdope/pam_usb-ubuntu-build .
+rpm : clean
+	$(RPMBUILD)
 
-build : buildenv
+rpm-sign: build-fedora
+	rpm --addsign `ls -t .build/*.rpm | head -1`
+
+rpm-lint: build-fedora
+	rpmlint `ls -t .build/*.rpm | head -1`
+
+buildenv-debian :
+	$(DOCKER) build -f Dockerfile.debian -t mcdope/pam_usb-ubuntu-build .
+
+buildenv-fedora :
+	$(DOCKER) build -f Dockerfile.fedora -t mcdope/pam_usb-fedora-build .
+
+build-debian : buildenv-debian
 	mkdir -p .build
-	$(DOCKER) run -it \
+	$(DOCKER) run -i \
 		-v`pwd`/.build:/usr/local/src \
 		-v`pwd`:/usr/local/src/pam_usb \
 		--rm mcdope/pam_usb-ubuntu-build \
-		sh -c "make deb && chown $(UID):$(GID) ../libpam-usb*"
+		sh -c "make deb && chown -R $(UID):$(GID) .build/libpam-usb* debian"
+
+build-fedora : buildenv-fedora
+	mkdir -p .build
+	$(DOCKER) run -i \
+		-v`pwd`/.build:/usr/local/src \
+		-v`pwd`:/usr/local/src/pam_usb \
+		--rm mcdope/pam_usb-fedora-build \
+		sh -c "make rpm && chown $(UID):$(GID) ./.build/pam_usb* && chown -R $(UID):$(GID) .build/pam_usb* fedora"
+	yes | cp -rf fedora/RPMS/$(ARCH)/*.rpm .build
