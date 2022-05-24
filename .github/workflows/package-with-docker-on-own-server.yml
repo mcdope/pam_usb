@@ -1,7 +1,9 @@
-name: Package with Docker (on own server)
+name: Packaging (deb, rpm)
 
 on:
   pull_request:
+    branches: [ master ]
+  push:
     branches: [ master ]
 
 jobs:

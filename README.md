@@ -1,4 +1,4 @@
-![Build](https://github.com/mcdope/pam_usb/workflows/Can%20be%20built%20successfully/badge.svg) ![Packaging](https://github.com/mcdope/pam_usb/workflows/Package%20with%20Docker%20(on%20own%20server)/badge.svg) ![Functional testing](https://github.com/mcdope/pam_usb/workflows/Build%20&%20test/badge.svg) ![CodeQL](https://github.com/mcdope/pam_usb/workflows/CodeQL/badge.svg) ![DevSkim](https://github.com/mcdope/pam_usb/workflows/DevSkim/badge.svg)
+![Build](https://github.com/mcdope/pam_usb/workflows/Can%20be%20built%20successfully/badge.svg) ![Packaging](https://github.com/mcdope/pam_usb/workflows/Packaging%20(deb,%20rpm)/badge.svg) ![Functional testing](https://github.com/mcdope/pam_usb/workflows/Build%20&%20test/badge.svg) ![CodeQL](https://github.com/mcdope/pam_usb/workflows/CodeQL/badge.svg) ![DevSkim](https://github.com/mcdope/pam_usb/workflows/DevSkim/badge.svg)
 
 
 pam\_usb
