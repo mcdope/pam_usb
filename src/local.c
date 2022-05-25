@@ -240,7 +240,8 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 	 * These services are whitelisted because either a) they are graphical login managers and we assume these
 	 * to be available only locally or b) they are authorization agents afters successful authentication.
 	 */
-	if (strcmp(service, "gdm-password") == 0 ||
+	if (strcmp(service, "pamusb-agent") == 0 ||
+		strcmp(service, "gdm-password") == 0 ||
 		strcmp(service, "xdm") == 0 ||
 		strcmp(service, "lightdm") == 0 ||
 		strcmp(service, "sddm") == 0 ||
