@@ -128,7 +128,7 @@ debchangelog :
 		git log --pretty=format:"  * %s (%an <%ae>)" --date=short 40b17fa..HEAD > changelog-for-deb
 
 builddir :
-	mkdir -p .build
+	mkdir -p .build > /dev/null 2>&1 || echo 0
 
 deb : clean builddir
 	$(DEBUILD)
