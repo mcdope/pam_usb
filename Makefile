@@ -147,6 +147,9 @@ buildenv-debian :
 buildenv-fedora :
 	$(DOCKER) build -f Dockerfile.fedora -t mcdope/pam_usb-fedora-build .
 
+buildenv-arch :
+	$(DOCKER) build -f Dockerfile.arch -t mcdope/pam_usb-arch-build .
+
 build-debian : buildenv-debian
 	mkdir -p .build
 	$(DOCKER) run -i \
@@ -163,3 +166,17 @@ build-fedora : buildenv-fedora
 		--rm mcdope/pam_usb-fedora-build \
 		sh -c "make rpm && chown $(UID):$(GID) ./.build/pam_usb* && chown -R $(UID):$(GID) .build/pam_usb* fedora"
 	yes | cp -rf fedora/RPMS/$(ARCH)/*.rpm .build
+
+build-arch : buildenv-arch
+	mkdir -p .build
+	rm -f arch_linux/*.zst /tmp/pamusb.tar.gz
+	tar --exclude="arch_linux" --exclude=".build" --exclude=".idea" --exclude=".vscode" --exclude="fedora" --exclude="tests" --exclude=".github" -zcvf ../pamusb.tar.gz . 
+	mv ../pamusb.tar.gz arch_linux/pamusb.tar.gz
+	$(DOCKER) run -i \
+		-v`pwd`/.build:/usr/local/src \
+		-v`pwd`:/usr/local/src/pam_usb \
+		--rm mcdope/pam_usb-arch-build \
+		sh -c "cd arch_linux && sudo -u builduser updpkgsums && sudo -u builduser makepkg"
+	yes | cp -rf arch_linux/*.zst .build
+	rm -rf arch_linux/src arch_linux/pkg arch_linux/pamusb.tar.gz arch_linux/*.zst
+	
