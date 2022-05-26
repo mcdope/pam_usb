@@ -127,15 +127,16 @@ changelog :
 debchangelog : 
 		git log --pretty=format:"  * %s (%an <%ae>)" --date=short 40b17fa..HEAD > changelog-for-deb
 
-deb : clean
+builddir :
 	mkdir -p .build
+
+deb : clean builddir
 	$(DEBUILD)
 
 deb-sign : build-debian
 	debsign -S -k$(APT_SIGNING_KEY) `ls -t .build/*.changes | head -1`
 
-rpm : clean
-	mkdir -p .build
+rpm : clean builddir
 	$(RPMBUILD)
 	yes | cp -rf fedora/RPMS/$(ARCH)/*.rpm .build
 
@@ -145,8 +146,7 @@ rpm-sign: build-fedora
 rpm-lint: build-fedora
 	rpmlint `ls -t .build/*.rpm | head -1`
 
-zst: clean
-	mkdir -p .build
+zst: clean builddir
 	rm -f arch_linux/*.zst ../pamusb.tar.gz
 	tar --exclude="arch_linux" --exclude=".build" --exclude=".idea" --exclude=".vscode" --exclude="fedora" --exclude="tests" --exclude=".github" -zcvf ../pamusb.tar.gz . 
 	mv ../pamusb.tar.gz arch_linux/pamusb.tar.gz

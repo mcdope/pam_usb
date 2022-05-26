@@ -1,7 +1,7 @@
 # Created by: Pekka Helenius <fincer89 [at] hotmail [dot] com>
 
 pkgname=pam_usb
-pkgver=498.0.8.2_3f33636
+pkgver=501.0.8.2_5bac39f
 pkgrel=1
 pkgdesc='Hardware authentication for Linux using ordinary USB Flash Drives.'
 arch=('x86_64')
