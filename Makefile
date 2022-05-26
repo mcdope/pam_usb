@@ -80,6 +80,7 @@ INSTALL		:= install
 MKDIR		:= mkdir
 DEBUILD := debuild -b -uc -us --lintian-opts --profile debian
 RPMBUILD := rpmbuild -v -bb --clean fedora/SPECS/pam_usb.spec
+ZSTBUILD := cd arch_linux && makepkg && cd ..
 MANCOMPILE := gzip -kf
 DOCKER := docker
 
@@ -141,6 +142,14 @@ rpm-sign: build-fedora
 rpm-lint: build-fedora
 	rpmlint `ls -t .build/*.rpm | head -1`
 
+zst: clean
+	rm -f arch_linux/*.zst /tmp/pamusb.tar.gz
+	tar --exclude="arch_linux" --exclude=".build" --exclude=".idea" --exclude=".vscode" --exclude="fedora" --exclude="tests" --exclude=".github" -zcvf ../pamusb.tar.gz . 
+	mv ../pamusb.tar.gz arch_linux/pamusb.tar.gz
+	$(ZSTBUILD)
+	yes | cp -rf arch_linux/*.zst .build
+	rm -rf arch_linux/src arch_linux/pkg arch_linux/pamusb.tar.gz arch_linux/*.zst
+
 buildenv-debian :
 	$(DOCKER) build -f Dockerfile.debian -t mcdope/pam_usb-ubuntu-build .
 
@@ -169,14 +178,9 @@ build-fedora : buildenv-fedora
 
 build-arch : buildenv-arch
 	mkdir -p .build
-	rm -f arch_linux/*.zst /tmp/pamusb.tar.gz
-	tar --exclude="arch_linux" --exclude=".build" --exclude=".idea" --exclude=".vscode" --exclude="fedora" --exclude="tests" --exclude=".github" -zcvf ../pamusb.tar.gz . 
-	mv ../pamusb.tar.gz arch_linux/pamusb.tar.gz
 	$(DOCKER) run -i \
 		-v`pwd`/.build:/usr/local/src \
 		-v`pwd`:/usr/local/src/pam_usb \
 		--rm mcdope/pam_usb-arch-build \
-		sh -c "chown -R builduser:builduser . && cd arch_linux && sudo -u builduser makepkg && cd .. && chown -R $(UID):$(GID) ."
-	yes | cp -rf arch_linux/*.zst .build
-	rm -rf arch_linux/src arch_linux/pkg arch_linux/pamusb.tar.gz arch_linux/*.zst
+		sh -c "chown -R builduser:builduser . && sudo -u builduser make zst && chown -R $(UID):$(GID) ."
 	
