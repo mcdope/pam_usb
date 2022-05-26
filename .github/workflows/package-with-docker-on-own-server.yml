@@ -1,4 +1,4 @@
-name: Packaging (deb, rpm)
+name: Packaging (deb, rpm, zst)
 
 on:
   pull_request:
@@ -140,7 +140,7 @@ jobs:
         TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
         TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
         TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
-      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "rm -rf ~/pam_usb_arch_$GITHUB_RUN_ID; mkdir ~/pam_usb_arch_$GITHUB_RUN_ID; cd ~/pam_usb_arch_$GITHUB_RUN_ID && git clone https://github.com/mcdope/pam_usb.git ."
+      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "rm -rf ~/pam_usb_arch_$GITHUB_RUN_ID; mkdir ~/pam_usb_arch_$GITHUB_RUN_ID; chmod -R 0777 ~/pam_usb_arch_$GITHUB_RUN_ID; cd ~/pam_usb_arch_$GITHUB_RUN_ID && git clone https://github.com/mcdope/pam_usb.git ."
     - name: git fetch --all
       env:
         TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
