@@ -1,7 +1,7 @@
-# Maintainer: Pekka Helenius <fincer89 [at] hotmail [dot] com>
+# Created by: Pekka Helenius <fincer89 [at] hotmail [dot] com>
 
 pkgname=pam_usb
-pkgver=495.570a89f
+pkgver=496.0.8.2_203facc
 pkgrel=1
 pkgdesc='Hardware authentication for Linux using ordinary USB Flash Drives.'
 arch=('x86_64')
@@ -22,11 +22,7 @@ sha256sums=('SKIP'
 
 pkgver() {
   cd ..
-  #if [[ $(git describe) ]]; then
-  #  git describe --long --tags | sed 's/\([^-]*-g\)/r\1/;s/-/./g'
-  #else
-    echo $(git rev-list --count HEAD).$(git rev-parse --short HEAD)
-  #fi
+  echo $(git rev-list --count HEAD).$(git for-each-ref --sort=creatordate --format '%(tag)' refs/tags | tail -n 1)_$(git rev-parse --short HEAD)
   cd $OLDPWD
 }
 
