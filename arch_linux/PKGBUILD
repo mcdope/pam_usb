@@ -1,11 +1,11 @@
 # Maintainer: Pekka Helenius <fincer89 [at] hotmail [dot] com>
 
 pkgname=pam_usb
-pkgver=270.96e4232
+pkgver=485.f472205
 pkgrel=1
 pkgdesc='Hardware authentication for Linux using ordinary USB Flash Drives.'
-arch=('any')
-url='http://www.pamusb.org/'
+arch=('x86_64')
+url='https://github.com/mcdope/pam_usb'
 license=('GPLv2')
 depends=('pam' 'dbus' 'python' 'python-dbus' 'python-lxml' 'python-gobject' 'udisks2')
 makedepends=('git' 'pkgconf' 'gcc' 'make' 'patch')
@@ -14,29 +14,23 @@ backup=(
   "etc/security/pam_usb.conf"
 )
 source=(
-  "git+https://github.com/mcdope/${pkgname}.git"
-#  "git+https://github.com/aluzzardi/${pkgname}.git"
+  "pamusb.tar.gz"
   "pamusb-agent.service"
 )
-sha256sums=('SKIP'
+sha256sums=('757178aeafffc771a460dee9eac66edddef4d36a0c822f6c2ac058ac49360a0c'
             'f5875f0669b2638f36885c305d719072798b5097b15e6c94a8a852bb896bfc5c')
 
 pkgver() {
-  cd $pkgname
-  if [[ $(git describe) ]]; then
-    git describe --long --tags | sed 's/\([^-]*-g\)/r\1/;s/-/./g'
-  else
+  cd ..
+  #if [[ $(git describe) ]]; then
+  #  git describe --long --tags | sed 's/\([^-]*-g\)/r\1/;s/-/./g'
+  #else
     echo $(git rev-list --count HEAD).$(git rev-parse --short HEAD)
-  fi
-}
-
-build() {
-  cd $pkgname
-  make all
+  #fi
+  cd $OLDPWD
 }
 
 package() {
-  cd $pkgname
   make DESTDIR=${pkgdir} PAM_USB_DEST=${pkgdir}/usr/lib/security install
   chmod 0700 ${pkgdir}/usr/bin/pamusb-agent
   install -Dt ${pkgdir}/usr/lib/systemd/system -m0644 ../pamusb-agent.service
