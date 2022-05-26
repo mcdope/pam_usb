@@ -1,7 +1,7 @@
 # Maintainer: Pekka Helenius <fincer89 [at] hotmail [dot] com>
 
 pkgname=pam_usb
-pkgver=494.00e115c
+pkgver=495.570a89f
 pkgrel=1
 pkgdesc='Hardware authentication for Linux using ordinary USB Flash Drives.'
 arch=('x86_64')
@@ -17,7 +17,7 @@ source=(
   "pamusb.tar.gz"
   "pamusb-agent.service"
 )
-sha256sums=('316c17c27eec5b90b3acd25cdf2846aa1cb26b2734eddcf7ae7accaf26eb8b2e'
+sha256sums=('SKIP'
             'f5875f0669b2638f36885c305d719072798b5097b15e6c94a8a852bb896bfc5c')
 
 pkgver() {

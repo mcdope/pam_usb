@@ -176,7 +176,7 @@ build-arch : buildenv-arch
 		-v`pwd`/.build:/usr/local/src \
 		-v`pwd`:/usr/local/src/pam_usb \
 		--rm mcdope/pam_usb-arch-build \
-		sh -c "chown -R builduser:builduser . && cd arch_linux && sudo -u builduser updpkgsums && sudo -u builduser makepkg && cd .. && chown -R $(UID):$(GID) ."
+		sh -c "chown -R builduser:builduser . && cd arch_linux && sudo -u builduser makepkg && cd .. && chown -R $(UID):$(GID) ."
 	yes | cp -rf arch_linux/*.zst .build
 	rm -rf arch_linux/src arch_linux/pkg arch_linux/pamusb.tar.gz arch_linux/*.zst
 	
