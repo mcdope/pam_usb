@@ -1,7 +1,7 @@
 # Created by: Pekka Helenius <fincer89 [at] hotmail [dot] com>
 
 pkgname=pam_usb
-pkgver=502.0.8.2_8c618f9
+pkgver=0.8.2.29
 pkgrel=1
 pkgdesc='Hardware authentication for Linux using ordinary USB Flash Drives.'
 arch=('x86_64')
@@ -22,7 +22,7 @@ sha256sums=('SKIP'
 
 pkgver() {
   cd ..
-  echo $(git rev-list --count HEAD).$(git for-each-ref --sort=creatordate --format '%(tag)' refs/tags | tail -n 1)_$(git rev-parse --short HEAD)
+  echo $(git for-each-ref --sort=creatordate --format '%(tag)' refs/tags | tail -n 1).$(git rev-list --count $(git for-each-ref --sort=creatordate --format '%(tag)' refs/tags | tail -n 1)..HEAD)
   cd $OLDPWD
 }
 
