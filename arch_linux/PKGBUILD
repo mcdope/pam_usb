@@ -1,7 +1,7 @@
 # Created by: Pekka Helenius <fincer89 [at] hotmail [dot] com>
 
 pkgname=pam_usb
-pkgver=501.0.8.2_5bac39f
+pkgver=502.0.8.2_8c618f9
 pkgrel=1
 pkgdesc='Hardware authentication for Linux using ordinary USB Flash Drives.'
 arch=('x86_64')
@@ -28,6 +28,5 @@ pkgver() {
 
 package() {
   make DESTDIR=${pkgdir} PAM_USB_DEST=${pkgdir}/usr/lib/security install
-  chmod 0700 ${pkgdir}/usr/bin/pamusb-agent
   install -Dt ${pkgdir}/usr/lib/systemd/system -m0644 ../pamusb-agent.service
 }
