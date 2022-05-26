@@ -128,13 +128,16 @@ debchangelog :
 		git log --pretty=format:"  * %s (%an <%ae>)" --date=short 40b17fa..HEAD > changelog-for-deb
 
 deb : clean
+	mkdir -p .build
 	$(DEBUILD)
 
 deb-sign : build-debian
 	debsign -S -k$(APT_SIGNING_KEY) `ls -t .build/*.changes | head -1`
 
 rpm : clean
+	mkdir -p .build
 	$(RPMBUILD)
+	yes | cp -rf fedora/RPMS/$(ARCH)/*.rpm .build
 
 rpm-sign: build-fedora
 	rpm --addsign `ls -t .build/*.rpm | head -1`
@@ -143,7 +146,8 @@ rpm-lint: build-fedora
 	rpmlint `ls -t .build/*.rpm | head -1`
 
 zst: clean
-	rm -f arch_linux/*.zst /tmp/pamusb.tar.gz
+	mkdir -p .build
+	rm -f arch_linux/*.zst ../pamusb.tar.gz
 	tar --exclude="arch_linux" --exclude=".build" --exclude=".idea" --exclude=".vscode" --exclude="fedora" --exclude="tests" --exclude=".github" -zcvf ../pamusb.tar.gz . 
 	mv ../pamusb.tar.gz arch_linux/pamusb.tar.gz
 	$(ZSTBUILD)
@@ -160,7 +164,6 @@ buildenv-arch :
 	$(DOCKER) build -f Dockerfile.arch -t mcdope/pam_usb-arch-build .
 
 build-debian : buildenv-debian
-	mkdir -p .build
 	$(DOCKER) run -i \
 		-v`pwd`/.build:/usr/local/src \
 		-v`pwd`:/usr/local/src/pam_usb \
@@ -168,16 +171,13 @@ build-debian : buildenv-debian
 		sh -c "make deb && chown -R $(UID):$(GID) .build/libpam-usb* debian"
 
 build-fedora : buildenv-fedora
-	mkdir -p .build
 	$(DOCKER) run -i \
 		-v`pwd`/.build:/usr/local/src \
 		-v`pwd`:/usr/local/src/pam_usb \
 		--rm mcdope/pam_usb-fedora-build \
 		sh -c "make rpm && chown $(UID):$(GID) ./.build/pam_usb* && chown -R $(UID):$(GID) .build/pam_usb* fedora"
-	yes | cp -rf fedora/RPMS/$(ARCH)/*.rpm .build
 
 build-arch : buildenv-arch
-	mkdir -p .build
 	$(DOCKER) run -i \
 		-v`pwd`/.build:/usr/local/src \
 		-v`pwd`:/usr/local/src/pam_usb \
