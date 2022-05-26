@@ -168,7 +168,7 @@ build-debian : buildenv-debian
 		-v`pwd`/.build:/usr/local/src \
 		-v`pwd`:/usr/local/src/pam_usb \
 		--rm mcdope/pam_usb-ubuntu-build \
-		sh -c "make deb && chown -R $(UID):$(GID) .build/libpam-usb* debian"
+		sh -c "make deb && chown -R $(UID):$(GID) .build debian"
 
 build-fedora : buildenv-fedora
 	$(DOCKER) run -i \
