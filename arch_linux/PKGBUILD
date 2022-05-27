@@ -14,6 +14,8 @@ backup=(
   "etc/security/pam_usb.conf"
 )
 source=(
+  # for build from git: uncomment next line, comment the line after
+  # "git+https://github.com/mcdope/pam_usb.git"
   "pamusb.tar.gz"
   "pamusb-agent.service"
 )
