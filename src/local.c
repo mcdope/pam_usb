@@ -79,14 +79,11 @@ char *pusb_get_tty_from_display_server(const char *display)
 	if (d_proc == NULL)
 		return NULL;
 
-	char *expected_core = (char *)xmalloc(12);
 	char *cmdline_path = (char *)xmalloc(32);
 	char *cmdline = (char *)xmalloc(4096);
 	char *fd_path = (char *)xmalloc(32);
 	char *link_path = (char *)xmalloc(32);
 	char *fd_target = (char *)xmalloc(32);
-
-	sprintf(expected_core, "-core %s", display);
 
 	struct dirent *dent_proc;
 	while ((dent_proc = readdir(d_proc)) != NULL)
@@ -104,7 +101,7 @@ char *pusb_get_tty_from_display_server(const char *display)
 				if (!cmdline[i] && i != bytes_read) cmdline[i] = ' '; // replace \0 with [space]
 			}
 
-			if ((strstr(cmdline, "Xorg") != NULL && strstr(cmdline, expected_core) != NULL)
+			if ((strstr(cmdline, "Xorg") != NULL && strstr(cmdline, display) != NULL)
 				|| strstr(cmdline, "gnome-session-binary") != NULL
 				|| strstr(cmdline, "gdm-wayland-session") != NULL) //@todo: find & add other wayland hosts
 			{
