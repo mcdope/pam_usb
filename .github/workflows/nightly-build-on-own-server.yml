@@ -94,6 +94,8 @@ jobs:
         TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
         TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
       run: sshpass -p "$TEST_RUNNER_PASS" scp -r ${{ secrets.TEST_RUNNER_USER }}@${{ secrets.TEST_RUNNER_HOST }}:/home/${{ secrets.TEST_RUNNER_USER }}/pam_usb_nightly_$GITHUB_RUN_ID/.build .
+    - name: Rename generated package files
+      run: mv .build/*.zst .build/pam_usb-nightly-`date +%Y%m%d`-x86_64.pkg.tar.zst && mv .build/*.deb .build/pam_usb-nightly-`date +%Y%m%d`_amd64.deb && mv .build/*.rpm .build/pam_usb-nightly-`date +%Y%m%d`.x86_64.rpm
     - name: Upload nightly packages
       uses: pyTooling/Actions/releaser@r0
       with:
