@@ -18,6 +18,8 @@
 import sys
 import os
 import gi
+import subprocess
+import socket
 
 gi.require_version('UDisks', '2.0')
 
@@ -302,24 +304,90 @@ def addDevice(options):
 	devs[0].appendChild(prettifyElement(dev))
 	writeConf(options, doc)
 
+def resetPads():
+	padFiles = []
+
+	try:
+		doc = minidom.parse(options['configFile'])
+	except Exception as err:
+		print('Unable to read %s: %s' % (options['configFile'], err))
+		sys.exit(1)
+	devSection = doc.getElementsByTagName('devices')
+	if len(devSection) == 0:
+		print('Malformed configuration file: No <devices> section found.')
+		sys.exit(1)
+	devicesObj = devSection[0].getElementsByTagName('device')
+	if len(devicesObj) == 0:
+		print('No devices found.')
+		sys.exit(1)
+
+	alreadyConfiguredUsers = doc.getElementsByTagName('user')
+	if len(alreadyConfiguredUsers) > 0:
+		for user in alreadyConfiguredUsers:
+			if user.getAttribute('id') == options['resetPads']:
+				# Device specific pad for user
+				userDevice = user.getElementsByTagName('device')[0].firstChild.nodeValue
+				padFiles.append('/home/%s/.pamusb/%s.pad' % (options['resetPads'], userDevice))
+
+				# User specific pad for device
+				for details in devicesObj:
+					if details.getAttribute('id') == userDevice:
+						deviceUUID = details.getElementsByTagName('volume_uuid')[0].firstChild.nodeValue
+						try:
+							deviceMountPoint = subprocess.check_output(['mount | grep `readlink -f /dev/disk/by-uuid/%s` | awk \'{print $3}\'' % (deviceUUID)], shell=True)
+							padFiles.append('%s/.pamusb/%s.%s.pad' % (deviceMountPoint.decode().strip(), options['resetPads'], socket.gethostname()))
+						except subprocess.CalledProcessError as err:
+							print('Could not get device mountpoint: ', err)
+
+	if len(padFiles) == 0:
+		print('Could not find pad files to reset, wtf?!')
+		sys.exit(1)
+
+	print('Pad files to remove: ', padFiles)
+	print('Removing device specific pad for user %s...' % options['resetPads'])
+	try:
+		os.remove(padFiles[0])
+	except FileNotFoundError as fnf:
+		print('    Notice: pad file not found.')
+
+	print('Removing user and hostname specific pad on device with UUID %s...' % deviceUUID)
+	try:
+		os.remove(padFiles[1])
+	except FileNotFoundError as fnf:
+		print('    Notice: pad file not found.')
+
+	print('')
+	print('All pad files for the given user were deleted, on next successful authentication they will be regenerated (you can force this by running pamusb-check).')
+	sys.exit(0)
+
 def usage():
-	print('Version 0.8.0')
-	print('Usage: %s [--help] [--verbose] [--yes] [--config=path] [--add-user=name | --add-device=name [[--device=number] [--volume=number]]]' % os.path.basename(__file__))
+	print('Version 0.8.2')
+	print('Usage: %s [--help] [--verbose] [--yes] [--config=path] [--reset-pads=username] [--add-user=name | --add-device=name [[--device=number] [--volume=number]]' % os.path.basename(__file__))
 	sys.exit(1)
 
 import getopt
 
 try:
 	opts, args = getopt.getopt(sys.argv[1:], "hvd:nu:c:y",
-			["help", "verbose", "add-device=", "add-user=", "config=", "yes", "device=", "volume=", "list-devices", "list-volumes"])
+			["help", "verbose", "add-device=", "add-user=", "config=", "reset-pads=", "yes", "device=", "volume=", "list-devices", "list-volumes"])
 except getopt.GetoptError:
 	usage()
 
 if len(args) != 0:
 	usage()
 
-options = { 'deviceName' : None, 'userName' : None,
-		'configFile' : '/etc/security/pam_usb.conf', 'verbose' : False, 'yes' : False, 'deviceNumber' : None, 'volumeNumber' : None, 'listDevices' : False, 'listVolumes' : False }
+options = {
+	'deviceName' : None,
+	'userName' : None,
+	'configFile' : '/etc/security/pam_usb.conf',
+	'verbose' : False,
+	'yes' : False,
+	'deviceNumber' : None,
+	'volumeNumber' : None,
+	'listDevices' : False,
+	'listVolumes' : False,
+	'resetPads' : None
+}
 
 for o, a in opts:
 	if o in ("-h", "--help"):
@@ -342,6 +410,11 @@ for o, a in opts:
 		options['listDevices'] = True
 	if o in ("--list-volumes"):
 		options['listVolumes'] = True
+	if o in ("--reset-pads"):
+		options['resetPads'] = a
+
+if options['resetPads'] is not None:
+	resetPads()
 
 if options['listDevices'] is True or options['listVolumes'] is True:
 	udisks = UDisks.Client.new_sync()
