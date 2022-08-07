@@ -93,7 +93,7 @@ jobs:
         TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
         TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
         TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
-      run: sshpass -p "$TEST_RUNNER_PASS" scp -r ${{ secrets.TEST_RUNNER_USER }}@${{ secrets.TEST_RUNNER_HOST }}:/home/${{ secrets.TEST_RUNNER_USER }}/pam_usb_rpm_$GITHUB_RUN_ID/.build /tmp/
+      run: sshpass -p "$TEST_RUNNER_PASS" scp -r ${{ secrets.TEST_RUNNER_USER }}@${{ secrets.TEST_RUNNER_HOST }}:/home/${{ secrets.TEST_RUNNER_USER }}/pam_usb_nightly_$GITHUB_RUN_ID/.build /tmp/
     - name: Upload nightly packages
       uses: pyTooling/Actions/releaser@r0
       with:
