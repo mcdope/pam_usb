@@ -147,10 +147,9 @@ rpm-sign: build-fedora
 rpm-lint: build-fedora
 	rpmlint `ls -t .build/*.rpm | head -1`
 
-zst: clean builddir
+zst: clean builddir sourcegz
 	rm -f arch_linux/*.zst ../pamusb.tar.gz
-	tar --exclude="arch_linux" --exclude=".build" --exclude=".idea" --exclude=".vscode" --exclude="fedora" --exclude="tests" --exclude=".github" -zcvf ../pamusb.tar.gz . 
-	mv ../pamusb.tar.gz arch_linux/pamusb.tar.gz
+	mv .build/pam_usb-$(VERSION).tar.gz arch_linux/pamusb.tar.gz
 	$(ZSTBUILD)
 	yes | cp -rf arch_linux/*.zst .build
 	rm -rf arch_linux/src arch_linux/pkg arch_linux/pamusb.tar.gz arch_linux/*.zst
