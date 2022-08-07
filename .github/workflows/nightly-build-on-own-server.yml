@@ -94,10 +94,6 @@ jobs:
         TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
         TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
       run: sshpass -p "$TEST_RUNNER_PASS" scp -r ${{ secrets.TEST_RUNNER_USER }}@${{ secrets.TEST_RUNNER_HOST }}:/home/${{ secrets.TEST_RUNNER_USER }}/pam_usb_nightly_$GITHUB_RUN_ID/.build .
-    - name: Debug PWD
-      run: echo $PWD
-    - name: Debug ls
-      run: ls -ah
     - name: Upload nightly packages
       uses: pyTooling/Actions/releaser@r0
       with:
