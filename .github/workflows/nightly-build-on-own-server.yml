@@ -1,8 +1,9 @@
 name: Nightly packaging (tar.gz, deb, rpm, zst)
 
 on:
-  pull_request:
-    branches: [ master ]
+  schedule:
+    - cron:  '20 16 * * *'
+    - cron:  '5 0 * * *'
 
 jobs:
 
