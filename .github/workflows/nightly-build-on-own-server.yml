@@ -2,7 +2,7 @@ name: Nightly packaging (tar.gz, deb, rpm, zst)
 
 on:
   schedule:
-    - cron:  '20 16 * * *'
+    - cron:  '30 * * * *'
     - cron:  '5 0 * * *'
 
 jobs:
