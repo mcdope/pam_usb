@@ -5,27 +5,8 @@ on:
     branches: [ master ]
 
 jobs:
-  SourceGZ:
 
-    runs-on: ubuntu-22.04
-
-    steps:
-    - uses: actions/checkout@v2
-    - name: Install requirements
-      run: sudo apt install libudisks2-dev libxml2-dev python-is-python3 libpam0g-dev pkg-config gir1.2-glib-2.0 libglib2.0-dev
-    - name: make sourcegz
-      run: make sourcegz
-    - name: Cache package
-      uses: actions/cache@v2
-      env:
-        cache-name: packages
-      with:
-        path: .build
-        key: packages-sourcegz
-        restore-keys: |
-          packages-sourcegz
-
-  Debian:
+  GenerateNightly:
 
     runs-on: ubuntu-22.04
 
@@ -39,256 +20,75 @@ jobs:
         TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
         TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
         TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
-      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "rm -rf ~/pam_usb_deb_$GITHUB_RUN_ID; mkdir ~/pam_usb_deb_$GITHUB_RUN_ID; cd ~/pam_usb_deb_$GITHUB_RUN_ID && git clone https://github.com/mcdope/pam_usb.git ."
+      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "rm -rf ~/pam_usb_nightly_$GITHUB_RUN_ID && git clone https://github.com/mcdope/pam_usb.git ."
     - name: git fetch --all
       env:
         TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
         TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
         TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
-      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb_deb_$GITHUB_RUN_ID && git fetch --all"
+      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb_nightly_$GITHUB_RUN_ID && git fetch --all"
     - name: git reset --hard
       env:
         TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
         TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
         TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
-      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb_deb_$GITHUB_RUN_ID && git reset --hard"
+      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb_nightly_$GITHUB_RUN_ID && git reset --hard"
     - name: git switch -f
       env:
         TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
         TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
         TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
         REF_TO_CHECKOUT: ${{ github.head_ref }}
-      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb_deb_$GITHUB_RUN_ID && git switch -f $REF_TO_CHECKOUT || git switch -f master"
+      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb_nightly_$GITHUB_RUN_ID && git switch -f $REF_TO_CHECKOUT || git switch -f master"
     - name: git pull
       env:
         TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
         TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
         TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
-      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb_deb_$GITHUB_RUN_ID && git pull"
-    - name: Generate build environment
+      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb_nightly_$GITHUB_RUN_ID && git pull"
+    - name: Build .tar.gz source package
       env:
         TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
         TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
         TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
-      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb_deb_$GITHUB_RUN_ID && make buildenv-debian"
-    - name: Build package
+      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb_nightly_$GITHUB_RUN_ID && make sourcegz"
+    - name: Generate Debian build environment
       env:
         TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
         TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
         TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
-      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb_deb_$GITHUB_RUN_ID && make build-debian"
-    - name: Download generated package file
+      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb_nightly_$GITHUB_RUN_ID && make buildenv-debian"
+    - name: Build .deb package
       env:
         TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
         TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
         TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
-      run: sshpass -p "$TEST_RUNNER_PASS" scp ${{ secrets.TEST_RUNNER_USER }}@${{ secrets.TEST_RUNNER_HOST }}:/home/${{ secrets.TEST_RUNNER_USER }}/pam_usb_deb_$GITHUB_RUN_ID/.build/*.deb /tmp/
-    - name: Cache package
-      uses: actions/cache@v2
-      env:
-        cache-name: packages
-      with:
-        path: /tmp
-        key: packages-deb
-        restore-keys: |
-          packages-deb
-    - name: Cleanup
+      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb_nightly_$GITHUB_RUN_ID && make build-debian"
+    - name: Generate Fedora build environment
       env:
         TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
         TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
         TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
-      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "rm -rf ~/pam_usb_deb_$GITHUB_RUN_ID"
-
-
-  Fedora:
-
-    runs-on: ubuntu-22.04
-
-    steps:
-    - name: Install local requirements
-      run: sudo apt install sshpass
-    - name: FURTHER STEPS EXECUTED ON CONFIGURED RUNNER
-      run: echo 0
-    - name: git clone
+      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb_nightly_$GITHUB_RUN_ID && make buildenv-fedora"
+    - name: Build .rpm package
       env:
         TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
         TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
         TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
-      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "rm -rf ~/pam_usb_rpm_$GITHUB_RUN_ID; mkdir ~/pam_usb_rpm_$GITHUB_RUN_ID; cd ~/pam_usb_rpm_$GITHUB_RUN_ID && git clone https://github.com/mcdope/pam_usb.git ."
-    - name: git fetch --all
+      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb_nightly_$GITHUB_RUN_ID && make build-fedora"
+    - name: Generate Arch build environment
       env:
         TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
         TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
         TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
-      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb_rpm_$GITHUB_RUN_ID && git fetch --all"
-    - name: git reset --hard
+      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb_nightly_$GITHUB_RUN_ID && make buildenv-arch"
+    - name: Build .zst package
       env:
         TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
         TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
         TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
-      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb_rpm_$GITHUB_RUN_ID && git reset --hard"
-    - name: git switch -f
-      env:
-        TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
-        TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
-        TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
-        REF_TO_CHECKOUT: ${{ github.head_ref }}
-      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb_rpm_$GITHUB_RUN_ID && git switch -f $REF_TO_CHECKOUT || git switch -f master"
-    - name: git pull
-      env:
-        TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
-        TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
-        TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
-      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb_rpm_$GITHUB_RUN_ID && git pull"
-    - name: Generate build environment
-      env:
-        TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
-        TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
-        TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
-      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb_rpm_$GITHUB_RUN_ID && make buildenv-fedora"
-    - name: Build package
-      env:
-        TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
-        TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
-        TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
-      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb_rpm_$GITHUB_RUN_ID && make build-fedora"
-    - name: Download generated package file
-      env:
-        TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
-        TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
-        TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
-      run: sshpass -p "$TEST_RUNNER_PASS" scp ${{ secrets.TEST_RUNNER_USER }}@${{ secrets.TEST_RUNNER_HOST }}:/home/${{ secrets.TEST_RUNNER_USER }}/pam_usb_rpm_$GITHUB_RUN_ID/.build/*.rpm /tmp/
-    - name: Cache package
-      uses: actions/cache@v2
-      env:
-        cache-name: packages
-      with:
-        path: /tmp
-        key: packages-rpm
-        restore-keys: |
-          packages-rpm
-    - name: Cleanup
-      env:
-        TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
-        TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
-        TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
-      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "rm -rf ~/pam_usb_rpm_$GITHUB_RUN_ID"
-
-  Arch:
-
-    runs-on: ubuntu-22.04
-
-    steps:
-    - name: Install local requirements
-      run: sudo apt install sshpass
-    - name: FURTHER STEPS EXECUTED ON CONFIGURED RUNNER
-      run: echo 0
-    - name: git clone
-      env:
-        TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
-        TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
-        TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
-      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "rm -rf ~/pam_usb_arch_$GITHUB_RUN_ID; mkdir ~/pam_usb_arch_$GITHUB_RUN_ID; cd ~/pam_usb_arch_$GITHUB_RUN_ID && git clone https://github.com/mcdope/pam_usb.git . && chmod -R 0777 ~/pam_usb_arch_$GITHUB_RUN_ID"
-    - name: git fetch --all
-      env:
-        TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
-        TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
-        TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
-      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb_arch_$GITHUB_RUN_ID && git fetch --all"
-    - name: git reset --hard
-      env:
-        TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
-        TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
-        TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
-      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb_arch_$GITHUB_RUN_ID && git reset --hard"
-    - name: git switch -f
-      env:
-        TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
-        TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
-        TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
-        REF_TO_CHECKOUT: ${{ github.head_ref }}
-      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb_arch_$GITHUB_RUN_ID && git switch -f $REF_TO_CHECKOUT || git switch -f master"
-    - name: git pull
-      env:
-        TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
-        TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
-        TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
-      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb_arch_$GITHUB_RUN_ID && git pull"
-    - name: Generate build environment
-      env:
-        TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
-        TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
-        TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
-      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb_arch_$GITHUB_RUN_ID && make buildenv-arch"
-    - name: Build package
-      env:
-        TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
-        TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
-        TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
-      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb_arch_$GITHUB_RUN_ID && make build-arch"
-    - name: Download generated package file
-      env:
-        TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
-        TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
-        TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
-      run: sshpass -p "$TEST_RUNNER_PASS" scp ${{ secrets.TEST_RUNNER_USER }}@${{ secrets.TEST_RUNNER_HOST }}:/home/${{ secrets.TEST_RUNNER_USER }}/pam_usb_arch_$GITHUB_RUN_ID/.build/*.zst /tmp/
-    - name: Cache package
-      uses: actions/cache@v2
-      env:
-        cache-name: packages
-      with:
-        path: /tmp
-        key: packages-arch
-        restore-keys: |
-          packages-arch
-    - name: Cleanup
-      env:
-        TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
-        TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
-        TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
-      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "rm -rf ~/pam_usb_arch_$GITHUB_RUN_ID"
-
-  UploadNightly:
-
-    runs-on: ubuntu-22.04
-
-    steps:
-      - name: Get sourcegz from cache
-        uses: actions/cache@v2
-        env:
-          cache-name: packages
-        with:
-          path: /tmp
-          key: packages-sourcegz
-          restore-keys: |
-            packages-sourcegz
-      - name: Get deb from cache
-        uses: actions/cache@v2
-        env:
-          cache-name: packages
-        with:
-          path: /tmp
-          key: packages-deb
-          restore-keys: |
-            packages-deb
-      - name: Get rpm from cache
-        uses: actions/cache@v2
-        env:
-          cache-name: packages
-        with:
-          path: /tmp
-          key: packages-rpm
-          restore-keys: |
-            packages-rpm
-      - name: Get zst from cache
-        uses: actions/cache@v2
-        env:
-          cache-name: packages
-        with:
-          path: /tmp
-          key: packages-arch
-          restore-keys: |
-            packages-arch
+      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb_nightly_$GITHUB_RUN_ID && make build-arch"
+    - name: Upload nightly packages
       # Update tag and pre-release
       # - Update (force-push) tag to the commit that is used in the workflow.
       # - Upload artifacts defined by the user.
@@ -298,8 +98,14 @@ jobs:
           tag: nightly
           token: ${{ secrets.GITHUB_TOKEN }}
           files: |
-            /tmp/*.tar.gz
-            /tmp/*.deb
-            /tmp/*.rpm
-            /tmp/*.zst
+            *.tar.gz
+            *.deb
+            *.rpm
+            *.zst
+    - name: Cleanup
+      env:
+        TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
+        TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
+        TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
+      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "rm -rf ~/pam_usb_nightly_$GITHUB_RUN_ID"
 
