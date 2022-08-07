@@ -105,10 +105,10 @@ jobs:
         tag: nightly
         token: ${{ secrets.GITHUB_TOKEN }}
         files: |
-          ./*.tar.gz
-          ./*.deb
-          ./*.rpm
-          ./*.zst
+          ./.build/*.tar.gz
+          ./.build/*.deb
+          ./.build/*.rpm
+          ./.build/*.zst
     - name: Cleanup
       env:
         TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
