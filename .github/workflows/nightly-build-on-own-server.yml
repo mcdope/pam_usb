@@ -5,7 +5,7 @@ on:
     branches: [ master ]
 
 jobs:
-  tgz:
+  SourceGZ:
 
     runs-on: ubuntu-22.04
 
@@ -83,7 +83,7 @@ jobs:
         TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
         TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
       run: sshpass -p "$TEST_RUNNER_PASS" scp ${{ secrets.TEST_RUNNER_USER }}@${{ secrets.TEST_RUNNER_HOST }}:/home/${{ secrets.TEST_RUNNER_USER }}/pam_usb_deb_$GITHUB_RUN_ID/.build/*.deb /tmp/
-   - name: Cache package
+    - name: Cache package
       uses: actions/cache@v2
       env:
         cache-name: packages
