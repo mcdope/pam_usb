@@ -3,11 +3,10 @@ name: Nightly packaging (tar.gz, deb, rpm, zst)
 on:
   pull_request:
     branches: [ master ]
-  push:
-    branches: [ master ]
 
 jobs:
-  SourceGZ:
+  tgz:
+
     runs-on: ubuntu-22.04
 
     steps:
