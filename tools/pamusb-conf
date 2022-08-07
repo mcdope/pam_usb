@@ -21,8 +21,6 @@ import gi
 import subprocess
 import socket
 
-from sympy import true
-
 gi.require_version('UDisks', '2.0')
 
 from gi.repository import UDisks
@@ -336,7 +334,7 @@ def resetPads():
 					if details.getAttribute('id') == userDevice:
 						deviceUUID = details.getElementsByTagName('volume_uuid')[0].firstChild.nodeValue
 						try:
-							deviceMountPoint = subprocess.check_output(['mount | grep `readlink -f /dev/disk/by-uuid/%s` | awk \'{print $3}\'' % (deviceUUID)], shell=true)
+							deviceMountPoint = subprocess.check_output(['mount | grep `readlink -f /dev/disk/by-uuid/%s` | awk \'{print $3}\'' % (deviceUUID)], shell=True)
 							padFiles.append('%s/.pamusb/%s.%s.pad' % (deviceMountPoint.decode().strip(), options['resetPads'], socket.gethostname()))
 						except subprocess.CalledProcessError as err:
 							print('Could not get device mountpoint: ', err)
