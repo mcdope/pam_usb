@@ -112,7 +112,7 @@ install		: all
 		$(INSTALL) -b -m644 $(CONFS) $(CONFS_DEST)
 		$(INSTALL) -m644 $(DOCS) $(DOCS_DEST)
 		$(INSTALL) -m644 $(MANS) $(MANS_DEST)
-		@test -d $(PAM_CONF_DEST) && $(INSTALL) -m644 $(PAM_CONF) $(PAM_CONF_DEST)/libpam-usb
+		if test -d $(PAM_CONF_DEST); then $(INSTALL) -m644 $(PAM_CONF) $(PAM_CONF_DEST)/libpam-usb; fi
 
 deinstall	:
 		$(RM) -f $(PAM_USB_DEST)/$(PAM_USB)
