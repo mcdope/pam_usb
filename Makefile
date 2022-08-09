@@ -73,7 +73,6 @@ MANS_DEST	:= $(DESTDIR)$(PREFIX)/share/man/man1
 # PAM config
 PAM_CONF		:= debian/pam-auth-update/usb
 PAM_CONF_DEST 	:= $(DESTDIR)$(PREFIX)/share/pam-configs
-PAM_AUTH_UPDATE := pam-auth-update
 
 # Binaries
 RM		:= rm
@@ -107,13 +106,13 @@ manpages:
 		$(MANCOMPILE) ./doc/*.1
 
 install		: all
-		$(MKDIR) -p $(CONFS_DEST) $(DOCS_DEST) $(MANS_DEST) $(TOOLS_DEST) $(PAM_USB_DEST) $(PAM_CONF_DEST)
+		$(MKDIR) -p $(CONFS_DEST) $(DOCS_DEST) $(MANS_DEST) $(TOOLS_DEST) $(PAM_USB_DEST)
 		$(INSTALL) -m755 $(PAM_USB) $(PAM_USB_DEST)
 		$(INSTALL) -m755 $(PAMUSB_CHECK) $(TOOLS_SRC)/$(PAMUSB_CONF) $(TOOLS_SRC)/$(PAMUSB_AGENT) $(TOOLS_SRC)/$(PAMUSB_KEYRING_GNOME) $(TOOLS_DEST)
 		$(INSTALL) -b -m644 $(CONFS) $(CONFS_DEST)
 		$(INSTALL) -m644 $(DOCS) $(DOCS_DEST)
 		$(INSTALL) -m644 $(MANS) $(MANS_DEST)
-		$(INSTALL) -m644 $(PAM_CONF) $(PAM_CONF_DEST)/libpam-usb
+		@test -d $(PAM_CONF_DEST) && $(INSTALL) -m644 $(PAM_CONF) $(PAM_CONF_DEST)/libpam-usb
 
 deinstall	:
 		$(RM) -f $(PAM_USB_DEST)/$(PAM_USB)
