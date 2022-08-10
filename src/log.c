@@ -22,7 +22,7 @@
 #include "conf.h"
 #include "log.h"
 
-static t_pusb_options	*pusb_opts = NULL;
+static t_pusb_options *pusb_opts = NULL;
 
 static void pusb_log_syslog(int level, const char *format, va_list ap)
 {
@@ -34,7 +34,8 @@ static void pusb_log_syslog(int level, const char *format, va_list ap)
 static void pusb_log_output(int level, const char *format, va_list ap)
 {
 	if (!isatty(fileno(stdin)))
-		return ;
+		return;
+	
 	if (pusb_opts && !pusb_opts->quiet)
 	{
 		if (pusb_opts && pusb_opts->color_log)
@@ -46,6 +47,7 @@ static void pusb_log_output(int level, const char *format, va_list ap)
 		}
 		else
 			fprintf(stderr, "* ");
+
 		vfprintf(stderr, format, ap);
 	}
 }
@@ -55,7 +57,8 @@ void __log_debug(const char *file, int line, const char *fmt, ...)
 	va_list	ap;
 
 	if (!pusb_opts || !pusb_opts->debug)
-		return ;
+		return;
+
 	fprintf(stderr, "[%s:%03d] ", file, line);
 	va_start(ap, fmt);
 	vfprintf(stderr, fmt, ap);
