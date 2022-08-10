@@ -1,3 +1,18 @@
+# [pam.c] Reformat
+dec02ce5c6cd73c68ceba681bbd9a352a533873b
+
+# [pad.c] Reformat
+47d17757d7a0b69366a26ba1de940936f026600b
+
+# [log.c] Reformat
+3fa77662c8dac5be33a72c8a83a2f8dcaf613404
+
+# [local.c] Reformat
+d4a98c46edc2287da71cadfe6b02ff8a8173f9ad
+
+# [device.c] Reformat
+1e81d9b47bc27deb6dc4fb07c50de6a6f67be459
+
 # [conf.c] Reformat
 90b83c09b1c75e427d0442a500ca07b5086297be
 
