@@ -16,21 +16,23 @@
  */
 
 #ifndef PUSB_CONF_H_
-# define PUSB_CONF_H_
-# define PUSB_CONF_FILE "/etc/security/pam_usb.conf"
-# define CONF_DEVICE_XPATH "//configuration/devices/device[@id='%s']/%s"
-# define CONF_USER_XPATH "//configuration/users/user[@id='%s']/%s"
-# define CONF_SERVICE_XPATH "//configuration/services/service[@id='%s']/%s"
-# define CONF_USER_MAXLEN 32
-# include <limits.h>
+#define PUSB_CONF_H_
+#define PUSB_CONF_FILE "/etc/security/pam_usb.conf"
+#define CONF_DEVICE_XPATH "//configuration/devices/device[@id='%s']/%s"
+#define CONF_USER_XPATH "//configuration/users/user[@id='%s']/%s"
+#define CONF_SERVICE_XPATH "//configuration/services/service[@id='%s']/%s"
+#define CONF_USER_MAXLEN 32
+
+#include <limits.h>
 #ifdef __linux__
-# include <linux/limits.h>
+#include <linux/limits.h>
 #endif
-# include <sys/utsname.h>
-# include <sys/time.h>
-# ifndef PATH_MAX
-#  define PATH_MAX 4096
-# endif
+#include <sys/utsname.h>
+#include <sys/time.h>
+
+#ifndef PATH_MAX
+#define PATH_MAX 4096
+#endif
 
 typedef struct	pusb_device
 {
