@@ -16,7 +16,7 @@
  */
 
 #ifndef PUSB_LOCAL_H_
-# define PUSB_LOCAL_H_
+#define PUSB_LOCAL_H_
 
 int pusb_local_login(t_pusb_options *opts, const char *user, const char *service);
 

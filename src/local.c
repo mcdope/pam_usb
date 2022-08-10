@@ -31,8 +31,8 @@
 
 int pusb_is_tty_local(char *tty)
 {
-	struct utmpx	utsearch;
-	struct utmpx	*utent;
+	struct utmpx utsearch;
+	struct utmpx *utent;
 
 	if (strstr(tty, "/dev/") != NULL) {
 		tty += 5; // cut "/dev/"
@@ -146,7 +146,7 @@ char *pusb_get_tty_from_display_server(const char *display)
 
 char *pusb_get_tty_by_xorg_display(const char *display, const char *user)
 {
-	struct utmpx	*utent;
+	struct utmpx *utent;
 
 	setutxent();
 	while ((utent = getutxent())) {
@@ -249,8 +249,8 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 		local_request = 1;
 	}
 
-	const char	*session_tty;
-	char	*display = getenv("DISPLAY");
+	const char *session_tty;
+	char *display = getenv("DISPLAY");
 
 	if (local_request == 0 && strstr(name, "tmux") != NULL && tmux_pid != 0) {
 		char *tmux_client_tty = pusb_tmux_get_client_tty(tmux_pid);
@@ -313,7 +313,6 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 
 	if (local_request == 0) {
 		log_debug("	Trying to get tty by loginctl\n");
-
 
 		char *loginctl_tty = (char *)xmalloc(32);
 		loginctl_tty = pusb_get_tty_by_loginctl();
