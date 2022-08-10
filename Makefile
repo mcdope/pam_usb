@@ -22,6 +22,10 @@ endif
 # compiler/linker options
 CC := gcc
 CFLAGS := $(CFLAGS) -Wall -fPIC `pkg-config --cflags libxml-2.0` `pkg-config --cflags udisks2` #cflags libxml?
+ifeq (yes, ${DEBUG})
+    CFLAGS := ${CFLAGS} -ggdb
+endif
+
 LIBS := `pkg-config --libs libxml-2.0` `pkg-config --libs udisks2`
 
 # common source files
@@ -81,10 +85,6 @@ RPMBUILD   := rpmbuild -v -bb --clean fedora/SPECS/pam_usb.spec
 ZSTBUILD   := cd arch_linux && makepkg && cd ..
 MANCOMPILE := gzip -kf
 DOCKER     := docker
-
-ifeq (yes, ${DEBUG})
-    CFLAGS := ${CFLAGS} -ggdb
-endif
 
 all: manpages $(PAM_USB) $(PAMUSB_CHECK)
 
