@@ -1,3 +1,12 @@
+# [xpath.c] Reformat
+9217c3ed6ae3bb22505dc1a2f563c81fb6183937
+
+# [volume.c] Reformat
+9ad9e51d20af564b247d53f8efd0cc84943ee684
+
+# [pamusb-check.c] Reformat
+c1c2be62c14dfed2f5a3e11049a57b95f35eb53b
+
 # [pam.c] Reformat
 dec02ce5c6cd73c68ceba681bbd9a352a533873b
 
