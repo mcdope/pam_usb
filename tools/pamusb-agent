@@ -70,8 +70,7 @@ class HotPlugDevice:
 					self.__deviceAdded(device)
 
 	def __registerSignals(self):
-		for signal, callback in (('object-added', self.__objectAdded),
-				('object-removed', self.__objectRemoved)):
+		for signal, callback in (('object-added', self.__objectAdded), ('object-removed', self.__objectRemoved)):
 			udisksObjectManager.connect(signal, callback)
 
 	def __objectAdded(self, _, udi):
@@ -106,8 +105,7 @@ class HotPlugDevice:
 
 class Log:
 	def __init__(self):
-		syslog.openlog('pamusb-agent', syslog.LOG_PID | syslog.LOG_PERROR,
-				syslog.LOG_AUTH)
+		syslog.openlog('pamusb-agent', syslog.LOG_PID | syslog.LOG_PERROR, syslog.LOG_AUTH)
 
 	def info(self, message):
 		self.__logMessage(syslog.LOG_NOTICE, message)
@@ -119,8 +117,7 @@ class Log:
 		syslog.syslog(priority, message)
 
 def usage():
-	print('Usage: %s [--help] [--config=path] [--daemon] [--check=path]' % \
-			os.path.basename(__file__))
+	print('Usage: %s [--help] [--config=path] [--daemon] [--check=path]' % os.path.basename(__file__))
 	sys.exit(1)
 
 def runAs(uid, gid):
@@ -132,14 +129,15 @@ def runAs(uid, gid):
 import getopt
 
 try:
-	opts, args = getopt.getopt(sys.argv[1:], "hc:dc:",
-			["help", "config=", "daemon", "check="])
+	opts, args = getopt.getopt(sys.argv[1:], "hc:dc:", ["help", "config=", "daemon", "check="])
 except getopt.GetoptError:
 	usage()
 
-options = {'configFile' : '/etc/security/pam_usb.conf',
-		'daemon' : False,
-		'check' : '/usr/bin/pamusb-check'}
+options = {
+	'configFile': '/etc/security/pam_usb.conf',
+	'daemon': False,
+	'check': '/usr/bin/pamusb-check'
+}
 
 if len(args) != 0:
 	usage()
@@ -166,22 +164,20 @@ doc = et.parse(options['configFile'])
 users = doc.findall('users/user')
 
 def login1ManagerDBusIface():
-        system_bus = dbus.SystemBus()
-        proxy = system_bus.get_object('org.freedesktop.login1',
-                                        '/org/freedesktop/login1')
-        login1 = dbus.Interface(proxy, 'org.freedesktop.login1.Manager')
-        return login1
+	system_bus = dbus.SystemBus()
+	proxy = system_bus.get_object('org.freedesktop.login1', '/org/freedesktop/login1')
+	login1 = dbus.Interface(proxy, 'org.freedesktop.login1.Manager')
+	return login1
 
 def userDeviceThread(user):
-
 	userName = user.get('id')
 	uid = pwd.getpwnam(userName)[2]
 	gid = pwd.getpwnam(userName)[3]
 	os.environ = None
 
 	events = {
-		'lock' : [],
-		'unlock' : []
+		'lock': [],
+		'unlock': []
 	}
 
 	for hotplug in user.findall('agent'):
@@ -227,7 +223,6 @@ def userDeviceThread(user):
 		return 1
 
 	serial = device.find('serial').text.strip()
-
 	resumeTimestamp = datetime.datetime.min
 
 	def authChangeCallback(event):
@@ -239,8 +234,7 @@ def userDeviceThread(user):
 				logger.info('Device is removed during suspend, ignoring')
 				return
 
-			logger.info('Device "%s" has been removed, ' \
-					'locking down user "%s"...' % (deviceName, userName))
+			logger.info('Device "%s" has been removed, locking down user "%s"...' % (deviceName, userName))
 
 			for l in events['lock']:
 				if len(l['cmd']) != 0:
@@ -255,15 +249,12 @@ def userDeviceThread(user):
 			return
 
 
-		logger.info('Device "%s" has been inserted. ' \
-				'Performing verification...' % deviceName)
+		logger.info('Device "%s" has been inserted. Performing verification...' % deviceName)
 
-		cmdLine = "%s --debug --config=%s --service=pamusb-agent %s" % (
-				options['check'], options['configFile'], userName)
+		cmdLine = "%s --debug --config=%s --service=pamusb-agent %s" % (options['check'], options['configFile'], userName)
 		logger.info('Executing "%s"' % cmdLine)
 		if not os.system(cmdLine):
-			logger.info('Authentication succeeded. ' \
-					'Unlocking user "%s"...' % userName)
+			logger.info('Authentication succeeded. Unlocking user "%s"...' % userName)
 
 			for l in events['unlock']:
 				if len(l['cmd']) != 0:
@@ -278,8 +269,7 @@ def userDeviceThread(user):
 			return
 
 		else:
-			logger.info('Authentication failed for device %s. ' \
-				'Keeping user "%s" locked down.' % (deviceName, userName))
+			logger.info('Authentication failed for device %s. Keeping user "%s" locked down.' % (deviceName, userName))
 
 	def onSuspendOrResume(start, member=None):
 		nonlocal resumeTimestamp
@@ -309,11 +299,10 @@ def userDeviceThread(user):
 udisks = UDisks.Client.new_sync()
 udisksObjectManager = udisks.get_object_manager()
 
-sysUsers= []
+sysUsers = []
 validUsers = []
 
 def processCheck():
-
 	global filelock
 	filelock=open(os.path.realpath(__file__),'r')
 
@@ -345,8 +334,7 @@ for userObj in users:
 	userId = userObj.get('id')
 
 	for sysUser_ in sysUsers:
-		if (userId == sysUser_ and
-		userObj not in validUsers):
+		if (userId == sysUser_ and userObj not in validUsers):
 			validUsers.append(userObj)
 
 # logger.error('User %s not found in configuration file' % username)
