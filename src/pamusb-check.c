@@ -67,9 +67,13 @@ static int pusb_check_perform_authentication(
 
 	retval = pusb_device_check(opts, user);
 	if (retval)
+	{
 		log_info("Access granted.\n");
+	}
 	else
+	{
 		log_error("Access denied.\n");
+	}
 
 	return (retval);
 }
@@ -111,16 +115,27 @@ int main(int argc, char **argv)
 			return (1);
 		}
 		else if (opt == 'c' || (!opt && !strcmp(long_options[opt_index].name, "config")))
+		{
 			conf_file = optarg;
+		}
 		else if (opt == 's' || (!opt && !strcmp(long_options[opt_index].name, "service")))
+		{
 			service = optarg;
+		}
 		else if (opt == 'd' || (!opt && !strcmp(long_options[opt_index].name, "dump")))
+		{
 			dump = 1;
+		}
 		else if (opt == 'q' || (!opt && !strcmp(long_options[opt_index].name, "quiet")))
+		{
 			quiet = 1;
+		}
 		else if (opt == 'D' || (!opt && !strcmp(long_options[opt_index].name, "debug")))
+		{
 			debug = 1;
-		else if (opt == 'v' || (!opt && !strcmp(long_options[opt_index].name, "version"))) {
+		}
+		else if (opt == 'v' || (!opt && !strcmp(long_options[opt_index].name, "version"))) 
+		{
 			fprintf(stderr, "Version %s\n", PUSB_VERSION);
 			return (1);
 		}
@@ -132,7 +147,9 @@ int main(int argc, char **argv)
 	}
 
 	if ((argc - 1) == optind)
+	{
 		user = argv[optind];
+	}
 	else
 	{
 		pusb_check_usage(argv[0]);
@@ -147,9 +164,15 @@ int main(int argc, char **argv)
 
 	pusb_log_init(&opts);
 	if (!pusb_conf_init(&opts))
+	{
 		return (1);
+	}
+
 	if (!pusb_conf_parse(conf_file, &opts, user, service))
+	{
 		return (1);
+	}
+	
 	if (quiet)
 	{
 		opts.quiet = 1;

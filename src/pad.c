@@ -117,7 +117,8 @@ static FILE *pusb_pad_open_system(
 			return (NULL);
 		}
 
-		if(chown(path, user_ent->pw_uid, user_ent->pw_gid) != 0) {
+		if(chown(path, user_ent->pw_uid, user_ent->pw_gid) != 0) 
+		{
 			log_error("Unable to chown directory %s: %s\n", path, strerror(errno));
 		}
 
@@ -225,7 +226,9 @@ static void pusb_pad_update(
 	int devrandom;
 
 	if (!pusb_pad_should_update(opts, user))
+	{
 		return;
+	}
 
 	log_info("Regenerating new pads...\n");
 	if (!(f_device = pusb_pad_open_device(opts, volume, user, "w+")))
@@ -249,12 +252,15 @@ static void pusb_pad_update(
 	 * See https://crypto.stackexchange.com/a/35032
 	 */
 	devrandom = open("/dev/random", O_RDONLY);
-	if (devrandom < 0 || read(devrandom, &seed, sizeof seed) != sizeof seed) {
+	if (devrandom < 0 || read(devrandom, &seed, sizeof seed) != sizeof seed) 
+	{
 		log_debug("/dev/random seeding failed...\n");
 		seed = getpid() * time(NULL); /* low-entropy fallback */
 	}
 	if (devrandom > 0)
+	{
 		close(devrandom);
+	}
 
 	generateRandom(magic, sizeof(magic));
 
@@ -276,11 +282,15 @@ void generateRandom(char* output, int sizeBytes)
 	int fd, bytes_read;
 
 	if((fd = open("/dev/random", O_RDONLY)) == -1)
+	{
 		log_error("impossible to read randomness source\n");
+	}
 
 	bytes_read = read(fd, output, sizeBytes);
 	if (bytes_read != sizeBytes)
+	{
 		log_debug("read() failed (%d bytes read)\n", bytes_read);
+	}
 
 	close(fd);
 }
@@ -299,7 +309,9 @@ static int pusb_pad_compare(
 	size_t bytes_read;
 
 	if (!(f_system = pusb_pad_open_system(opts, user, "r")))
+	{
 		return (1);
+	}
 
 	if (!(f_device = pusb_pad_open_device(opts, volume, user, "r")))
 	{
@@ -308,7 +320,8 @@ static int pusb_pad_compare(
 	}
 	log_debug("Loading device pad...\n");
 	bytes_read = fread(magic_device, sizeof(char), sizeof(magic_device), f_device);
-	if (!bytes_read) {
+	if (!bytes_read) 
+	{
 		log_error("Can't read device pad!\n");
 		fclose(f_system);
 		fclose(f_device);
@@ -317,7 +330,8 @@ static int pusb_pad_compare(
 
 	log_debug("Loading system pad...\n");
 	bytes_read = fread(magic_system, sizeof(char), sizeof(magic_system), f_system);
-	if (!bytes_read) {
+	if (!bytes_read) 
+	{
 		log_error("Can't read system pad!\n");
 		fclose(f_system);
 		fclose(f_device);
@@ -329,7 +343,9 @@ static int pusb_pad_compare(
 	fclose(f_device);
 
 	if (!retval)
+	{
 		log_debug("Pad match.\n");
+	}
 
 	return (retval == 0);
 }
@@ -345,13 +361,19 @@ int pusb_pad_check(
 
 	volume = pusb_volume_get(opts, udisks);
 	if (!volume)
+	{
 		return (0);
+	}
 
 	retval = pusb_pad_compare(opts, volume->mount_point, user);
 	if (retval)
+	{
 		pusb_pad_update(opts, volume->mount_point, user);
+	}
 	else
+	{
 		log_error("Pad checking failed!\n");
+	}
 
 	pusb_volume_destroy(volume);
 	return (retval);

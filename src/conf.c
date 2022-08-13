@@ -108,8 +108,10 @@ static int pusb_conf_parse_device(
 	pusb_conf_device_get_property(opts, doc, "vendor", opts->device.vendor, sizeof(opts->device.vendor));
 	pusb_conf_device_get_property(opts, doc, "model", opts->device.model, sizeof(opts->device.model));
 
-	if (!pusb_conf_device_get_property(opts, doc, "serial", opts->device.serial, sizeof(opts->device.serial)))
+	if (!pusb_conf_device_get_property(opts, doc, "serial", opts->device.serial, sizeof(opts->device.serial))) 
+	{
 		return (0);
+	}
 
 	pusb_conf_device_get_property(opts, doc, "volume_uuid", opts->device.volume_uuid, sizeof(opts->device.volume_uuid));
 	return (1);
@@ -126,8 +128,10 @@ int pusb_conf_init(t_pusb_options *opts)
 		return (0);
 	}
 	snprintf(opts->hostname, sizeof(opts->hostname), "%s", u.nodename);
-	if (strnlen(u.nodename, sizeof(u.nodename)) > sizeof(opts->hostname))
+	if (strnlen(u.nodename, sizeof(u.nodename)) > sizeof(opts->hostname)) 
+	{
 		log_info("Hostname \"%s\" is too long, truncating to \"%s\".\n", u.nodename, opts->hostname);
+	}
 
 	snprintf(opts->system_pad_directory, sizeof(opts->system_pad_directory), "%s", ".pamusb");
 	snprintf(opts->device_pad_directory, sizeof(opts->device_pad_directory), "%s", ".pamusb");

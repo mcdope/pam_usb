@@ -57,16 +57,22 @@ static int pusb_xpath_strip_string(char *dest, const char *src, size_t size)
 	for (i = 0; src[i]; ++i)
 	{
 		if (isspace(src[i]))
+		{
 			continue;
+		}
 
 		if (first_char == -1)
+		{
 			first_char = i;
+		}
 
 		last_char = i;
 	}
 
 	if (first_char == -1 || last_char == -1)
+	{
 		return (0);
+	}
 
 	if ((last_char - first_char) > (size - 1))
 	{
@@ -91,7 +97,9 @@ int pusb_xpath_get_string(
 	xmlChar *result_string = NULL;
 
 	if (!(result = pusb_xpath_match(doc, path)))
+	{
 		return (0);
+	}
 
 	if (result->nodesetval->nodeNr > 1)
 	{
@@ -138,7 +146,9 @@ int pusb_xpath_get_string_from(
 	snprintf(xpath, xpath_size, "%s%s", base, path);
 	retval = pusb_xpath_get_string(doc, xpath, value, size);
 	if (retval)
+	{
 		log_debug("%s%s -> %s\n", base, path, value);
+	}
 
 	xfree(xpath);
 	return (retval);
@@ -149,7 +159,9 @@ int pusb_xpath_get_bool(xmlDocPtr doc, const char *path, int *value)
 	char ret[6]; /* strlen("false") + 1 */
 
 	if (!pusb_xpath_get_string(doc, path, ret, sizeof(ret)))
+	{
 		return (0);
+	}
 
 	if (!strcmp(ret, "true"))
 	{
@@ -194,26 +206,37 @@ int pusb_xpath_get_time(xmlDocPtr doc, const char *path, time_t *value)
 	int coef;
 
 	if (!pusb_xpath_get_string(doc, path, ret, sizeof(ret)))
+	{
 		return (0);
+	}
 
 	last = &(ret[strlen(ret) - 1]);
 	coef = 1;
 	if (*last == 's')
+	{
 		coef = 1;
+	}
 	else if (*last == 'm')
+	{
 		coef = 60;
+	}
 	else if (*last == 'h')
+	{
 		coef = 3600;
+	}
 	else if (*last == 'd')
+	{
 		coef = 3600 * 24;
-	else
-		if (!isdigit(*last))
-		{
-			log_debug("Expecting a time modifier, got %c\n", *last);
-			return (0);
-		}
+	}
+	else if (!isdigit(*last))
+	{
+		log_debug("Expecting a time modifier, got %c\n", *last);
+		return (0);
+	}
 	if (!isdigit(*last))
+	{
 		*last = '\0';
+	}
 
 	*value = (time_t) atoi(ret) * coef;
 
@@ -245,7 +268,9 @@ int pusb_xpath_get_int(xmlDocPtr doc, const char *path, int *value)
 	char ret[64];
 
 	if (!pusb_xpath_get_string(doc, path, ret, sizeof(ret)))
+	{
 		return (0);
+	}
 
 	*value = atoi(ret);
 	return (1);

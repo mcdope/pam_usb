@@ -36,16 +36,18 @@
  * 
  * Source: http://stackoverflow.com/questions/15545341/process-name-from-its-pid-in-linux
  */
-void pusb_get_process_name(const pid_t pid, char * name) {
+void pusb_get_process_name(const pid_t pid, char * name) 
+{
 	char procfile[BUFSIZ];
 	sprintf(procfile, "/proc/%d/cmdline", pid);
 	FILE* f = fopen(procfile, "r");
-	if (f) {
+	if (f) 
+	{
 		size_t size;
 		size = fread(name, sizeof (char), sizeof (procfile), f);
-		if (size > 0) {
-			if ('\n' == name[size - 1])
-				name[size - 1] = '\0';
+		if (size > 0 && '\n' == name[size - 1]) 
+		{
+			name[size - 1] = '\0';
 		}
 		fclose(f);
 	}
@@ -58,13 +60,16 @@ void pusb_get_process_name(const pid_t pid, char * name) {
  * 
  * Note: init is 1 and it has a parent id of 0.
  */
-void pusb_get_process_parent_id(const pid_t pid, pid_t * ppid) {
+void pusb_get_process_parent_id(const pid_t pid, pid_t * ppid) 
+{
 	char buffer[BUFSIZ];
 	sprintf(buffer, "/proc/%d/stat", pid);
 	FILE* fp = fopen(buffer, "r");
-	if (fp) {
+	if (fp) 
+	{
 		size_t size = fread(buffer, sizeof (char), sizeof (buffer), fp);
-		if (size > 0) {
+		if (size > 0) 
+		{
 			// See: http://man7.org/linux/man-pages/man5/proc.5.html section /proc/[pid]/stat
 			strtok(buffer, " "); // (1) pid  %d
 			strtok(NULL, " "); // (2) comm  %s
@@ -90,18 +95,21 @@ char *pusb_get_process_envvar(pid_t pid, char *var)
 	sprintf(buffer, "/proc/%d/environ", pid);
 	FILE* fp = fopen(buffer, "r");
 	char *variable_content = (char *)xmalloc(BUFSIZ);
-	if (fp) {
+	if (fp) 
+	{
 		size_t size = fread(buffer, sizeof (char), sizeof (buffer), fp);
 		fclose(fp);
 		for (int i = 0 ; i < size; i++) {
 			if (!buffer[i] && i != size) buffer[i] = '#'; // replace \0 with "#" since strtok uses \0 internally
 		}
 
-		if (size > 0) {
+		if (size > 0) 
+		{
 			variable_content = strtok(buffer, "#");
 			while (variable_content != NULL)
 			{
-				if (strncmp(var, variable_content, strnlen(var, sizeof(var))) == 0) {
+				if (strncmp(var, variable_content, strnlen(var, sizeof(var))) == 0) 
+				{
 					return variable_content + strnlen(var, sizeof(var)) + 1;
 				}
 

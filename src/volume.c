@@ -71,7 +71,9 @@ static int pusb_volume_mount(t_pusb_volume *volume)
 	}
 
 	if (error)
+	{
 		g_error_free(error);
+	}
 
 	return (retval);
 }
@@ -100,7 +102,9 @@ static t_pusb_volume *pusb_volume_probe(t_pusb_options *opts, UDisksClient *udis
 		blocks = udisks_client_get_block_for_uuid(udisks, opts->device.volume_uuid);
 
 		if (i == 1)
+		{
 			log_info("Probing volume (this could take a while)...\n");
+		}
 
 		for (j = 0; j < g_list_length(blocks); ++j)
 		{
@@ -118,7 +122,9 @@ static t_pusb_volume *pusb_volume_probe(t_pusb_options *opts, UDisksClient *udis
 				mount_points = udisks_filesystem_get_mount_points(volume->filesystem);
 				log_debug("Found mount points: %s\n", *mount_points);
 				if (mount_points && *mount_points)
+				{
 					volume->mount_point = xstrdup(*mount_points);
+				}
 
 				break;
 			}
@@ -138,8 +144,9 @@ static t_pusb_volume *pusb_volume_probe(t_pusb_options *opts, UDisksClient *udis
 	}
 
 	if (!volume)
-		log_debug("Could not find volume %s.\n",
-				opts->device.volume_uuid);
+	{
+		log_debug("Could not find volume %s.\n", opts->device.volume_uuid);
+	}
 
 	return (volume);
 }
@@ -149,7 +156,9 @@ t_pusb_volume *pusb_volume_get(t_pusb_options *opts, UDisksClient *udisks)
 	t_pusb_volume *volume = pusb_volume_probe(opts, udisks);
 
 	if (!volume)
+	{
 		return (NULL);
+	}
 
 	if (volume->mount_point)
 	{
@@ -186,7 +195,9 @@ void pusb_volume_destroy(t_pusb_volume *volume)
 			NULL
 		);
 		if (!ret)
+		{
 			log_error("Unable to unmount %s from %s\n", volume->device, volume->mount_point);
+		}
 
 		log_debug("Unmount succeeded.\n");
 	}

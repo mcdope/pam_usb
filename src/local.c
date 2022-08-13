@@ -34,7 +34,8 @@ int pusb_is_tty_local(char *tty)
 	struct utmpx utsearch;
 	struct utmpx *utent;
 
-	if (strstr(tty, "/dev/") != NULL) {
+	if (strstr(tty, "/dev/") != NULL) 
+	{
 		tty += 5; // cut "/dev/"
 	}
 
@@ -64,7 +65,9 @@ int pusb_is_tty_local(char *tty)
 		{
 			log_error("Remote authentication request: %s\n", utent->ut_host);
 			return (-1);
-		} else {
+		} 
+		else 
+		{
 			log_debug("		Checking utmp->ut_addr_v6[%d]\n", i);
 		}
 	}
@@ -76,8 +79,9 @@ int pusb_is_tty_local(char *tty)
 char *pusb_get_tty_from_display_server(const char *display)
 {
 	DIR *d_proc = opendir("/proc");
-	if (d_proc == NULL)
+	if (d_proc == NULL) {
 		return NULL;
+	}
 
 	char *cmdline_path = (char *)xmalloc(32);
 	char *cmdline = (char *)xmalloc(4096);
@@ -98,7 +102,10 @@ char *pusb_get_tty_from_display_server(const char *display)
 			int bytes_read = read(cmdline_file, cmdline, 4096);
 			close(cmdline_file);
 			for (int i = 0 ; i < bytes_read; i++) {
-				if (!cmdline[i] && i != bytes_read) cmdline[i] = ' '; // replace \0 with [space]
+				if (!cmdline[i] && i != bytes_read) 
+				{
+					cmdline[i] = ' '; // replace \0 with [space]
+				}
 			}
 
 			if ((strstr(cmdline, "Xorg") != NULL && strstr(cmdline, display) != NULL)
@@ -157,7 +164,8 @@ char *pusb_get_tty_by_xorg_display(const char *display, const char *user)
 				|| strncmp(utent->ut_line, "console", sizeof(utent->ut_line)) == 0
 				|| strncmp(utent->ut_line, "pts", sizeof(utent->ut_line)) == 0
 			)
-		) {
+		)
+		{
 			endutxent();
 			return utent->ut_line;
 		}
@@ -170,7 +178,8 @@ char *pusb_get_tty_by_xorg_display(const char *display, const char *user)
 char *pusb_get_tty_by_loginctl()
 {
 	struct stat sb;
-	if (stat("/usr/bin/loginctl", &sb) != 0) {
+	if (stat("/usr/bin/loginctl", &sb) != 0) 
+	{
 		log_debug("		loginctl is not available, skipping\n");
 		return (0);
 	}
@@ -179,22 +188,27 @@ char *pusb_get_tty_by_loginctl()
     char buf[BUFSIZ];
     FILE *fp;
 
-    if ((fp = popen(loginctl_cmd, "r")) == NULL) {
+    if ((fp = popen(loginctl_cmd, "r")) == NULL) 
+	{
         log_debug("		Opening pipe for 'loginctl' failed, this is quite a wtf...\n");
         return (0);
     }
 
     char *tty = NULL;
-    if (fgets(buf, BUFSIZ, fp) != NULL) {
+    if (fgets(buf, BUFSIZ, fp) != NULL) 
+	{
         tty = strtok(buf, "\n");
         log_debug("		Got tty: %s\n", tty);
 
-        if (pclose(fp)) {
+        if (pclose(fp)) 
+		{
             log_debug("		Closing pipe for 'tmux loginctl-clients' failed, this is quite a wtf...\n");
         }
 
         return tty;
-    } else {
+    } 
+	else 
+	{
         log_debug("		'loginctl' returned nothing.'\n");
         return (0);
     }
@@ -220,14 +234,16 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 		pusb_get_process_name(pid, name);
 		log_debug("	Checking pid %6d (%s)...\n", pid, name);
 
-		if (strstr(name, "tmux") != NULL) {
+		if (strstr(name, "tmux") != NULL) 
+		{
 			log_debug("		Setting pid %d as fallback for tmux check\n", previous_pid);
 			tmux_pid = previous_pid;
 		}
 
 		previous_pid = pid;
 		pusb_get_process_parent_id(pid, & pid);
-		if (strstr(name, "sshd") != NULL || strstr(name, "telnetd") != NULL) {
+		if (strstr(name, "sshd") != NULL || strstr(name, "telnetd") != NULL) 
+		{
 			log_error("One of the parent processes found to be a remote access daemon, denying.\n");
 			return (0);
 		}
@@ -244,7 +260,8 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 		strcmp(service, "sddm") == 0 ||
 		strcmp(service, "polkit-1") == 0 ||
 		strcmp(service, "login") == 0 // @todo: see issue #115, if we continue the check past here we gonna close the session for some reason
-	) {
+	) 
+	{
 		log_debug("Whitelisted request by %s detected, assuming local.\n", service);
 		local_request = 1;
 	}
@@ -252,26 +269,34 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 	const char *session_tty;
 	char *display = getenv("DISPLAY");
 
-	if (local_request == 0 && strstr(name, "tmux") != NULL && tmux_pid != 0) {
+	if (local_request == 0 && strstr(name, "tmux") != NULL && tmux_pid != 0) 
+	{
 		char *tmux_client_tty = pusb_tmux_get_client_tty(tmux_pid);
-		if (tmux_client_tty != NULL && tmux_client_tty != 0) {
+		if (tmux_client_tty != NULL && tmux_client_tty != 0) 
+		{
 			local_request = pusb_is_tty_local(tmux_client_tty);
-		} else if (tmux_client_tty == 0) {
+		} 
+		else if (tmux_client_tty == 0) 
+		{
 			return 0;
 		}
 	}
 
-	if (local_request == 0 && strstr(name, "tmux") != NULL) {
+	if (local_request == 0 && strstr(name, "tmux") != NULL) 
+	{
 		log_debug("	Checking for remote clients attached to tmux...\n");
-		if (pusb_tmux_has_remote_clients(user) != 0) { // tmux has at least one remote client, can't be sure it isn't this one so denying...
+		if (pusb_tmux_has_remote_clients(user) != 0) 
+		{ // tmux has at least one remote client, can't be sure it isn't this one so denying...
 			return 0;
 		}
 	}
 
-	if (local_request == 0 && display != NULL) {
+	if (local_request == 0 && display != NULL) 
+	{
 		log_debug("	Using DISPLAY %s for utmp search\n", display);
 
-		if (strstr(display, ".0") != NULL) {
+		if (strstr(display, ".0") != NULL) 
+		{
 			// DISPLAY contains not only display but also default screen, truncate screen part in this case
 			log_debug("	DISPLAY contains screen, truncating...\n");
 			char display_tmp[sizeof(display)];
@@ -291,7 +316,9 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 			{
 				log_debug("	Retrying with tty %s, obtained from display server, for utmp search\n", xorg_tty);
 				local_request = pusb_is_tty_local(xorg_tty);
-			} else {
+			} 
+			else 
+			{
 				log_debug("		Failed, no result while trying to get TTY from display server\n");
 			}
 
@@ -311,7 +338,8 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 		}
 	}
 
-	if (local_request == 0) {
+	if (local_request == 0) 
+	{
 		log_debug("	Trying to get tty by loginctl\n");
 
 		char *loginctl_tty = (char *)xmalloc(32);
@@ -320,27 +348,36 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 		{
 			log_debug("	Retrying with tty %s, obtained by loginctl, for utmp search\n", loginctl_tty);
 			local_request = pusb_is_tty_local(loginctl_tty);
-		} else {
+		} 
+		else 
+		{
 			log_debug("		Failed, no result while searching utmp for tty %s\n", loginctl_tty);
 		}
 	}
 
-	if (local_request == 0) {
+	if (local_request == 0) 
+	{
 		session_tty = ttyname(STDIN_FILENO);
 		if (!session_tty || !(*session_tty))
 		{
 			log_error("Couldn't retrieve login tty, assuming remote\n");
-		} else {
+		} 
+		else {
 			log_debug("	Fallback: Using TTY %s from ttyname() for search\n", session_tty);
 			local_request = pusb_is_tty_local((char *) session_tty);
 		}
 	}
 
-	if (local_request == 1) {
+	if (local_request == 1) 
+	{
 		log_debug("No remote access detected, seems to be local request - allowing.\n");
-	} else if (local_request == 0) {
+	} 
+	else if (local_request == 0) 
+	{
 		log_debug("Couldn't confirm login tty to be neither local or remote - denying.\n");
-	} else if (local_request == -1) {
+	} 
+	else if (local_request == -1) 
+	{
 		log_debug("Confirmed remote request - denying.\n");
 	}
 

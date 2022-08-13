@@ -55,15 +55,20 @@ int pam_sm_authenticate(
 		return (PAM_AUTH_ERR);
 	}
 
-	if (argc > 1)
-		if (!strcmp(argv[0], "-c"))
-			conf_file = (char *)argv[1];
+	if (argc > 1 && !strcmp(argv[0], "-c"))
+	{
+		conf_file = (char *)argv[1];
+	}
 
 	if (!pusb_conf_init(&opts))
+	{
 		return (PAM_AUTH_ERR);
+	}
 
 	if (!pusb_conf_parse(conf_file, &opts, user, service))
+	{
 		return (PAM_AUTH_ERR);
+	}
 
 	if (!opts.enable)
 	{
@@ -71,13 +76,16 @@ int pam_sm_authenticate(
 		return (PAM_IGNORE);
 	}
 
-	if (opts.deny_remote) {
+	if (opts.deny_remote) 
+	{
 		retval = pam_get_item(pamh, PAM_RHOST, (const void **)(const void *)&rhost);
 		if (retval != PAM_SUCCESS)
 		{
 			log_error("Unable to retrieve PAM_RHOST.\n");
 			return (PAM_AUTH_ERR);
-		} else if (rhost != NULL && strcmp(rhost, "") != 0) {
+		} 
+		else if (rhost != NULL && strcmp(rhost, "") != 0) 
+		{
 			log_debug("RHOST is set (%s), must be a remote request - disabling myself for this request!\n", rhost);
 			return (PAM_IGNORE);
 		}
@@ -140,15 +148,20 @@ int pam_sm_acct_mgmt(
 		return (PAM_AUTH_ERR);
 	}
 
-	if (argc > 1)
-		if (!strcmp(argv[0], "-c"))
-			conf_file = (char *)argv[1];
+	if (argc > 1 && !strcmp(argv[0], "-c"))
+	{
+		conf_file = (char *)argv[1];
+	}
 
 	if (!pusb_conf_init(&opts))
+	{
 		return (PAM_AUTH_ERR);
+	}
 
 	if (!pusb_conf_parse(conf_file, &opts, user, service))
+	{
 		return (PAM_AUTH_ERR);
+	}
 
 	if (!opts.enable)
 	{
@@ -156,13 +169,16 @@ int pam_sm_acct_mgmt(
 		return (PAM_IGNORE);
 	}
 
-	if (opts.deny_remote) {
+	if (opts.deny_remote) 
+	{
 		retval = pam_get_item(pamh, PAM_RHOST, (const void **)(const void *)&rhost);
 		if (retval != PAM_SUCCESS)
 		{
 			log_error("Unable to retrieve PAM_RHOST.\n");
 			return (PAM_AUTH_ERR);
-		} else if (rhost != NULL) {
+		} 
+		else if (rhost != NULL) 
+		{
 			log_debug("RHOST is set (%s), must be a remote request - disabling myself for this request!\n", rhost);
 			return (PAM_IGNORE);
 		}
