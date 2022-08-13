@@ -20,6 +20,7 @@ import os
 import gi
 import subprocess
 import socket
+import getopt
 
 gi.require_version('UDisks', '2.0')
 
@@ -52,8 +53,10 @@ class Device:
 				continue
 			if not obj.get_filesystem():
 				continue
-			vols.append({'uuid' : blockObj.get_property('id-uuid'),
-				'device' : blockObj.get_property('device')})
+			vols.append({
+				'uuid' : blockObj.get_property('id-uuid'), 
+				'device' : blockObj.get_property('device')
+			})
 		return vols
 
 	def __repr__(self):
@@ -140,10 +143,13 @@ def addUser(options):
 	else:
 		device = devices[int(options['deviceNumber'])]
 
-	shouldSave(options, [
-		('User', options['userName']),
-		('Device', device)
-		])
+	shouldSave(
+		options, 
+		[
+			('User', options['userName']),
+			('Device', device)
+		]
+	)
 
 	users = doc.getElementsByTagName('users')
 	user = doc.createElement('user')
@@ -210,12 +216,16 @@ def addDevice(options):
 	volumes = device.volumes()
 
 	if options['volumeNumber'] is None:
-		volume = volumes[listOptions("Which volume would you like to use for " \
-				"storing data ?",
-				["%s (UUID: %s)" % (volume['device'],
+		volume = volumes[
+			listOptions(
+				"Which volume would you like to use for storing data ?",
+				[
+					"%s (UUID: %s)" % (volume['device'],
 					volume['uuid'] or "<UNDEFINED>")
-					for volume in volumes]
-				)]
+					for volume in volumes
+				]
+			)
+		]
 	else:
 		volume = volumes[int(options['volumeNumber'])]
 
@@ -247,13 +257,16 @@ def addDevice(options):
 		
 		print('\n'.join(msg))
 
-	shouldSave(options,[
-		('Name', options['deviceName']),
-		('Vendor', vendor),
-		('Model', product),
-		('Serial', device.serialNumber),
-		('UUID', volume['uuid'] or "Unknown")
-		])
+	shouldSave(
+		options,
+		[
+			('Name', options['deviceName']),
+			('Vendor', vendor),
+			('Model', product),
+			('Serial', device.serialNumber),
+			('UUID', volume['uuid'] or "Unknown")
+		]
+	)
 
 	try:
 		doc = minidom.parse(options['configFile'])
@@ -267,8 +280,10 @@ def addDevice(options):
 	for devices in devs:
 		for device_ in devices.getElementsByTagName("device"):
 			if device_.getAttribute("id") == options['deviceName']:
-				msg =  [ '\nWARNING: A device node already exits for new device \'%s\'.',
-						 '\nTo proceed re-run --add-device using a different name or remove the existing entry in %s.' ]
+				msg =  [ 
+					'\nWARNING: A device node already exits for new device \'%s\'.',
+					'\nTo proceed re-run --add-device using a different name or remove the existing entry in %s.'
+				]
 				print('\n'.join(msg) % (options['deviceName'], options['configFile']))
 				sys.exit(2)
 
@@ -282,10 +297,12 @@ def addDevice(options):
 	if hasattr(device, 'product'):
 		product = device.product
 
-	for name, value in (('vendor', vendor),
-			('model', product),
-			('serial', device.serialNumber),
-			('volume_uuid', volume['uuid'])):
+	for name, value in (
+		('vendor', vendor),
+		('model', product),
+		('serial', device.serialNumber),
+		('volume_uuid', volume['uuid'])
+	):
 		if value is None or value == '':
 			continue
 		e = doc.createElement(name)
@@ -293,6 +310,7 @@ def addDevice(options):
 		e.appendChild(t)
 		dev.appendChild(e)
 
+	# @todo: can this even happen? I've never seen a device without UUID...
 	# Disable one time pads if there's no device UUID
 	if volume['uuid'] == '':
 		e = doc.createElement('option')
@@ -364,11 +382,12 @@ def usage():
 	print('Usage: %s [--help] [--verbose] [--yes] [--config=path] [--reset-pads=username] [--add-user=name | --add-device=name [[--device=number] [--volume=number]]' % os.path.basename(__file__))
 	sys.exit(1)
 
-import getopt
-
 try:
-	opts, args = getopt.getopt(sys.argv[1:], "hvd:nu:c:y",
-			["help", "verbose", "add-device=", "add-user=", "config=", "reset-pads=", "yes", "device=", "volume=", "list-devices", "list-volumes"])
+	opts, args = getopt.getopt(
+		sys.argv[1:], 
+		"hvd:nu:c:y",
+		["help", "verbose", "add-device=", "add-user=", "config=", "reset-pads=", "yes", "device=", "volume=", "list-devices", "list-volumes"]
+	)
 except getopt.GetoptError:
 	usage()
 
@@ -376,16 +395,16 @@ if len(args) != 0:
 	usage()
 
 options = {
-	'deviceName' : None,
-	'userName' : None,
-	'configFile' : '/etc/security/pam_usb.conf',
-	'verbose' : False,
-	'yes' : False,
-	'deviceNumber' : None,
-	'volumeNumber' : None,
-	'listDevices' : False,
-	'listVolumes' : False,
-	'resetPads' : None
+	'deviceName': None,
+	'userName': None,
+	'configFile': '/etc/security/pam_usb.conf',
+	'verbose': False,
+	'yes': False,
+	'deviceNumber': None,
+	'volumeNumber': None,
+	'listDevices': False,
+	'listVolumes': False,
+	'resetPads': None
 }
 
 for o, a in opts:
@@ -440,4 +459,3 @@ if options['userName'] is not None:
 		addUser(options)
 	except KeyboardInterrupt:
 		sys.exit(1)
-
