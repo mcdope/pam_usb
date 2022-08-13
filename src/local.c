@@ -156,7 +156,8 @@ char *pusb_get_tty_by_xorg_display(const char *display, const char *user)
 	struct utmpx *utent;
 
 	setutxent();
-	while ((utent = getutxent())) {
+	while ((utent = getutxent())) 
+	{
 		if (strncmp(utent->ut_host, display, strnlen(display, sizeof(display))) == 0
 			&& strncmp(utent->ut_user, user, strnlen(user, sizeof(user))) == 0
 			&& (
@@ -230,7 +231,8 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 	pid_t tmux_pid = 0;
 	int local_request = 0;
 
-	while (pid != 0) {
+	while (pid != 0) 
+	{
 		pusb_get_process_name(pid, name);
 		log_debug("	Checking pid %6d (%s)...\n", pid, name);
 

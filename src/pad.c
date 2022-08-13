@@ -126,8 +126,13 @@ static FILE *pusb_pad_open_system(
 	}
 	/* change slashes in device name to underscores */
 	snprintf(device_name, sizeof(opts->device.name), "%s", opts->device.name);
-	while(*device_name_ptr) {
-		if('/' == *device_name_ptr) *device_name_ptr = '_';
+	while(*device_name_ptr) 
+	{
+		if('/' == *device_name_ptr) 
+		{
+			*device_name_ptr = '_';
+		}
+
 		device_name_ptr++;
 	}
 

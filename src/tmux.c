@@ -106,7 +106,8 @@ int pusb_tmux_has_remote_clients(const char* username)
             return (-1);
         }
 
-        while (fgets(buf, BUFSIZ, fp) != NULL) {
+        while (fgets(buf, BUFSIZ, fp) != NULL) 
+        {
             sprintf(regex_raw, "%s%s", username, regex_tpl[i]);
 
             status = regcomp(&regex, regex_raw, REG_EXTENDED);
