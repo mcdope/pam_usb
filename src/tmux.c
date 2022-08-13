@@ -97,7 +97,8 @@ int pusb_tmux_has_remote_clients(const char* username)
         "(.+)([0-9A-Fa-f]{1,4}):([0-9A-Fa-f]{1,4}):([0-9A-Fa-f]{1,4}):([0-9A-Fa-f]{1,4})(.+)tmux(.+)(a|at|attach|new)" // v6
     }; // ... yes, these allow invalid addresses. No, I don't care. This isn't about validation but detecting remote access. Good enough ¯\_(ツ)_/¯
 
-    for (int i = 0; i <= 1; i++) {
+    for (int i = 0; i <= 1; i++) 
+    {
         log_debug("		Checking for IPv%d connections...\n", (4 + (i * 2)));
 
         if ((fp = popen("w", "r")) == NULL) 

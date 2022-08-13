@@ -101,7 +101,8 @@ char *pusb_get_tty_from_display_server(const char *display)
 			int cmdline_file = open(cmdline_path, O_RDONLY | O_CLOEXEC);
 			int bytes_read = read(cmdline_file, cmdline, 4096);
 			close(cmdline_file);
-			for (int i = 0 ; i < bytes_read; i++) {
+			for (int i = 0 ; i < bytes_read; i++) 
+			{
 				if (!cmdline[i] && i != bytes_read) 
 				{
 					cmdline[i] = ' '; // replace \0 with [space]

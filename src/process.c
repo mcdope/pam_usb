@@ -99,7 +99,8 @@ char *pusb_get_process_envvar(pid_t pid, char *var)
 	{
 		size_t size = fread(buffer, sizeof (char), sizeof (buffer), fp);
 		fclose(fp);
-		for (int i = 0 ; i < size; i++) {
+		for (int i = 0 ; i < size; i++) 
+		{
 			if (!buffer[i] && i != size) buffer[i] = '#'; // replace \0 with "#" since strtok uses \0 internally
 		}
 
