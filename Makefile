@@ -119,11 +119,12 @@ install: all
 
 	$(INSTALL) -m755 $(PAM_USB) $(PAM_USB_DEST)
 	$(INSTALL) -m755 $(PAMUSB_CHECK) $(TOOLS_SRC)/$(PAMUSB_CONF) $(TOOLS_SRC)/$(PAMUSB_AGENT) $(TOOLS_SRC)/$(PAMUSB_KEYRING_GNOME) $(TOOLS_DEST)
-	$(INSTALL) -b -m644 $(CONFS) $(CONFS_DEST)
 	$(INSTALL) -m644 $(DOCS) $(DOCS_DEST)
 	$(INSTALL) -m644 $(MANS) $(MANS_DEST)
 
 	if test -d $(PAM_CONF_DEST); then $(INSTALL) -m644 $(PAM_CONF) $(PAM_CONF_DEST)/libpam-usb; fi
+	if test -f $(CONFS_DEST)/pam_usb.conf; then $(INSTALL) -b -m644 $(CONFS) $(CONFS_DEST)/pam_usb.conf.dist; fi
+	if test ! -f $(CONFS_DEST)/pam_usb.conf; then $(INSTALL) -b -m644 $(CONFS) $(CONFS_DEST); fi
 
 deinstall:
 	$(RM) -f $(PAM_USB_DEST)/$(PAM_USB)
