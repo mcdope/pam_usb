@@ -82,7 +82,7 @@ INSTALL	:= install
 MKDIR := mkdir
 DEBUILD	:= debuild -b -uc -us --lintian-opts --profile debian
 RPMBUILD := rpmbuild -v -bb --clean fedora/SPECS/pam_usb.spec
-ZSTBUILD := cd arch_linux && makepkg && cd ..
+ZSTBUILD := cd arch_linux && makepkg -p PKGBUILD_git && cd ..
 MANCOMPILE := gzip -kf
 DOCKER := docker
 
@@ -166,12 +166,11 @@ rpm-sign: build-fedora
 rpm-lint: build-fedora
 	rpmlint `ls -t .build/*.rpm | head -1`
 
-zst: clean builddir sourcegz
-	rm -f arch_linux/*.zst ../pamusb.tar.gz
-	mv .build/pam_usb-$(VERSION).tar.gz arch_linux/pamusb.tar.gz
+zst: clean builddir
+	rm -f arch_linux/*.zst
 	$(ZSTBUILD)
 	yes | cp -rf arch_linux/*.zst .build
-	rm -rf arch_linux/src arch_linux/pkg arch_linux/pamusb.tar.gz arch_linux/*.zst
+	rm -rf arch_linux/src arch_linux/pkg arch_linux/*.tar.gz arch_linux/*.zst
 
 sourcegz: clean builddir
 	tar --exclude="debian/.debhelper" \
