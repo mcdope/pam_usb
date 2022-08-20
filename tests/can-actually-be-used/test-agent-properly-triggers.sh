@@ -13,9 +13,6 @@ sudo modprobe -r g_mass_storage || exit 1
 sleep 5
 tail -n 20 /var/log/auth.log | grep "has been removed, locking down user" || exit 1
 
-# Verify unplug
-
-
 # "plug" virtual usb
 sudo modprobe g_mass_storage file=./virtual_usb.img stall=0 removable=y iSerialNumber=1234567890 || exit 1
 sleep 5
