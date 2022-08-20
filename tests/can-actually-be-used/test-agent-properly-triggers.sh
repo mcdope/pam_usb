@@ -7,6 +7,7 @@ sudo sed -i -r 's/<user id="([0-9a-zA-Z]+)">/<user id="\1"><agent event="lock"><
 # Enable & start agent
 sudo systemctl enable pamusb-agent || exit 1
 sudo systemctl start pamusb-agent || exit 1
+sleep 5 # make sure agent is up
 
 # "unplug" virtual usb
 sudo modprobe -r g_mass_storage || exit 1
