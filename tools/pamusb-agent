@@ -246,7 +246,10 @@ def userDeviceThread(user):
 				if len(l['cmd']) != 0:
 					for cmd in l['cmd']:
 						logger.info('Running "%s" (as %d:%d)' % (cmd, uid, gid))
-						subprocess.run(['sh', '-c', cmd], env=l['env'], preexec_fn=runAs(uid, gid))
+						process = subprocess.run(['sh', '-c', cmd], env=l['env'], preexec_fn=runAs(uid, gid), capture_output=True)
+						logger.info('Process exit code: %d' % (process.returncode))
+						logger.info('Process stdout: %s' % (process.stdout.decode()))
+						logger.info('Process stderr: %s' % (process.stderr.decode()))
 
 				else:
 					logger.info('No commands defined for lock!')
@@ -269,7 +272,10 @@ def userDeviceThread(user):
 				if len(l['cmd']) != 0:
 					for cmd in l['cmd']:
 						logger.info('Running "%s" (as %d:%d)' % (cmd, uid, gid))
-						subprocess.run(['sh', '-c', cmd], env=l['env'], preexec_fn=runAs(uid, gid))
+						process = subprocess.run(['sh', '-c', cmd], env=l['env'], preexec_fn=runAs(uid, gid), capture_output=True)
+						logger.info('Process exit code: %d' % (process.returncode))
+						logger.info('Process stdout: %s' % (process.stdout.decode()))
+						logger.info('Process stderr: %s' % (process.stderr.decode()))
 				
 				else:
 					logger.info('No commands defined for unlock!')
