@@ -170,7 +170,7 @@ zst: clean builddir
 	rm -f arch_linux/*.zst
 	$(ZSTBUILD)
 	yes | cp -rf arch_linux/*.zst .build
-	rm -rf arch_linux/src arch_linux/pkg arch_linux/*.tar.gz arch_linux/*.zst
+	rm -rf arch_linux/pam_usb arch_linux/src arch_linux/pkg arch_linux/*.tar.gz arch_linux/*.zst
 
 sourcegz: clean builddir
 	tar --exclude="debian/.debhelper" \
