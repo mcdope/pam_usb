@@ -2,7 +2,7 @@
 echo -e "Test:\t\t\tpamusb-agent properly detects device (un)plug and triggers"
 
 # Write agent config with dummy cmds to trigger log entries
-sed -i -r 's/<user id="([0-9a-zA-Z]+)">/<user id="\1"><agent event="lock"><cmd>echo $PWD<\/cmd><\/agent><agent event="unlock"><cmd>echo $PWD<\/cmd><\/agent>/g' /etc/security/pam_usb.conf || exit 1
+sudo sed -i -r 's/<user id="([0-9a-zA-Z]+)">/<user id="\1"><agent event="lock"><cmd>echo $PWD<\/cmd><\/agent><agent event="unlock"><cmd>echo $PWD<\/cmd><\/agent>/g' /etc/security/pam_usb.conf || exit 1
 
 # Enable & start agent
 sudo systemctl enable pamusb-agent || exit 1
