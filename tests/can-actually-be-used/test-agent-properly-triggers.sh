@@ -10,6 +10,8 @@ sudo systemctl start pamusb-agent || exit 1
 sleep 5 # make sure agent is up
 
 # "unplug" virtual usb
+sync && sync && sync
+sudo umount /tmp/fakestick
 sudo modprobe -r g_mass_storage || exit 1
 sleep 10
 sudo tail -n 200 /var/log/auth.log | grep "pamusb-agent\[" | grep "has been removed, locking down user" > /dev/null && echo "Lock event found" || { echo "No lock event found!"; exit 1; }
