@@ -1,0 +1,50 @@
+name: Bug Report / Support request
+description: File a bug report or request support
+title: ""
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report!
+  - type: input
+    id: version
+    attributes:
+      label: Which version of pam_usb are you running?
+      description: Please provide the version number, or commit hash for manual builds, you are currently running.
+  - type: input
+    id: distribution
+    attributes:
+      label: Which distribution are you using?
+      description: Please provide the name (and for non-rolling release ones also the version) of your distribution.
+  - type: input
+    id: desktop
+    attributes:
+      label: Which login manager and desktop environment are you using?
+      description: Please provide the name and version of your desktop environment, as well as the login manager.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Also tell us, what did you expect to happen?
+      placeholder: Tell us what you see!
+    validations:
+      required: true
+  - type: textarea
+    id: output_check
+    attributes:
+      label: Output of "pamusb-check --debug `whoami`"
+      description: Please run "pamusb-check --debug `whoami`" in a terminal and provide the output. Will be auto-formatted by Github, no need for Backticks.
+      render: shell
+  - type: textarea
+    id: output_w
+    attributes:
+      label: Output of "w"
+      description: Please run "w" in a terminal and provide the output. Will be auto-formatted by Github, no need for Backticks.
+      render: shell
+  - type: textarea
+    id: output_loginctl
+    attributes:
+      label: Output of "loginctl"
+      description: Please run "loginctl" in a terminal and provide the output. Will be auto-formatted by Github, no need for Backticks.
+      render: shell
