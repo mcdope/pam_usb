@@ -65,7 +65,7 @@ CONFS := doc/pam_usb.conf
 CONFS_DEST := $(DESTDIR)/etc/security
 
 # Doc
-DOCS := doc/CONFIGURATION doc/QUICKSTART
+DOCS := doc/CONFIGURATION doc/QUICKSTART doc/SECURITY doc/TROUBLESHOOTING
 DOCS_DEST := $(DESTDIR)$(PREFIX)/share/doc/pam_usb
 
 # Man
