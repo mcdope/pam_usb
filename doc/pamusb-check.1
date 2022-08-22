@@ -1,4 +1,4 @@
-.TH pamusb-check 1 "September 12, 2007" "" "PAM_USB"
+.TH pamusb-check 1 "August 22, 2022" "" "PAM_USB"
 
 .SH NAME
 \fBpamusb-check \fP- check if current pam_usb configuration authenticates given user
@@ -12,10 +12,9 @@ Usage: \fIpamusb-check\fP [\fB--help\fP] [\fB--debug\fP] [\fB--config\fP=path] [
 .SH DESCRIPTION
 \fIpamusb-check\fP can simulate authentication through the pam_usb engine.
 It is useful for both testing purposes (to check the pam_usb configuration
-without having to try with a
-real program), but also for scripting. \fIpamusb-check\fP's exit code is 0 if the
-authentication was successful, 1 otherwise.
-It is used by pamusb-agent to check the device.
+without having to try with a real program), but also for scripting.
+\fIpamusb-check\fP's exit code is 0 if the authentication was successful,
+1 otherwise. It is used by pamusb-agent to check the device.
 .SH EXAMPLES
 $ \fIpamusb-check\fP scox
 .IP \(bu 3
@@ -85,9 +84,10 @@ Shows debug messages.
 .B
 \fB--config\fP, \fB-c\fP
 Use the given configuration file (defaults to /etc/pamusb.conf).
+.TP
 .B
-\fB--service\fP, \fB-s\fP Service name to be used for authentication (defaults to
-\fIpamusb-check\fP)
+\fB--service\fP, \fB-s\fP
+Service name to be used for authentication (defaults to \fIpamusb-check\fP)
 .TP
 .B
 \fB--dump\fP, \fB-d\fP
@@ -97,6 +97,6 @@ Dump the configuration, but do not try to authenticate
 \fB--quiet\fP, \fB-q\fP
 Quiet mode
 .SH BUGS
-Please send bug reports to the pam_usb mailing list.
+Please report bugs on the Github issue tracker at https://github.com/mcdope/pam_usb/issues.
 .SH AUTHOR
-Andrea Luzzardi <scox@sig11.org>
+Andrea Luzzardi <scox@sig11.org>, Tobias Bäumer <tobiasbaeumer@gmail.com>
