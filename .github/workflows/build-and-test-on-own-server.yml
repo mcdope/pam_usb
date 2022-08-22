@@ -16,6 +16,18 @@ jobs:
       run: sudo apt install sshpass
     - name: FURTHER STEPS EXECUTED ON CONFIGURED RUNNER
       run: exit 0
+    - name: Check for lockfile and wait if it exists
+      env:
+        TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
+        TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
+        TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
+      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "while [ -f .tests-running ]; do sleep 2; done"
+    - name: Create lockfile
+      env:
+        TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
+        TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
+        TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
+      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "touch .tests-running"
     - name: Install requirements
       env:
         TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
@@ -122,6 +134,12 @@ jobs:
         TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
         TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
       run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "cd ~/pam_usb_$GITHUB_RUN_ID/tests/can-actually-be-used && ./umount-image.sh"
+    - name: Remove lockfile
+      env:
+        TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
+        TEST_RUNNER_USER: ${{ secrets.TEST_RUNNER_USER }}
+        TEST_RUNNER_PASS: ${{ secrets.TEST_RUNNER_PASS }}
+      run: sshpass -p "$TEST_RUNNER_PASS" ssh -o StrictHostKeyChecking=no $TEST_RUNNER_USER@$TEST_RUNNER_HOST "rm .tests-running"
     - name: cleanup - remove installed package
       env:
         TEST_RUNNER_HOST: ${{ secrets.TEST_RUNNER_HOST }}
