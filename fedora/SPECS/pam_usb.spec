@@ -52,6 +52,8 @@ rm -rf %{buildroot}/usr/share/pam-configs
 %doc %attr(0644,root,root) /usr/share/man/man1/pamusb-keyring-unlock-gnome.1.gz
 %doc %attr(0644,root,root) /usr/share/doc/pam_usb/CONFIGURATION
 %doc %attr(0644,root,root) /usr/share/doc/pam_usb/QUICKSTART
+%doc %attr(0644,root,root) /usr/share/doc/pam_usb/SECURITY
+%doc %attr(0644,root,root) /usr/share/doc/pam_usb/TROUBLESHOOTING
 
 %changelog
 * Sun May 22 2022 McDope <tobiasbaeumer@gmail.com> - 0.8.2-1
