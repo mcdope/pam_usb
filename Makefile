@@ -124,8 +124,7 @@ update-other-docs:
 		--author="make update-other-docs <noemail@example.com>" \
 		--signoff \
 		-m "[Docs] Update non-manpage doc/ files" \
-		 > /dev/null 2>&1 || echo "No changes to commit."
-
+		 > /dev/null 2>&1 || git reset doc/CONFIGURATION doc/QUICKSTART doc/SECURITY doc/TROUBLESHOOTING && echo "No changes to commit."
 
 install: all
 	$(MKDIR) -p \
