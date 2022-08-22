@@ -1,5 +1,5 @@
-Getting Started
-===============
+Quickstart
+============================
 
 **Note: If you installed by using the debian package and answered the configuration questions you already have a working setup. If you skipped the questions you will still already have the PAM module itself already setup. Continue with "Setting up Devices and Users" in that case.**
 
@@ -58,9 +58,14 @@ This tool will simulate an authentication request (requires your device to be co
 Setting up the PAM module
 -------------------------
 
+Before you do this step you should read into how `pam.d` configuration works. If you make the wrong changes you could easily end up with a system where you can't login at all - requiring you to use recovery mode to revert your changes. 
+
+See https://manpages.ubuntu.com/manpages/impish/en/man7/PAM.7.html for a quick explanation of PAM and https://manpages.ubuntu.com/manpages/impish/man5/pam.d.5.html for a configuration file guide. If you aren't on a Debian based distro check your system man pages for them since there will be some differences most likely.  
+
 To add pam_usb into the system authentication process, we need to edit `/etc/pam.d/common-auth`
     
-    NOTE: If you are using RedHat, Arch or Fedora this file can be known as /etc/pam/system-auth.
+    NOTE: If you are using RedHat, Arch or Fedora this file can be known as `/etc/pam.d/system-auth`.  
+    Some distributions also require you to additionally insert the line into `/etc/pam.d/password-auth`.
 
 Your default PAM common-auth configuration should include the following line:
 
@@ -72,6 +77,8 @@ Alter your /etc/pam.d/common-auth configuration to:
 
     auth    sufficient      pam_usb.so
     auth    required        pam_unix.so nullok_secure
+
+Remember what we've learned in the pam manpages (you've read them, riiiight?): pam rules are a stack, order of the rules is important and makes a difference in behavior. 
 
 The `sufficient` keyword means that if pam_usb allows the authentication, then no password will be asked.
 If the authentication fails, then the default password-based authentication will be used as fallback.
@@ -102,6 +109,19 @@ For instance, you could automatically start your screensaver as soon as you
 remove the device, and deactivate it when you plug the device back.
 
 You can find details in [the "Agent" section of Configuration](https://github.com/mcdope/pam_usb/wiki/Configuration#agent)
+
+Auto-unlock your GNOME keyring
+------------------------------
+
+You should think twice if you want to enable this feature. To use it you need to put your keyring password in cleartext into your home directory. The tool will only work if that file has permissions only for the owner, however - anyone with root/sudo access will still be able to read it. Keep that in mind before using this feature. Even worse: if you have samba user shares enabled you would share your password via SMB shares - to whoever can access that share. To be clear: this is a comfort feature and is insecure by design. 
+
+If you still want to use it, you will have to do four things:
+* create `.keyring_unlock_password` in your home directory
+* in that file you put `UNLOCK_PASSWORD="your_password"` (including the quotes)
+* set permissions so only yourself (and root) can read the file by running `chmod 0600 ~/.keyring_unlock_password`
+* create an autostart entry in GNOME for `/usr/bin/pamusb-keyring-unlock-gnome`
+
+
 
 Fine Tuning
 -----------

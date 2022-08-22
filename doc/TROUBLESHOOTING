@@ -1,0 +1,68 @@
+Troubleshooting
+===============
+
+Don't panic!
+
+Log Analysis
+------------
+
+Both pam_usb.so and pamusb-agent use the syslog facility to log authentication
+attempts.
+This can be useful for GUI-driven applications (for instance GDM) where you
+don't get to see console output.
+Messages are logged with the AUTH facility, they are usually written to
+`/var/log/auth.log` but may vary
+depending on the operating system you're using.
+
+    # tail -f /var/log/auth.log
+    pamusb-agent[25429]: Device "sandisk" has been inserted. Performing
+    verification...
+    pamusb-agent[25429]: Executing "/usr/bin/pamusb-check --quiet
+    --config=/etc/pamusb.conf --service=pamusb-agent scox"
+    pam_usb[25485]: Authentication request for user "scox" (pamusb-agent)
+    pam_usb[25485]: Device "sandisk" is connected (good).
+    pam_usb[25485]: Access granted.
+    pamusb-agent[25429]: Authentication succeeded. Unlocking user "scox"...
+    pamusb-agent[25429]: Unlocked.
+
+
+Enabling debug
+--------------
+
+Enabling debug messages may help you find out what's wrong.
+
+To enable them, edit `/etc/security/pam_usb.conf` and set the following option:
+
+```xml
+<defaults>
+  <option name="debug">true</option>
+</defaults>
+```
+You can also enable debug messages only for a specific user, device or service.
+
+```xml
+<services>
+  <service id="sudo">
+    <option name="debug">true</option>
+  </service>
+</services>
+```
+
+Getting 'Access denied' on graphical terminals / when using agent
+--------------
+
+Most times this is caused by pamusb not being able to determine your login/session tty. This shouldn't happen with current builds since we support multiple ways to determine it by now. 
+
+But if it does: please create an issue which should contain the output of `w` and `pamusb-check --debug <yourusername>`. Please also specify your distribution, login manager and desktop environment used.
+
+
+Getting 'Pad checking failed!' when trying to authenticate
+--------------
+
+This error means that either the machine/host specific pad file on the device, or - more likely - the user specific pad file in your homedir is not in sync anymore. 
+
+It can happen if you remove the authentication device without unmounting it before, manually mess with the pad files (like copying from a previous device) or your system crashed before file buffers were written to the media and similar. 
+
+Or, worst case scenario - someone tried to tamper with your system. In example someone could deep-clone (not only FS but also HW Ids) your authentication device and use it to login or sudo (if you use pamusb as the only factor), pads will then be updated on system and the attacking device but not on your original device since it wasn't connected at the time of your login. On next authentication request with your original device you will then get "Pad checking failed!". Of course for most persons this is an unlikely scenario. But if your system and/or device is accessible to other persons, keep it in mind. 
+
+To fix this you can just remove the `<DEVICENAME>.pad` file for your device in `~/.pamusb`. The pad will then be regenerated on next authentication request. If that doesn't make the error go away, it will be the device pad causing it, which you can find at `<authdevice-mount>/.pamusb`. Since version 0.8.3 you can also use `pamusb-conf --reset-pads=<USERNAME>`
