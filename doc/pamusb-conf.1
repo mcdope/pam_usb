@@ -1,17 +1,16 @@
-.TH pamusb-conf 1 "September 12, 2007" "" "PAM_USB"
+.TH pamusb-conf 1 "August 22, 2022" "" "PAM_USB"
 
 .SH NAME
 \fBpamusb-conf \fP- pam_usb configuration tool
 .SH SYNOPSIS
 .nf
 .fam C
-\fBpamusb-conf\fP [\fB--help\fP] [\fB--verbose\fP] [\fB--config\fP=path] [\fB--add-user\fP=name |
-\fB--add-device\fP=name]
+\fBpamusb-conf\fP [\fB--verbose\fP] [\fB--config\fP=path] [\fB--help\fP | \fB--add-user\fP=name |
+\fB--add-device\fP=name | \fB--reset-pads\fP=name | \fB--list-devices | \fB--list-volumes]
 .fam T
 .fi
 .SH DESCRIPTION
-\fBpamusb-conf\fP is a tool designed to help generating the pamusb.conf configuration
-file.
+\fBpamusb-conf\fP is a tool designed to help generating the pam_usb configuration.
 .SH OPTIONS
 .TP
 .B
@@ -24,8 +23,7 @@ Verbose output
 .TP
 .B
 \fB--config\fP, \fB-c\fP
-Use the given configuration file (defaults to
-/etc/pamusb.conf).
+Use the given configuration file (defaults to /etc/security/pam_usb.conf)
 .TP
 .B
 \fB--add-device\fP, \fB-d\fP
@@ -44,9 +42,21 @@ Assume "yes" as answer for every question
 Use the given device index (starting at 0)
 .TP
 .B
-\fB--device\fR (only in combination with --add-device)
+\fB--volume\fR (only in combination with --add-device)
 Use the given volume index (starting at 0)
+.TP
+.B
+\fB--list-devices\fR
+Gives a numbered list of usable devices, for use with --device / packaging scripts
+.TP
+.B
+\fB--list-volumes\fR
+Gives a numbered list of usable volumes, for use with --volume / packaging scripts
+.TP
+.B
+\fB--reset-pads\fR
+Deletes all relevant key files for the given user (this needs the device to be actually connected)
 .SH BUGS
-Please send bug reports to the pam_usb mailing list.
+Please report bugs on the Github issue tracker at https://github.com/mcdope/pam_usb/issues.
 .SH AUTHOR
-Andrea Luzzardi <scox@sig11.org>
+Andrea Luzzardi <scox@sig11.org>, Tobias Bäumer <tobiasbaeumer@gmail.com>
