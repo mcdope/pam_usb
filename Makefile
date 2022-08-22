@@ -109,6 +109,24 @@ clean:
 manpages:
 	$(MANCOMPILE) ./doc/*.1
 
+update-other-docs:
+	wget https://raw.githubusercontent.com/wiki/mcdope/pam_usb/Configuration.md -O doc/CONFIGURATION > /dev/null 2>&1
+	wget https://raw.githubusercontent.com/wiki/mcdope/pam_usb/Getting-Started.md -O doc/QUICKSTART > /dev/null 2>&1
+	wget https://raw.githubusercontent.com/wiki/mcdope/pam_usb/Security.md -O doc/SECURITY > /dev/null 2>&1
+	wget https://raw.githubusercontent.com/wiki/mcdope/pam_usb/Troubleshooting.md -O doc/TROUBLESHOOTING > /dev/null 2>&1
+	git add \
+		doc/CONFIGURATION \
+		doc/QUICKSTART \
+		doc/SECURITY \
+		doc/TROUBLESHOOTING \
+		 > /dev/null 2>&1
+	git commit \
+		--author="make update-other-docs <noemail@example.com>" \
+		--signoff \
+		-m "[Docs] Update non-manpage doc/ files" \
+		 > /dev/null 2>&1 || echo "No changes to commit."
+
+
 install: all
 	$(MKDIR) -p \
 		$(CONFS_DEST) \
