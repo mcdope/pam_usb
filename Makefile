@@ -114,6 +114,7 @@ update-other-docs:
 	wget https://raw.githubusercontent.com/wiki/mcdope/pam_usb/Getting-Started.md -O doc/QUICKSTART > /dev/null 2>&1
 	wget https://raw.githubusercontent.com/wiki/mcdope/pam_usb/Security.md -O doc/SECURITY > /dev/null 2>&1
 	wget https://raw.githubusercontent.com/wiki/mcdope/pam_usb/Troubleshooting.md -O doc/TROUBLESHOOTING > /dev/null 2>&1
+	git status --porcelain=v1 2>/dev/null && echo "Committing docs..." || { echo "Git staging area needs to be clean!"; exit 1; }
 	git add \
 		doc/CONFIGURATION \
 		doc/QUICKSTART \
@@ -123,8 +124,8 @@ update-other-docs:
 	git commit \
 		--author="make update-other-docs <noemail@example.com>" \
 		--signoff \
-		-m "[Docs] Update non-manpage doc/ files" \
-		 > /dev/null 2>&1 || git reset doc/CONFIGURATION doc/QUICKSTART doc/SECURITY doc/TROUBLESHOOTING && echo "No changes to commit."
+		-m "[Docs] Update non-manpage \"doc/\" files" \
+		 > /dev/null 2>&1 || { git reset doc/CONFIGURATION doc/QUICKSTART doc/SECURITY doc/TROUBLESHOOTING; echo "No changes to commit."; }
 
 install: all
 	$(MKDIR) -p \
