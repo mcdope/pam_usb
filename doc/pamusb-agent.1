@@ -1,7 +1,7 @@
-.TH pamusb-agent 1 "September 12, 2007" "" "PAM_USB"
+.TH pamusb-agent 1 "August 22, 2022" "" "PAM_USB"
 
 .SH NAME
-\fBpamusb-agent \fP- pam_usb event handler
+\fBpamusb-agent \fP- pam_usb event handler, triggers configured commands on device removal and/or plug.
 .SH SYNOPSIS
 .nf
 .fam C
@@ -9,23 +9,30 @@
 .fam T
 .fi
 .SH DESCRIPTION
-\fBpamusb-agent\fP is in charge of executing commands upon USB device insertion (once
+\fBpamusb-agent\fP is in charge of executing commands upon device insertion (once
 authenticated through pam_usb) and removal.
 .PP
-See http:www.pamusb.org/doc/installation#hotplug for instructions on how to
-setup \fBpamusb-agent\fP.
+Please note that it's not intended to be manually run but to be started by your init system
+as a system service.
+.PP
+See the wiki at https://github.com/mcdope/pam_usb/wiki/Configuration#agent for more information
+on how to setup \fBpamusb-agent\fP.
 .SH OPTIONS
 .TP
 .B
 \fB--help\fP, \fB-h\fP
 Show summary of options.
-\fB--config\fP, \fB-c\fP Use the given configuration file (defaults to /etc/pamusb.conf).
-\fB--daemon\fP, \fB-d\fP Run \fBpamusb-agent\fP in the background.
+.TP
+\fB--config\fP, \fB-c\fP
+Use the given configuration file (defaults to /etc/pamusb.conf)
+.TP
+\fB--daemon\fP, \fB-d\fP
+Run \fBpamusb-agent\fP in the background.
 .TP
 .B
-\fB--check\fP, \fB-c\fP
+\fB--check\fP, \fB-c\fPd
 Set the path to pamusb-check (defaults to /usr/bin/pamusb-check)
 .SH BUGS
-Please send bug reports to the pam_usb mailing list.
+Please report bugs on the Github issue tracker at https://github.com/mcdope/pam_usb/issues.
 .SH AUTHOR
-Andrea Luzzardi <scox@sig11.org>
+Andrea Luzzardi <scox@sig11.org>, Tobias Bäumer <tobiasbaeumer@gmail.com>
