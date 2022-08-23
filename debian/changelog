@@ -5,6 +5,8 @@ libpam-usb (0.8.3) unstable; urgency=medium
   * [Bugfix] Fix "tty from displayserver" remoteness-check method
   * [Docs] Update manpages and text files
 
+ -- Tobias Bäumer <tobiasbaeumer@gmail.com>  Wed, 24 Aug 2022 21:00:00 +0200
+
 libpam-usb (0.8.2) unstable; urgency=medium
   * [Tools/Docs] Add pamusb-keyring-unlock-gnome, to allow unlocking the
   GNOME keyring (#11)
