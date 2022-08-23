@@ -1,4 +1,6 @@
 tar-ignore = .idea
 tar-ignore = .vscode
 tar-ignore = arch_linux
+tar-ignore = fedora
 tar-ignore = .github
+tar-ignore = .build
