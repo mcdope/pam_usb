@@ -4,16 +4,16 @@
 pam\_usb
 ========
 
-pam\_usb provides hardware authentication for Linux using ordinary USB Flash Drives.
+pam\_usb provides hardware authentication for Linux using ordinary removable media. Tested are flash sticks and storage cards, but it should work with harddrives, SSDs and even floppies (at least USB based) too.
 
 It works with any application supporting PAM, such as _su_ and login managers (_GDM_, _KDM_).
 
 Features
 --------
 
-* `Password-less authentication.` Use your USB stick for authentication, don't type passwords anymore.
+* `Password-less authentication.` Use your removable media for authentication, don't type passwords anymore (or add a second factor).
 * `Device auto probing.` You don't need to mount the device, or even to configure the device location (_sda1_, _sdb1_, etc). pam\_usb.so will automatically locate the device using `UDisks` and access its data by itself.
-* `Two-factor authentication.` Achieve greater security by requiring both the USB stick and the password to authenticate the user.
+* `Two-factor authentication.` Archive greater security by requiring both the removable media and the password to authenticate the user.
 * `Non-intrusive.` pam\_usb doesn't require any modifications of the USB storage device to work (no additional partitions required).
 * USB Serial number, model and vendor verification.
 * Support for **One Time Pads** authentication.
@@ -53,5 +53,5 @@ This repo is mainly based on community improvements from
 See the commit history for details. You can find a list of all contributors in the `AUTHORS` file. 
 
 The last official release was 0.5.0 btw, some private packages used 0.6.0 to override the upstream provided 
-version but those varied in changes from 0.5.0. This repo will be released starting from 0.7.0 when ready
-and includes all updates I'm aware of (Python3 port, UDisks2 support, other smaller ones) or did myself.
+version but those varied in changes from 0.5.0. This repo started at 0.7.0 and includes all contributions up
+to this point I'm aware of (Python3 port, UDisks2 support, other smaller ones) or did myself.
