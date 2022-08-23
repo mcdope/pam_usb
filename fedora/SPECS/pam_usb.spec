@@ -1,7 +1,7 @@
 %define _topdir         /usr/local/src/pam_usb/fedora
 %define name            pam_usb 
 %define release         1
-%define version         0.8.2
+%define version         0.8.3
 %define buildroot       %{_topdir}/%{name}‑%{version}‑root
 
 BuildRoot: %{buildroot}
