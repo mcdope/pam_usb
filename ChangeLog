@@ -1,3 +1,19 @@
+* 0.8.3
+  [Enhancement] Install pam-auth-update config only on systems having it
+  [Feature] pamusb-conf now has a --reset-pads=username option
+  [Bugfix] Fix RHOST check triggering on empty value
+  [Packaging] Add make targets for Fedora/RPM builds
+  [Packaging] Add make targets for source distribution
+  [Packaging] Add make targets for Arch/ZST builds
+  [Packaging] Improve PKGBUILD for Arch (thx @IslandC0der)
+  [Makefile] make install no longer overwrites the config if it already exists
+  [Makefile] Add target to update doc/ textfiles from wiki
+  [Bugfix] Whitelist pamusb-agent for remoteness-check
+  [Bugfix] Fix "tty from displayserver" remoteness-check method
+  [CI/Tests] Many additions, fixes and automatic nighly builds
+  [CI/Tests] Add testcase ensuring pamusb-agent properly triggers
+  [Docs] Update manpages and text files
+
 * 0.8.2
   [Tools/Docs] Add pamusb-keyring-unlock-gnome, to allow unlocking the GNOME keyring (#11)
   [Bugfix] Whitelist "login" service name to prevent insta-logout on TTY shells (#115)
