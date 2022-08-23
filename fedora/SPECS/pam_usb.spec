@@ -56,7 +56,7 @@ rm -rf %{buildroot}/usr/share/pam-configs
 %doc %attr(0644,root,root) /usr/share/doc/pam_usb/TROUBLESHOOTING
 
 %changelog
-* Wed Aug 24 2022 McDope <tobiasbaeumer@gmail.com> - 0.8.3-1
+* Wed Aug 24 2022 Tobias Bäumer <tobiasbaeumer@gmail.com> - 0.8.3-1
 - [Enhancement] Install pam-auth-update config only on systems having it
 - [Feature] pamusb-conf now has a --reset-pads=username option
 - [Bugfix] Fix RHOST check triggering on empty value
@@ -64,7 +64,7 @@ rm -rf %{buildroot}/usr/share/pam-configs
 - [Bugfix] Fix "tty from displayserver" remoteness-check method
 - [Docs] Update manpages and text files
 
-* Sun May 22 2022 McDope <tobiasbaeumer@gmail.com> - 0.8.2-1
+* Sun May 22 2022 Tobias Bäumer <tobiasbaeumer@gmail.com> - 0.8.2-1
 - First version being packaged for RPM
 - [Tools/Docs] Add pamusb-keyring-unlock-gnome, to allow unlocking the GNOME keyring (#11)
 - [Bugfix] Whitelist "login" service name to prevent insta-logout on TTY shells (#115)
