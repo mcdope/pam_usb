@@ -6,6 +6,7 @@
   [Packaging] Add make targets for source distribution
   [Packaging] Add make targets for Arch/ZST builds
   [Packaging] Improve PKGBUILD for Arch (thx @IslandC0der)
+  [Packaging] Fix debian autoconfig picking up serials as devices if they have no revision set
   [Makefile] make install no longer overwrites the config if it already exists
   [Makefile] Add target to update doc/ textfiles from wiki
   [Bugfix] Whitelist pamusb-agent for remoteness-check

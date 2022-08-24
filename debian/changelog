@@ -1,5 +1,6 @@
 libpam-usb (0.8.3) unstable; urgency=medium
   * [Feature] pamusb-conf now has a --reset-pads=username option
+  * [Bugfix] Fix debconf issues with devices having no revision set
   * [Bugfix] Fix RHOST check triggering on empty value
   * [Bugfix] Whitelist pamusb-agent for remoteness-check
   * [Bugfix] Fix "tty from displayserver" remoteness-check method
