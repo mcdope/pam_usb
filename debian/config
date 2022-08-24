@@ -9,7 +9,7 @@ then
     CHOICES=""
 
     # Iterate over each drive (note that we are reversing the list because udisksctl order is inverted from pamusb-conf/python api)
-    for DRIVE in `udisksctl status | grep -o '  \S[a-z]\S*' | tr -d ' ' | tac`
+    for DRIVE in `udisksctl status | grep -o '  \S[a-z]\S* $' | tr -d ' ' | tac`
     do
         # echo "Debug: Handling drive /dev/$DRIVE.."
         
