@@ -65,4 +65,11 @@ It can happen if you remove the authentication device without unmounting it befo
 
 Or, worst case scenario - someone tried to tamper with your system. In example someone could deep-clone (not only FS but also HW Ids) your authentication device and use it to login or sudo (if you use pamusb as the only factor), pads will then be updated on system and the attacking device but not on your original device since it wasn't connected at the time of your login. On next authentication request with your original device you will then get "Pad checking failed!". Of course for most persons this is an unlikely scenario. But if your system and/or device is accessible to other persons, keep it in mind. 
 
-To fix this you can just remove the `<DEVICENAME>.pad` file for your device in `~/.pamusb`. The pad will then be regenerated on next authentication request. If that doesn't make the error go away, it will be the device pad causing it, which you can find at `<authdevice-mount>/.pamusb`. Since version 0.8.3 you can also use `pamusb-conf --reset-pads=<USERNAME>`
+To resolve this you can use `pamusb-conf --reset-pads=<USERNAME>`, which will remove the pad files for the given user and its configured device so they will be regenerated on next authentication.
+
+Agent configuration / commands don't work like expected
+--------------
+
+The agent will log all executed commands, as well as their exitcode; stdout and stderr (since v0.8.3). You can view this log either via systemd, or - easier - by `tail`'ing `/var/log/auth.log`.
+
+You can use this to a) verify your config is picked up like expected and b) configured commands do what you want. For some programs, esp. ones expecting to be run within a graphical environment, you will have to provide environment values via `<env>` tags in the agent configuration. Usually the log will provide you with some good clues. But feel free to open a support issue if you need help.

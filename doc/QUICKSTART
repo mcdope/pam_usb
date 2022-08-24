@@ -28,7 +28,9 @@ Once you've connected your USB device to the computer, use pamusb-conf to add it
     [Y/n] y
     Done.
 
-Note that `MyDevice` can be any arbitrary name you'd like. Also, you can add as many devices as you want.
+Note that `MyDevice` can be any arbitrary name you'd like, but will be used as an XML attribute value so stay away from any special characters and stick to A-Z. 
+
+Also, you can add as many devices as you want. However, each user can currently only use a single device so additional devices can only be used for additional users.
 
 Next, configure users you want to be able to authenticate with pam_usb:
 
@@ -73,20 +75,22 @@ Your default PAM common-auth configuration should include the following line:
 
 This is a current standard which uses passwords to authenticate a user.
 
-Alter your /etc/pam.d/common-auth configuration to:
+Alter your `/etc/pam.d/common-auth` configuration to:
 
     auth    sufficient      pam_usb.so
     auth    required        pam_unix.so nullok_secure
 
 Remember what we've learned in the pam manpages (you've read them, riiiight?): pam rules are a stack, order of the rules is important and makes a difference in behavior. 
 
+### Use pam_usb to replace your password
 The `sufficient` keyword means that if pam_usb allows the authentication, then no password will be asked.
 If the authentication fails, then the default password-based authentication will be used as fallback.
 
+### Use pam_usb as 2nd factor in addition to your password
 If you change it to `required`, it means that *both* the USB flash drive and the password will be required to grant
 access to the system.
 
-At this point, you should be able to authenticate with the relevant USB device plugged-in.
+At this point, you should be able to authenticate with the relevant removable device plugged-in.
 
     scox $ su
     * pam_usb v.SVN
@@ -103,7 +107,7 @@ The pam_usb agent (pamusb-agent) allows you to automatically execute commands
 upon locking and unlocking events. Those events are generated when you insert or
 remove your authentication device.
 To configure the commands, you have to edit pam_usb's configuration file
-(/etc/security/pam_usb.conf) and add agent entries into your user section.
+(`/etc/security/pam_usb.conf`) and add agent entries into your user section.
 
 For instance, you could automatically start your screensaver as soon as you
 remove the device, and deactivate it when you plug the device back.
@@ -113,7 +117,9 @@ You can find details in [the "Agent" section of Configuration](https://github.co
 Auto-unlock your GNOME keyring
 ------------------------------
 
-You should think twice if you want to enable this feature. To use it you need to put your keyring password in cleartext into your home directory. The tool will only work if that file has permissions only for the owner, however - anyone with root/sudo access will still be able to read it. Keep that in mind before using this feature. Even worse: if you have samba user shares enabled you would share your password via SMB shares - to whoever can access that share. To be clear: this is a comfort feature and is insecure by design. 
+You should think twice if you want to enable this feature. To use it you need to put your keyring password in cleartext into your home directory. 
+
+The tool will only work if that file has permissions only for the owner, however - anyone with root/sudo access will still be able to read it. Keep that in mind before using this feature. Even worse: if you have samba user shares enabled you would share your password via SMB shares - to whoever can access that share. To be clear: this is a comfort feature and is insecure by design. 
 
 If you still want to use it, you will have to do four things:
 * create `.keyring_unlock_password` in your home directory

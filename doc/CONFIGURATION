@@ -104,6 +104,8 @@ The syntax is the following:
 Some cheap devices don't report a vendor and/or model. To use these devices you can use "Generic" for these values, then it won't be checked.
 Be aware that this reduces security if you have `one_time_pads` disabled since the device containing the volume won't be checked anymore (but these attributes could be faked with a custom firmware anyway).
 
+You can configure as many devices as you want, but each user can only be configured to use a single device (currently).
+
 ### Example:
 
 ```xml
@@ -122,7 +124,7 @@ Be aware that this reduces security if you have `one_time_pads` disabled since t
 |   Name   |   Type    |                Description                |  Example   |
 |----------|-----------|-------------------------------------------|------------|
 | `id`     | Attribute | Login of the user                         | `root`     |
-| `device` | Attribute | `id` of the device associated to the user | `MyDevice` |
+| `device` | Element   | `id` of the device associated to the user | `MyDevice` |
 | `agent`  | Element   | Agent commands, for use with pamusb-agent |            |
 
 ### Agent
@@ -212,10 +214,17 @@ pamusb-agent -c /some/other/path.conf
 Example configuration
 ----------------------------------
 
-**NOTE**: For detailed information, rely on repository wiki pages.
+1. Insert a removable block device
 
-* **1)** Insert an USB block device
-* **2)** Add necessary user configuration into `/etc/security/pam_usb.conf` by running:
+2. Add necessary device configuration into `/etc/security/pam_usb.conf` by running:
+
+```
+sudo pamusb-conf --add-device=<devicename>
+```
+
+where `<devicename>` is a recognizable name for your device. This value is used internally in the configuration file as device `id` value and in output shown to users. (Note: because of it being used as an XML attribute value, it shouldn't contain ampersands etc.)
+
+3. Add necessary user configuration into `/etc/security/pam_usb.conf` by running:
 
 ```
 sudo pamusb-conf --add-user=<username>
@@ -223,29 +232,16 @@ sudo pamusb-conf --add-user=<username>
 
 where `<username>` is a valid Unix user name.
 
-* **3)** Add necessary device configuration into `/etc/security/pam_usb.conf` by running:
+4. Tweak `/etc/security/pam_usb.conf` manually as desired. Link devices and users, etc.
 
-```
-sudo pamusb-conf --add-device=<devicename>
-```
+If you use one time pads (default), you need to do the following:
 
-where `<devicename>` is a recognizable name for your device. This value is only used internally in the configuration file as device `id` value.
+5. Run `/usr/bin/pamusb-check --debug <username>`
 
-* **4)** Tweak `/etc/security/pam_usb.conf` manually as desired. Link devices and users, etc.
-
-**NOTE**: If you don't want to use one time pad files, consider setting `one_time_pad` option to `false`. Pad file use defaults to `true`.
-
-If you use one time pads, you need to do the following:
-
-* **5)** Manually mount USB block device partition. You need write access to the mounted partition.
-
-* **6)** Run `/usr/bin/pamusb-check --debug --service=pamusb-agent <username>`
-
-where `<username>` is associated with the USB block device.
+where `<username>` is associated with the removable block device.
 
 By default, this command creates directory `$HOME/.pamusb/` with a protected device-associated `.pad` file. If you format the device, you must
-delete `$HOME/.pamusb/<devicename>.pad` file. The created `.pad` file can't be used with a new partition UUIDs for the same or any USB block device.
+delete the `$HOME/.pamusb/<devicename>.pad` file (or run `pamusb-conf --reset-pads=username`). The created `.pad` file can't be used with a new partition UUIDs for the same or any removable block device.
 
-* **7)** Unmount the USB block device.
-* **8)** Add proper PAM configuration into `/etc/pam.d/common-auth` as described in [Getting Started](https://github.com/mcdope/pam_usb/wiki/Getting-Started#setting-up-the-pam-module). For testing purposes, it's highly recommended to start with `sufficient` PAM option before possibly moving to `required` or `requisite` option since you can bypass faulty `pam_usb` configurations.
-* **9)** Test the device/user configuration by running `sudo echo "pam_usb test"`. The USB block device must be attached (mount not required) and the user must have proper configuration in `/etc/security/pam_usb.conf` file.
+6. Add proper PAM configuration into `/etc/pam.d/common-auth` as described in [Getting Started](https://github.com/mcdope/pam_usb/wiki/Getting-Started#setting-up-the-pam-module). For testing purposes, it's highly recommended to start with `sufficient` PAM option before possibly moving to `required` or `requisite` option since you can bypass faulty `pam_usb` configurations.
+7. Test the device/user configuration by running `/usr/bin/pamusb-check <username>`. The removable block device must be attached (mount not required) and the user must have proper configuration in `/etc/security/pam_usb.conf` file.
