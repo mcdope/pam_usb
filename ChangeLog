@@ -14,6 +14,7 @@
   [CI/Tests] Many additions, fixes and automatic nighly builds
   [CI/Tests] Add testcase ensuring pamusb-agent properly triggers
   [Docs] Update manpages and text files
+  [Bugfix] Fix some usages of tmux being able to circumvent localcheck
 
 * 0.8.2
   [Tools/Docs] Add pamusb-keyring-unlock-gnome, to allow unlocking the GNOME keyring (#11)

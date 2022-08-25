@@ -63,6 +63,7 @@ rm -rf %{buildroot}/usr/share/pam-configs
 - [Bugfix] Whitelist pamusb-agent for remoteness-check
 - [Bugfix] Fix "tty from displayserver" remoteness-check method
 - [Docs] Update manpages and text files
+- [Bugfix] Fix some usages of tmux being able to circumvent localcheck
 
 * Sun May 22 2022 Tobias Bäumer <tobiasbaeumer@gmail.com> - 0.8.2-1
 - First version being packaged for RPM
