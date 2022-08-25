@@ -274,6 +274,12 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 
 	if (local_request == 0 && strstr(name, "tmux") != NULL && tmux_pid != 0) 
 	{
+		log_debug("	Checking for remote clients attached to tmux before getting client tty...\n");
+		if (pusb_tmux_has_remote_clients(user) != 0)
+		{ // tmux has at least one remote client, can't be sure it isn't this one so denying...
+			return 0;
+		}
+
 		char *tmux_client_tty = pusb_tmux_get_client_tty(tmux_pid);
 		if (tmux_client_tty != NULL && tmux_client_tty != 0) 
 		{
@@ -281,15 +287,6 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 		} 
 		else if (tmux_client_tty == 0) 
 		{
-			return 0;
-		}
-	}
-
-	if (local_request == 0 && strstr(name, "tmux") != NULL) 
-	{
-		log_debug("	Checking for remote clients attached to tmux...\n");
-		if (pusb_tmux_has_remote_clients(user) != 0) 
-		{ // tmux has at least one remote client, can't be sure it isn't this one so denying...
 			return 0;
 		}
 	}
