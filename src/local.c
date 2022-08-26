@@ -336,6 +336,7 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 				}
 			}
 		}
+		xfree(xorg_tty);
 	}
 
 	if (local_request == 0) 
