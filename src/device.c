@@ -35,29 +35,34 @@ static int pusb_device_connected(t_pusb_options *opts, UDisksClient *udisks)
 	UDisksObject *object = NULL;
 	UDisksDrive *drive = NULL;
 
-	log_debug("Searching for \"%s\" in the hardware database...\n", opts->device.name);
-
-	for (i = 0; i < g_list_length(objects); ++i)
+	for (int currentDevice; currentDevice < sizeof(opts->device_list); currentDevice++)
 	{
-		object = UDISKS_OBJECT(g_list_nth(objects, i)->data);
-		if (udisks_object_peek_drive(object))
-		{
-			drive = udisks_object_get_drive(object);
-			retval = strcmp(udisks_drive_get_serial(drive), opts->device.serial) == 0;
-			
-			if (strcmp(opts->device.vendor, "Generic") != 0) 
-			{
-				retval = retval && strcmp(udisks_drive_get_vendor(drive), opts->device.vendor) == 0;
-			}
+		log_debug("Searching for \"%s\" in the hardware database...\n", opts->device_list[currentDevice].name);
 
-			if (strcmp(opts->device.model, "Generic") != 0) 
+		for (i = 0; i < g_list_length(objects); ++i)
+		{
+			object = UDISKS_OBJECT(g_list_nth(objects, i)->data);
+			if (udisks_object_peek_drive(object))
 			{
-				retval = retval && strcmp(udisks_drive_get_model(drive), opts->device.model) == 0;
-			}
-			
-			g_object_unref(drive);
-			if (retval) {
-				break;
+				drive = udisks_object_get_drive(object);
+				retval = strcmp(udisks_drive_get_serial(drive), opts->device_list[currentDevice].serial) == 0;
+
+				if (strcmp(opts->device_list[currentDevice].vendor, "Generic") != 0)
+				{
+					retval = retval && strcmp(udisks_drive_get_vendor(drive), opts->device_list[currentDevice].vendor) == 0;
+				}
+
+				if (strcmp(opts->device_list[currentDevice].model, "Generic") != 0)
+				{
+					retval = retval && strcmp(udisks_drive_get_model(drive), opts->device_list[currentDevice].model) == 0;
+				}
+
+				g_object_unref(drive);
+				if (retval) {
+					opts->device = opts->device_list[currentDevice];
+					currentDevice = sizeof(opts->device_list) + 1;
+					break;
+				}
 			}
 		}
 	}
@@ -71,6 +76,7 @@ static int pusb_device_connected(t_pusb_options *opts, UDisksClient *udisks)
 		log_error("Authentication device \"%s\" is not connected.\n", opts->device.name);
 	}
 
+	g_object_unref(object);
 	g_list_foreach(objects, (GFunc) g_object_unref, NULL);
 	g_list_free(objects);
 
