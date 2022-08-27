@@ -128,6 +128,43 @@ int pusb_xpath_get_string(
 	return (1);
 }
 
+int pusb_xpath_get_string_list(
+	xmlDocPtr doc,
+	const char *path,
+	char *values[],
+	size_t size
+)
+{
+	xmlXPathObject *result = NULL;
+	xmlNode *node = NULL;
+	xmlChar *result_string = NULL;
+
+	if (!(result = pusb_xpath_match(doc, path)))
+	{
+		return (0);
+	}
+
+	for (int currentResult = 0; currentResult < result->nodesetval->nodeNr; currentResult++)
+	{
+		node = result->nodesetval->nodeTab[currentResult]->xmlChildrenNode;
+		result_string = xmlNodeListGetString(doc, node, 1);
+		if (!result_string)
+		{
+			log_debug("Empty value for %s\n", path);
+			continue;
+		}
+		if (!pusb_xpath_strip_string(values[currentResult], (const char *)result_string, size))
+		{
+			log_debug("Result for %s (%s) is too long (max: %d)\n", path, (const char *)result_string, size);
+			continue;
+		}
+	}
+
+	xmlFree(result_string);
+	xmlXPathFreeObject(result);
+	return (1);
+}
+
 int pusb_xpath_get_string_from(
 	xmlDocPtr doc,
 	const char *base,

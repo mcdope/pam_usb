@@ -84,17 +84,18 @@ static int pusb_conf_device_get_property(
 	xmlDoc *doc,
 	const char *property,
 	char *store,
-	size_t size
+	size_t size,
+	char *deviceId
 )
 {
 	char *xpath = NULL;
 	size_t xpath_len;
 	int retval;
 
-	xpath_len = strlen(CONF_DEVICE_XPATH) + strlen(opts->device.name) + strlen(property) + 1;
+	xpath_len = strlen(CONF_DEVICE_XPATH) + strlen(deviceId) + strlen(property) + 1;
 	xpath = xmalloc(xpath_len);
 	memset(xpath, 0x00, xpath_len);
-	snprintf(xpath, xpath_len, CONF_DEVICE_XPATH, opts->device.name, property);
+	snprintf(xpath, xpath_len, CONF_DEVICE_XPATH, deviceId, property);
 	retval = pusb_xpath_get_string(doc, xpath, store, size);
 	xfree(xpath);
 	return (retval);
@@ -102,18 +103,20 @@ static int pusb_conf_device_get_property(
 
 static int pusb_conf_parse_device(
 	t_pusb_options *opts,
-	xmlDoc *doc
+	xmlDoc *doc,
+	int deviceIndex,
+	char *deviceId
 )
 {
-	pusb_conf_device_get_property(opts, doc, "vendor", opts->device.vendor, sizeof(opts->device.vendor));
-	pusb_conf_device_get_property(opts, doc, "model", opts->device.model, sizeof(opts->device.model));
+	pusb_conf_device_get_property(opts, doc, "vendor", opts->device_list[deviceIndex].vendor, sizeof(opts->device_list[deviceIndex].vendor), deviceId);
+	pusb_conf_device_get_property(opts, doc, "model", opts->device_list[deviceIndex].model, sizeof(opts->device_list[deviceIndex].model), deviceId);
 
-	if (!pusb_conf_device_get_property(opts, doc, "serial", opts->device.serial, sizeof(opts->device.serial))) 
+	if (!pusb_conf_device_get_property(opts, doc, "serial", opts->device_list[deviceIndex].serial, sizeof(opts->device_list[deviceIndex].serial), deviceId))
 	{
 		return (0);
 	}
 
-	pusb_conf_device_get_property(opts, doc, "volume_uuid", opts->device.volume_uuid, sizeof(opts->device.volume_uuid));
+	pusb_conf_device_get_property(opts, doc, "volume_uuid", opts->device_list[deviceIndex].volume_uuid, sizeof(opts->device_list[deviceIndex].volume_uuid), deviceId);
 	return (1);
 }
 
@@ -169,19 +172,33 @@ int pusb_conf_parse(
 		return (0);
 	}
 	snprintf(device_xpath, sizeof(device_xpath), CONF_USER_XPATH, user, "device");
-	retval = pusb_xpath_get_string(
+
+	char device_list[][sizeof(opts->device.name)] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };
+	retval = pusb_xpath_get_string_list(
 		doc,
 		device_xpath,
-		opts->device.name,
+		device_list,
 		sizeof(opts->device.name)
 	);
-	if (!retval || !pusb_conf_parse_device(opts, doc))
+
+	if (!retval)
 	{
-		log_error("No authentication device configured for user \"%s\".\n", user);
+		log_error("No authentication device(s) configured for user \"%s\".\n", user);
 		xmlFreeDoc(doc);
 		xmlCleanupParser();
 		return (0);
 	}
+
+	for (int currentDevice = 0; currentDevice < sizeof(device_list); currentDevice++)
+	{
+		if (device_list[currentDevice] == NULL)
+		{
+			continue;
+		}
+
+		pusb_conf_parse_device(opts, doc, currentDevice, device_list[currentDevice]);
+	}
+
 	if (!pusb_conf_parse_options(opts, doc, user, service))
 	{
 		xmlFreeDoc(doc);
