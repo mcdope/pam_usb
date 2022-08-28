@@ -173,7 +173,14 @@ int pusb_conf_parse(
 	}
 	snprintf(device_xpath, sizeof(device_xpath), CONF_USER_XPATH, user, "device");
 
-	char device_list[][sizeof(opts->device.name)] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };
+	char *device_list[10] = { 
+		xmalloc(128), xmalloc(128), xmalloc(128), xmalloc(128), xmalloc(128), 
+		xmalloc(128), xmalloc(128), xmalloc(128), xmalloc(128), xmalloc(128) 
+	};
+	for (int currentDevice = 0; currentDevice < 10; currentDevice++)
+	{
+		memset(device_list[currentDevice], 0x0, 128);
+	}
 	retval = pusb_xpath_get_string_list(
 		doc,
 		device_xpath,
@@ -189,14 +196,19 @@ int pusb_conf_parse(
 		return (0);
 	}
 
-	for (int currentDevice = 0; currentDevice < sizeof(device_list); currentDevice++)
+	for (int currentDevice = 0; currentDevice < 10; currentDevice++)
 	{
-		if (device_list[currentDevice] == NULL)
+		log_error("DBG: currentDevice: %d, strnlen: %d, value: %s\n", currentDevice, strnlen(device_list[currentDevice], 128), device_list[currentDevice]);
+		if (device_list[currentDevice] == NULL || strnlen(device_list[currentDevice], 128) == 0)
 		{
 			continue;
 		}
 
+		strncpy(opts->device_list[currentDevice].name, device_list[currentDevice], strnlen(device_list[currentDevice], 128));
 		pusb_conf_parse_device(opts, doc, currentDevice, device_list[currentDevice]);
+		log_error("DBG: found device\n");
+		log_error("DBG:     name: %s\n", opts->device_list[currentDevice].name);
+		log_error("DBG:     vendor: %s\n", opts->device_list[currentDevice].vendor);
 	}
 
 	if (!pusb_conf_parse_options(opts, doc, user, service))

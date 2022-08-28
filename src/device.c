@@ -35,9 +35,9 @@ static int pusb_device_connected(t_pusb_options *opts, UDisksClient *udisks)
 	UDisksObject *object = NULL;
 	UDisksDrive *drive = NULL;
 
-	for (int currentDevice; currentDevice < sizeof(opts->device_list); currentDevice++)
+	for (int currentDevice = 0; currentDevice < 10; currentDevice++)
 	{
-		log_debug("Searching for \"%s\" in the hardware database...\n", opts->device_list[currentDevice].name);
+		log_error("Searching for \"%s\" in the hardware database...\n", opts->device_list[currentDevice].name);
 
 		for (i = 0; i < g_list_length(objects); ++i)
 		{
@@ -59,8 +59,12 @@ static int pusb_device_connected(t_pusb_options *opts, UDisksClient *udisks)
 
 				g_object_unref(drive);
 				if (retval) {
-					opts->device = opts->device_list[currentDevice];
-					currentDevice = sizeof(opts->device_list) + 1;
+					strncpy(opts->device.name, opts->device_list[currentDevice].name, sizeof(opts->device_list[currentDevice].name));
+					strncpy(opts->device.vendor, opts->device_list[currentDevice].vendor, sizeof(opts->device_list[currentDevice].vendor));
+					strncpy(opts->device.model, opts->device_list[currentDevice].model, sizeof(opts->device_list[currentDevice].model));
+					strncpy(opts->device.serial, opts->device_list[currentDevice].serial, sizeof(opts->device_list[currentDevice].serial));
+					strncpy(opts->device.volume_uuid, opts->device_list[currentDevice].volume_uuid, sizeof(opts->device_list[currentDevice].volume_uuid));
+					currentDevice = 11;
 					break;
 				}
 			}
@@ -76,7 +80,6 @@ static int pusb_device_connected(t_pusb_options *opts, UDisksClient *udisks)
 		log_error("Authentication device \"%s\" is not connected.\n", opts->device.name);
 	}
 
-	g_object_unref(object);
 	g_list_foreach(objects, (GFunc) g_object_unref, NULL);
 	g_list_free(objects);
 
