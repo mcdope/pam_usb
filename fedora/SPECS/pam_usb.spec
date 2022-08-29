@@ -56,7 +56,7 @@ rm -rf %{buildroot}/usr/share/pam-configs
 %doc %attr(0644,root,root) /usr/share/doc/pam_usb/TROUBLESHOOTING
 
 %changelog
-* Wed Aug 24 2022 Tobias Bäumer <tobiasbaeumer@gmail.com> - 0.8.3-1
+* Tue Aug 30 2022 Tobias Bäumer <tobiasbaeumer@gmail.com> - 0.8.3-1
 - [Enhancement] Install pam-auth-update config only on systems having it
 - [Feature] pamusb-conf now has a --reset-pads=username option
 - [Bugfix] Fix RHOST check triggering on empty value
