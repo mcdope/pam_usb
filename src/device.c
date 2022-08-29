@@ -37,6 +37,11 @@ static int pusb_device_connected(t_pusb_options *opts, UDisksClient *udisks)
 
 	for (int currentDevice = 0; currentDevice < 10; currentDevice++)
 	{
+		if (strcmp(opts->device_list[currentDevice].name, "") == 0)
+		{
+			continue;
+		}
+
 		log_error("Searching for \"%s\" in the hardware database...\n", opts->device_list[currentDevice].name);
 
 		for (i = 0; i < g_list_length(objects); ++i)
@@ -77,7 +82,7 @@ static int pusb_device_connected(t_pusb_options *opts, UDisksClient *udisks)
 	}
 	else 
 	{
-		log_error("Authentication device \"%s\" is not connected.\n", opts->device.name);
+		log_error("None of the configured authentication devices is connected.\n");
 	}
 
 	g_list_foreach(objects, (GFunc) g_object_unref, NULL);
