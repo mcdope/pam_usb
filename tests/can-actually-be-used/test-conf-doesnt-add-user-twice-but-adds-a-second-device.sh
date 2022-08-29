@@ -16,4 +16,4 @@ echo -en "pamusb-conf --add-device output:\t" # to fake the unhideable python ou
 sudo pamusb-conf --add-device=test2 --device=0 --volume=0 --yes | grep "Done" && cat /etc/security/pam_usb.conf | grep "1234567891" > /dev/null && echo -e "Result:\t\t\tPASSED!" || exit 1
 
 echo -en "pamusb-conf --add-user output:\t" # to fake the unhideable python output as expected output :P
-sudo pamusb-conf --add-user=`whoami` --device=0 --yes | grep "Done" && cat /etc/security/pam_usb.conf | grep "<device>test2</device>" > /dev/null && echo -e "Result:\t\t\tPASSED!" || exit 1
+sudo pamusb-conf --add-user=`whoami` --device=1 --yes | grep "Done" && cat /etc/security/pam_usb.conf | grep "<device>test2</device>" > /dev/null && echo -e "Result:\t\t\tPASSED!" || exit 1
