@@ -34,10 +34,10 @@ Also, you can add as many devices as you want. However, each user can currently 
 
 Next, configure users you want to be able to authenticate with pam_usb:
 
-    # pamusb-conf --add-user root      
+    # pamusb-conf --add-user username
     Which device would you like to use for authentication ?
     * Using "MyDevice" (only option)
-    User            : root
+    User            : username
     Device          : MyDevice
     Save to /etc/security/pam_usb.conf ?
     [Y/n] y
@@ -49,8 +49,8 @@ Check the configuration
 You can run `pamusb-check` anytime to check if everything is correctly worked.
 This tool will simulate an authentication request (requires your device to be connected, otherwise it will fail).
 
-    # pamusb-check root
-    * Authentication request for user "root" (pamusb-check)
+    # pamusb-check username
+    * Authentication request for user "username" (pamusb-check)
     * Device "MyDevice" is connected (good).
     * Performing one time pad verification...
     * Verification match, updating one time pads...
@@ -92,12 +92,11 @@ access to the system.
 
 At this point, you should be able to authenticate with the relevant removable device plugged-in.
 
-    scox $ su
-    * pam_usb v.SVN
-    * Authentication request for user "root" (su)
-    * Device "MyDevice" is connected (good).
+    scox $ sudo bash
+    * Authentication request for user "scox" (sudo)
+    * Authentication device "MyDevice" is connected.
     * Performing one time pad verification...
-    * Verification match, updating one time pads...
+    * Regenerating new pads...
     * Access granted.
 
 Agent
