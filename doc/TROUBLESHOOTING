@@ -53,7 +53,7 @@ Getting 'Access denied' on graphical terminals / when using agent
 
 Most times this is caused by pamusb not being able to determine your login/session tty. This shouldn't happen with current builds since we support multiple ways to determine it by now. 
 
-But if it does: please create an issue which should contain the output of `w` and `pamusb-check --debug <yourusername>`. Please also specify your distribution, login manager and desktop environment used.
+But if it does: please create an issue which should contain the output of `w` and `pamusb-check --debug <yourusername>`. Please also specify your distribution, login manager and desktop environment used. The default issue template will assist you with this.
 
 
 Getting 'Pad checking failed!' when trying to authenticate
@@ -63,7 +63,7 @@ This error means that either the machine/host specific pad file on the device, o
 
 It can happen if you remove the authentication device without unmounting it before, manually mess with the pad files (like copying from a previous device) or your system crashed before file buffers were written to the media and similar. 
 
-Or, worst case scenario - someone tried to tamper with your system. In example someone could deep-clone (not only FS but also HW Ids) your authentication device and use it to login or sudo (if you use pamusb as the only factor), pads will then be updated on system and the attacking device but not on your original device since it wasn't connected at the time of your login. On next authentication request with your original device you will then get "Pad checking failed!". Of course for most persons this is an unlikely scenario. But if your system and/or device is accessible to other persons, keep it in mind. 
+Or, worst case scenario - someone tried to tamper with your system. In example someone could deep-clone (not only FS but also HW Ids) your authentication device and use it to login or sudo (if you use pamusb as the only factor), pads will then be updated on system and the attacking device but not on your original device since it wasn't connected at the time of your login. On next authentication request with your original device you will then get "Pad checking failed!". Of course for most persons this is an unlikely scenario. Also this would only work if the attacker uses his device before you use yours the next time. Else your authentication would invalidate his pads. But if your system and/or device is accessible to other persons, keep it in mind. 
 
 To resolve this you can use `pamusb-conf --reset-pads=<USERNAME>`, which will remove the pad files for the given user and its configured device so they will be regenerated on next authentication.
 
