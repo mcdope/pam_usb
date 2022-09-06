@@ -186,7 +186,7 @@ char *pusb_get_tty_by_loginctl()
 		return (0);
 	}
 
-    char loginctl_cmd[BUFSIZ] = "loginctl show-session $(awk '/tty/ {print $1}' <(loginctl)) -p TTY | tail -1 | awk -F= '{print $2}'";
+    char loginctl_cmd[BUFSIZ] = "CMDTMP=`loginctl | awk '/tty/ {print $1}'`; loginctl show-session $CMDTMP -p TTY | tail -1 | awk -F= '{print $2}'";
     char buf[BUFSIZ];
     FILE *fp;
 
