@@ -262,6 +262,7 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 		strcmp(service, "lightdm") == 0 ||
 		strcmp(service, "sddm") == 0 ||
 		strcmp(service, "polkit-1") == 0 ||
+		strcmp(service, "kde") == 0 || // KDE uses this for klockscreen
 		strcmp(service, "login") == 0 // @todo: see issue #115, if we continue the check past here we gonna close the session for some reason
 	) 
 	{
