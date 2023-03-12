@@ -144,6 +144,9 @@ install: all
 	if test -f $(CONFS_DEST)/pam_usb.conf; then $(INSTALL) -b -m644 $(CONFS) $(CONFS_DEST)/pam_usb.conf.dist; fi
 	if test ! -f $(CONFS_DEST)/pam_usb.conf; then $(INSTALL) -b -m644 $(CONFS) $(CONFS_DEST); fi
 
+# force pam-auth-update config install if building a deb
+	if test $(DEB_TARGET_ARCH) != "" > /dev/null 2>&1; then mkdir -p $(PAM_CONF_DEST) && $(INSTALL) -m644 $(PAM_CONF) $(PAM_CONF_DEST)/libpam-usb; fi
+
 deinstall:
 	$(RM) -f $(PAM_USB_DEST)/$(PAM_USB)
 	$(RM) -f \
