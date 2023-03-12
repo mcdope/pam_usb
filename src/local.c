@@ -259,6 +259,8 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 	if (strcmp(service, "pamusb-agent") == 0 ||
 		strcmp(service, "gdm-password") == 0 ||
 		strcmp(service, "xdm") == 0 ||
+		strcmp(service, "lxdm") == 0 ||
+		strcmp(service, "xscreensaver") == 0 ||
 		strcmp(service, "lightdm") == 0 ||
 		strcmp(service, "sddm") == 0 ||
 		strcmp(service, "polkit-1") == 0 ||
