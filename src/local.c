@@ -186,7 +186,7 @@ char *pusb_get_tty_by_loginctl()
 		return (0);
 	}
 
-    char loginctl_cmd[BUFSIZ] = "CMDTMP=`loginctl | awk '/tty/ {print $1}'`; loginctl show-session $CMDTMP -p TTY | tail -1 | awk -F= '{print $2}'";
+    char loginctl_cmd[BUFSIZ] = "loginctl user-status | CMDTMP=`grep -o 'session-[0-9].scope\+'` && loginctl show-session $CMDTMP -p TTY | awk -F= '{print $2}'";
     char buf[BUFSIZ];
     FILE *fp;
 
@@ -204,7 +204,7 @@ char *pusb_get_tty_by_loginctl()
 
         if (pclose(fp)) 
 		{
-            log_debug("		Closing pipe for 'tmux loginctl-clients' failed, this is quite a wtf...\n");
+            log_debug("		Closing pipe for 'loginctl' failed, this is quite a wtf...\n");
         }
 
         return tty;
