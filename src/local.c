@@ -252,26 +252,6 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 		}
 	}
 
-	/**
-	 * These services are whitelisted because either a) they are graphical login managers and we assume these
-	 * to be available only locally or b) they are authorization agents afters successful authentication.
-	 */
-	if (strcmp(service, "pamusb-agent") == 0 ||
-		strcmp(service, "gdm-password") == 0 ||
-		strcmp(service, "xdm") == 0 ||
-		strcmp(service, "lxdm") == 0 ||
-		strcmp(service, "xscreensaver") == 0 ||
-		strcmp(service, "lightdm") == 0 ||
-		strcmp(service, "sddm") == 0 ||
-		strcmp(service, "polkit-1") == 0 ||
-		strcmp(service, "kde") == 0 || // KDE uses this for klockscreen
-		strcmp(service, "login") == 0 // @todo: see issue #115, if we continue the check past here we gonna close the session for some reason
-	) 
-	{
-		log_debug("Whitelisted request by %s detected, assuming local.\n", service);
-		local_request = 1;
-	}
-
 	const char *session_tty;
 	char *display = getenv("DISPLAY");
 
