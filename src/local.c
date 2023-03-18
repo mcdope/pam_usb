@@ -259,6 +259,8 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 	if (strcmp(service, "pamusb-agent") == 0 ||
 		strcmp(service, "gdm-password") == 0 ||
 		strcmp(service, "xdm") == 0 ||
+		strcmp(service, "lxdm") == 0 ||
+		strcmp(service, "xscreensaver") == 0 ||
 		strcmp(service, "lightdm") == 0 ||
 		strcmp(service, "sddm") == 0 ||
 		strcmp(service, "polkit-1") == 0 ||
@@ -302,7 +304,7 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 			log_debug("	DISPLAY contains screen, truncating...\n");
 			char display_tmp[sizeof(display)];
 			snprintf(display_tmp, sizeof(display) - 2, "%s", display);
-			snprintf(display, strnlen(display_tmp, sizeof(display_tmp)), "%s", display_tmp);
+			snprintf(display, strnlen(display_tmp, (sizeof(display_tmp)+1))-1, "%s", display_tmp);
 		}
 
 		local_request = pusb_is_tty_local((char *) display);

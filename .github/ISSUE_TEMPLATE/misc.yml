@@ -1,0 +1,24 @@
+name: Misc. / Other
+description: Everything that's not a bug/support request
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For bug reports and support please use the correct template. There is a reason it exists...
+  - type: dropdown
+    id: not-a-bug
+    attributes:
+      label: Understood
+      description: Wrong value will result in insta-rejection of your issue
+      options:
+        - No, I'm just too lazy to provide the data you request for a bug
+        - Yes, this is not a bug report / support request
+    validations:
+      required: true
+  - type: textarea
+    id: text
+    attributes:
+      label: Text
+    validations:
+      required: true
+      
