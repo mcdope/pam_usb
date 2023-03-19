@@ -179,14 +179,7 @@ char *pusb_get_tty_by_xorg_display(const char *display, const char *user)
 
 char *pusb_get_tty_by_loginctl()
 {
-	struct stat sb;
-	if (stat("/usr/bin/loginctl", &sb) != 0) 
-	{
-		log_debug("		loginctl is not available, skipping\n");
-		return (0);
-	}
-
-    char loginctl_cmd[BUFSIZ] = "loginctl user-status | CMDTMP=`grep -o 'session-[0-9].scope\+'` && loginctl show-session $CMDTMP -p TTY | awk -F= '{print $2}'";
+	char loginctl_cmd[BUFSIZ] = "LOGINCTL_SESSION_ID=`loginctl user-status | grep -m 1  \"├─session-\" | grep -o '[0-9]\\+'`; loginctl show-session $LOGINCTL_SESSION_ID -p TTY | awk -F= '{print $2}'";
     char buf[BUFSIZ];
     FILE *fp;
 
@@ -210,6 +203,44 @@ char *pusb_get_tty_by_loginctl()
         return tty;
     } 
 	else 
+	{
+        log_debug("		'loginctl' returned nothing.\n");
+        return (0);
+    }
+}
+
+char *pusb_is_loginctl_local()
+{
+    char loginctl_cmd[BUFSIZ] = "LOGINCTL_SESSION_ID=`loginctl user-status | grep -m 1  \"├─session-\" | grep -o '[0-9]\\+'`; loginctl show-session $LOGINCTL_SESSION_ID -p Remote | awk -F= '{print $2}'";
+    char buf[BUFSIZ];
+    FILE *fp;
+
+    if ((fp = popen(loginctl_cmd, "r")) == NULL)
+	{
+        log_debug("		Opening pipe for 'loginctl' failed, this is quite a wtf...\n");
+        return (0);
+    }
+
+    char *is_remote = NULL;
+    if (fgets(buf, BUFSIZ, fp) != NULL)
+	{
+        is_remote = strtok(buf, "\n");
+        log_debug("		loginctl considers this session to be remote: %s\n", is_remote);
+
+        if (pclose(fp))
+		{
+            log_debug("		Closing pipe for 'loginctl' failed, this is quite a wtf...\n");
+        }
+
+		if (strcmp(is_remote, "no") == 0) {
+			return (1);
+		}
+		else
+		{
+			return (0);
+		}
+    }
+	else
 	{
         log_debug("		'loginctl' returned nothing.\n");
         return (0);
@@ -344,18 +375,38 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 
 	if (local_request == 0) 
 	{
-		log_debug("	Trying to get tty by loginctl\n");
-
-		char *loginctl_tty = (char *)xmalloc(32);
-		loginctl_tty = pusb_get_tty_by_loginctl();
-		if (loginctl_tty != 0)
+		struct stat sb;
+		if (stat("/usr/bin/loginctl", &sb) != 0)
 		{
-			log_debug("	Retrying with tty %s, obtained by loginctl, for utmp search\n", loginctl_tty);
-			local_request = pusb_is_tty_local(loginctl_tty);
+			log_debug("	loginctl is not available, skipping checks using it\n");
 		} 
 		else 
 		{
-			log_debug("		Failed, could not obtain tty from loginctl - see line before this for reason.\n", loginctl_tty);
+			log_debug("	Trying to check for remote access by loginctl\n");
+
+			char *loginctl_remote = (char *)xmalloc(2);
+			loginctl_remote = pusb_is_loginctl_local();
+			if (loginctl_remote != 0)
+			{
+				log_debug("	loginctl says this session is local\n");
+				local_request = 1;
+			}
+			else
+			{
+				log_debug("	Trying to get tty by loginctl\n");
+
+				char *loginctl_tty = (char *)xmalloc(32);
+				loginctl_tty = pusb_get_tty_by_loginctl();
+				if (loginctl_tty != 0)
+				{
+					log_debug("	Retrying with tty %s, obtained by loginctl, for utmp search\n", loginctl_tty);
+					local_request = pusb_is_tty_local(loginctl_tty);
+				}
+				else
+				{
+					log_debug("		Failed, could not obtain tty from loginctl - see line before this for reason.\n", loginctl_tty);
+				}
+			}
 		}
 	}
 
