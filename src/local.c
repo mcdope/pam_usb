@@ -186,7 +186,7 @@ char *pusb_get_tty_by_loginctl()
 		return (0);
 	}
 
-    char loginctl_cmd[BUFSIZ] = "loginctl show-session $(awk '/tty/ {print $1}' <(loginctl)) -p TTY | tail -1 | awk -F= '{print $2}'";
+    char loginctl_cmd[BUFSIZ] = "CMDTMP=`loginctl | awk '/tty/ {print $1}'`; loginctl show-session $CMDTMP -p TTY | tail -1 | awk -F= '{print $2}'";
     char buf[BUFSIZ];
     FILE *fp;
 
@@ -211,7 +211,7 @@ char *pusb_get_tty_by_loginctl()
     } 
 	else 
 	{
-        log_debug("		'loginctl' returned nothing.'\n");
+        log_debug("		'loginctl' returned nothing.\n");
         return (0);
     }
 }
@@ -252,23 +252,6 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 		}
 	}
 
-	/**
-	 * These services are whitelisted because either a) they are graphical login managers and we assume these
-	 * to be available only locally or b) they are authorization agents afters successful authentication.
-	 */
-	if (strcmp(service, "pamusb-agent") == 0 ||
-		strcmp(service, "gdm-password") == 0 ||
-		strcmp(service, "xdm") == 0 ||
-		strcmp(service, "lightdm") == 0 ||
-		strcmp(service, "sddm") == 0 ||
-		strcmp(service, "polkit-1") == 0 ||
-		strcmp(service, "login") == 0 // @todo: see issue #115, if we continue the check past here we gonna close the session for some reason
-	) 
-	{
-		log_debug("Whitelisted request by %s detected, assuming local.\n", service);
-		local_request = 1;
-	}
-
 	const char *session_tty;
 	char *display = getenv("DISPLAY");
 
@@ -301,7 +284,7 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 			log_debug("	DISPLAY contains screen, truncating...\n");
 			char display_tmp[sizeof(display)];
 			snprintf(display_tmp, sizeof(display) - 2, "%s", display);
-			snprintf(display, strnlen(display_tmp, sizeof(display_tmp)), "%s", display_tmp);
+			snprintf(display, strnlen(display_tmp, (sizeof(display_tmp)+1))-1, "%s", display_tmp);
 		}
 
 		local_request = pusb_is_tty_local((char *) display);
@@ -352,7 +335,7 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 		} 
 		else 
 		{
-			log_debug("		Failed, no result while searching utmp for tty %s\n", loginctl_tty);
+			log_debug("		Failed, could not obtain tty from loginctl - see line before this for reason.\n", loginctl_tty);
 		}
 	}
 
