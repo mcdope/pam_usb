@@ -179,7 +179,7 @@ char *pusb_get_tty_by_xorg_display(const char *display, const char *user)
 
 char *pusb_get_tty_by_loginctl()
 {
-	char loginctl_cmd[BUFSIZ] = "LOGINCTL_SESSION_ID=`loginctl user-status | grep -m 1  \"├─session-\" | grep -o '[0-9]\\+'`; loginctl show-session $LOGINCTL_SESSION_ID -p TTY | awk -F= '{print $2}'";
+    char loginctl_cmd[BUFSIZ] = "LOGINCTL_SESSION_ID=`loginctl user-status | grep -m 1  \"├─session-\" | grep -o '[0-9]\\+'`; loginctl show-session $LOGINCTL_SESSION_ID -p TTY | awk -F= '{print $2}'";
     char buf[BUFSIZ];
     FILE *fp;
 
