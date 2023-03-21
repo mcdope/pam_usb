@@ -80,9 +80,16 @@ static int pusb_device_connected(t_pusb_options *opts, UDisksClient *udisks)
 int pusb_device_check(t_pusb_options *opts, const char *user)
 {
 	UDisksClient *udisks = NULL;
+	GError *udisks_client_error = NULL;
 	int retval = 0;
 
-	udisks = udisks_client_new_sync(NULL, NULL);
+	udisks = udisks_client_new_sync(NULL, &udisks_client_error);
+	if (udisks_client_error != NULL)
+	{
+		log_error("Unable to check for device, could not get UDisksClient! Error was: %s\n", udisks_client_error->message);
+		g_error_free (udisks_client_error);
+		return (0);
+	}
 
 	if (!pusb_device_connected(opts, udisks))
 	{
