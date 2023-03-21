@@ -232,7 +232,8 @@ char *pusb_is_loginctl_local()
 			log_debug("		Closing pipe for 'loginctl' failed, this is quite a wtf...\n");
 		}
 
-		if (strcmp(is_remote, "no") == 0) {
+		if (strcmp(is_remote, "no") == 0) 
+		{
 			return (1);
 		}
 		else
