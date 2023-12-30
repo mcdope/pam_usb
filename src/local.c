@@ -23,6 +23,9 @@
 #include <dirent.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <netinet/ip.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include "log.h"
 #include "conf.h"
 #include "process.h"
@@ -55,21 +58,16 @@ int pusb_is_tty_local(char *tty)
 		log_debug("			utmp->ut_user: %s\n", utent->ut_user);
 	}
 
-	for (int i = 0; i < 4; ++i)
-	{
-		/**
-		 * Note: despite the property name this also works for IPv4, v4 addr would be in ut_addr_v6[0] solely.
-		 * See utmp man (http://manpages.ubuntu.com/manpages/bionic/de/man5/utmp.5.html)
-		 **/
-		if (utent->ut_addr_v6[i] != 0)
-		{
-			log_error("Remote authentication request: %s\n", utent->ut_host);
-			return (-1);
-		} 
-		else 
-		{
-			log_debug("		Checking utmp->ut_addr_v6[%d]\n", i);
-		}
+	/**
+	 * Note: despite the property name this also works for IPv4, v4 addr would be in ut_addr_v6[0] solely while for v6 it will have just a part of the ip. Anyway: if first element is set -> remote
+	 **/
+	if (utent->ut_addr_v6[0] != 0) {
+		struct in_addr ipnetw;
+		ipnetw.s_addr = utent->ut_addr_v6[0];
+		char* ipaddr = inet_ntoa(ipnetw);
+
+		log_error("Remote authentication request, host: %s, ip: %s\n", utent->ut_host, ipaddr);
+		return (-1);
 	}
 
 	log_debug("	utmp check successful, request originates from a local source!\n");
@@ -366,7 +364,7 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 			log_debug("	Trying to check for remote access by loginctl\n");
 
 			char *loginctl_remote = (char *)xmalloc(2);
-			loginctl_remote = pusb_is_loginctl_local();
+			loginctl_remote = pusb_is_loginctl_local(); //@todo: why the heck did i make this return char? oO
 			if (loginctl_remote != 0)
 			{
 				log_debug("	loginctl says this session is local\n");
