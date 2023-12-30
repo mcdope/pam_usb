@@ -20,74 +20,74 @@ jobs:
         TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
         TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
         TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_NEW }}
-      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -p $TEST_RUNNER_PORT_NEW -o StrictHostKeyChecking=no $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "rm -rf ~/pam_usb_nightly_$GITHUB_RUN_ID && git clone https://github.com/mcdope/pam_usb.git pam_usb_nightly_$GITHUB_RUN_ID"
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "rm -rf ~/pam_usb_nightly_$GITHUB_RUN_ID && git clone https://github.com/mcdope/pam_usb.git pam_usb_nightly_$GITHUB_RUN_ID"
     - name: git fetch --all
       env:
         TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
         TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
         TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_NEW }}
-      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -p $TEST_RUNNER_PORT_NEW -o StrictHostKeyChecking=no $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "cd ~/pam_usb_nightly_$GITHUB_RUN_ID && git fetch --all"
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "cd ~/pam_usb_nightly_$GITHUB_RUN_ID && git fetch --all"
     - name: git reset --hard
       env:
         TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
         TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
         TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_NEW }}
-      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -p $TEST_RUNNER_PORT_NEW -o StrictHostKeyChecking=no $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "cd ~/pam_usb_nightly_$GITHUB_RUN_ID && git reset --hard"
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "cd ~/pam_usb_nightly_$GITHUB_RUN_ID && git reset --hard"
     - name: git switch -f
       env:
         TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
         TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
         TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_NEW }}
         REF_TO_CHECKOUT: ${{ github.head_ref }}
-      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -p $TEST_RUNNER_PORT_NEW -o StrictHostKeyChecking=no $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "cd ~/pam_usb_nightly_$GITHUB_RUN_ID && git switch -f $REF_TO_CHECKOUT || git switch -f master"
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "cd ~/pam_usb_nightly_$GITHUB_RUN_ID && git switch -f $REF_TO_CHECKOUT || git switch -f master"
     - name: git pull
       env:
         TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
         TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
         TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_NEW }}
-      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -p $TEST_RUNNER_PORT_NEW -o StrictHostKeyChecking=no $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "cd ~/pam_usb_nightly_$GITHUB_RUN_ID && git pull"
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "cd ~/pam_usb_nightly_$GITHUB_RUN_ID && git pull"
     - name: Build .tar.gz source package
       env:
         TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
         TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
         TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_NEW }}
-      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -p $TEST_RUNNER_PORT_NEW -o StrictHostKeyChecking=no $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "cd ~/pam_usb_nightly_$GITHUB_RUN_ID && make sourcegz"
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "cd ~/pam_usb_nightly_$GITHUB_RUN_ID && make sourcegz"
     - name: Generate Debian build environment
       env:
         TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
         TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
         TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_NEW }}
-      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -p $TEST_RUNNER_PORT_NEW -o StrictHostKeyChecking=no $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "cd ~/pam_usb_nightly_$GITHUB_RUN_ID && make buildenv-debian"
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "cd ~/pam_usb_nightly_$GITHUB_RUN_ID && make buildenv-debian"
     - name: Build .deb package
       env:
         TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
         TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
         TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_NEW }}
-      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -p $TEST_RUNNER_PORT_NEW -o StrictHostKeyChecking=no $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "cd ~/pam_usb_nightly_$GITHUB_RUN_ID && make build-debian"
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "cd ~/pam_usb_nightly_$GITHUB_RUN_ID && make build-debian"
     - name: Generate Fedora build environment
       env:
         TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
         TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
         TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_NEW }}
-      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -p $TEST_RUNNER_PORT_NEW -o StrictHostKeyChecking=no $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "cd ~/pam_usb_nightly_$GITHUB_RUN_ID && make buildenv-fedora"
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "cd ~/pam_usb_nightly_$GITHUB_RUN_ID && make buildenv-fedora"
     - name: Build .rpm package
       env:
         TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
         TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
         TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_NEW }}
-      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -p $TEST_RUNNER_PORT_NEW -o StrictHostKeyChecking=no $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "cd ~/pam_usb_nightly_$GITHUB_RUN_ID && make build-fedora"
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "cd ~/pam_usb_nightly_$GITHUB_RUN_ID && make build-fedora"
     - name: Generate Arch build environment
       env:
         TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
         TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
         TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_NEW }}
-      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -p $TEST_RUNNER_PORT_NEW -o StrictHostKeyChecking=no $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "cd ~/pam_usb_nightly_$GITHUB_RUN_ID && make buildenv-arch"
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "cd ~/pam_usb_nightly_$GITHUB_RUN_ID && make buildenv-arch"
     - name: Build .zst package
       env:
         TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
         TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
         TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_NEW }}
-      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -p $TEST_RUNNER_PORT_NEW -o StrictHostKeyChecking=no $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "cd ~/pam_usb_nightly_$GITHUB_RUN_ID && make build-arch"
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "cd ~/pam_usb_nightly_$GITHUB_RUN_ID && make build-arch"
     - name: Download generated package files
       env:
         TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
@@ -112,5 +112,5 @@ jobs:
         TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
         TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
         TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_NEW }}
-      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -p $TEST_RUNNER_PORT_NEW -o StrictHostKeyChecking=no $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "rm -rf ~/pam_usb_nightly_$GITHUB_RUN_ID"
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "rm -rf ~/pam_usb_nightly_$GITHUB_RUN_ID"
 
