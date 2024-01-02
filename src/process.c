@@ -24,10 +24,11 @@
  */
 
 #include <stdio.h>
-#include <string.h>
+#include <string.h> 
 #include <stdlib.h>
 #include "process.h"
 #include "mem.h"
+#include "log.h"
 
 /**
  * Get a process name from its PID.
@@ -82,16 +83,23 @@ void pusb_get_process_parent_id(const pid_t pid, pid_t * ppid)
 }
 
 /**
- * Read environment variable of another process
+ * Read environment variable of another process via its /proc/processId/environ file. To so so
+ * it replaces the zero bytes by # to be able to use strtok on its content. When the requested variable 
+ * is found its name and the equals/assign character will be cut off and the result then returned.
  *
  * @param pid pid of process to read the environment of
  * @param var envvar to look up
  *
  * @return content of var if found, else NULL
+ *
+ * @see https://man7.org/linux/man-pages/man7/environ.7.html
+ * @see https://askubuntu.com/a/978715
  */
 char *pusb_get_process_envvar(pid_t pid, char *var)
 {
 	char buffer[BUFSIZ];
+	char* output = xmalloc(BUFSIZ);
+
 	sprintf(buffer, "/proc/%d/environ", pid);
 	FILE* fp = fopen(buffer, "r");
 	if (fp) 
@@ -103,20 +111,22 @@ char *pusb_get_process_envvar(pid_t pid, char *var)
 			if (!buffer[i] && i != size) buffer[i] = '#'; // replace \0 with "#" since strtok uses \0 internally
 		}
 
-		if (size > 0) 
+		if (size > 0)
 		{
 			char* variable_content = strtok(buffer, "#");
 			while (variable_content != NULL)
 			{
-				if (strncmp(var, variable_content, strnlen(var, sizeof(var))) == 0) 
+				if (strncmp(var, variable_content, strlen(var)) == 0)
 				{
-					return variable_content + strnlen(var, sizeof(var)) + 1;
+					return output;
 				}
 
 				variable_content = strtok(NULL, "#");
+				strcpy(output,  variable_content + (strlen(var) +1)); // cut var= and set output string
 			}
 		}
 	}
 
+	xfree(output);
 	return NULL;
 }
