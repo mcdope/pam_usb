@@ -207,7 +207,7 @@ char *pusb_get_tty_by_loginctl()
 	}
 }
 
-char *pusb_is_loginctl_local()
+int pusb_is_loginctl_local()
 {
 	char loginctl_cmd[BUFSIZ] = "LOGINCTL_SESSION_ID=`loginctl user-status | grep -m 1  \"├─session-\" | grep -o '[0-9]\\+'`; loginctl show-session $LOGINCTL_SESSION_ID -p Remote | awk -F= '{print $2}'";
 	char buf[BUFSIZ];
@@ -363,8 +363,7 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 		{
 			log_debug("	Trying to check for remote access by loginctl\n");
 
-			char *loginctl_remote = (char *)xmalloc(2);
-			loginctl_remote = pusb_is_loginctl_local(); //@todo: why the heck did i make this return char? oO
+			int loginctl_remote = pusb_is_loginctl_local();
 			if (loginctl_remote != 0)
 			{
 				log_debug("	loginctl says this session is local\n");
@@ -385,6 +384,8 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 				{
 					log_debug("		Failed, could not obtain tty from loginctl - see line before this for reason.\n", loginctl_tty);
 				}
+
+				xfree(loginctl_tty);
 			}
 		}
 	}

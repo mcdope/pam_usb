@@ -106,7 +106,7 @@ jobs:
         TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
         TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_NEW }}
         TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
-      run: sshpass -p "$TEST_RUNNER_PASS_NEW" scp -r ${{ secrets.TEST_RUNNER_USER_NEW }}@${{ secrets.TEST_RUNNER_HOST_NEW }}:/home/${{ secrets.TEST_RUNNER_USER_NEW }}/pam_usb_nightly_$GITHUB_RUN_ID/.build .
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" scp -P ${{ secrets.TEST_RUNNER_PORT_NEW }} -r ${{ secrets.TEST_RUNNER_USER_NEW }}@${{ secrets.TEST_RUNNER_HOST_NEW }}:/home/${{ secrets.TEST_RUNNER_USER_NEW }}/pam_usb_nightly_$GITHUB_RUN_ID/.build .
     - name: Rename generated package files
       run: mv .build/*.zst .build/pam_usb-nightly-`date +%Y%m%d`-x86_64.pkg.tar.zst && mv .build/*.deb .build/pam_usb-nightly-`date +%Y%m%d`_amd64.deb && mv .build/*.rpm .build/pam_usb-nightly-`date +%Y%m%d`.x86_64.rpm && mv .build/*.gz .build/pam_usb-nightly-`date +%Y%m%d`.tar.gz
     - name: Upload nightly packages
