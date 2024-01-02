@@ -34,7 +34,7 @@
  * @param pid PID of the process
  * @param name Name of the process
  * 
- * Source: http://stackoverflow.com/questions/15545341/process-name-from-its-pid-in-linux
+ * Source: https://stackoverflow.com/questions/15545341/process-name-from-its-pid-in-linux
  */
 void pusb_get_process_name(const pid_t pid, char * name) 
 {
@@ -70,7 +70,7 @@ void pusb_get_process_parent_id(const pid_t pid, pid_t * ppid)
 		size_t size = fread(buffer, sizeof (char), sizeof (buffer), fp);
 		if (size > 0) 
 		{
-			// See: http://man7.org/linux/man-pages/man5/proc.5.html section /proc/[pid]/stat
+			// See: https://man7.org/linux/man-pages/man5/proc.5.html section /proc/[pid]/stat
 			strtok(buffer, " "); // (1) pid  %d
 			strtok(NULL, " "); // (2) comm  %s
 			strtok(NULL, " "); // (3) state  %c
@@ -94,7 +94,6 @@ char *pusb_get_process_envvar(pid_t pid, char *var)
 	char buffer[BUFSIZ];
 	sprintf(buffer, "/proc/%d/environ", pid);
 	FILE* fp = fopen(buffer, "r");
-	char *variable_content = (char *)xmalloc(BUFSIZ);
 	if (fp) 
 	{
 		size_t size = fread(buffer, sizeof (char), sizeof (buffer), fp);
@@ -106,7 +105,7 @@ char *pusb_get_process_envvar(pid_t pid, char *var)
 
 		if (size > 0) 
 		{
-			variable_content = strtok(buffer, "#");
+			char* variable_content = strtok(buffer, "#");
 			while (variable_content != NULL)
 			{
 				if (strncmp(var, variable_content, strnlen(var, sizeof(var))) == 0) 
