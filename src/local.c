@@ -117,6 +117,13 @@ char *pusb_get_tty_from_display_server(const char *display)
 				DIR *d_fd = opendir(fd_path);
 				if (d_fd == NULL) {
 					log_debug("	Determining tty by display server failed (running 'pamusb-check' as user?)\n", fd_path);
+
+					xfree(cmdline_path);
+					xfree(cmdline);
+					xfree(fd_path);
+					xfree(link_path);
+					xfree(fd_target);
+
 					return NULL;
 				}
 
@@ -136,6 +143,11 @@ char *pusb_get_tty_from_display_server(const char *display)
 								closedir(d_fd);
 								closedir(d_proc);
 
+								xfree(cmdline_path);
+								xfree(cmdline);
+								xfree(fd_path);
+								xfree(link_path);
+
 								return fd_target;
 							}
 						}
@@ -146,6 +158,12 @@ char *pusb_get_tty_from_display_server(const char *display)
 		}
 	}
 	closedir(d_proc);
+
+	xfree(cmdline_path);
+	xfree(cmdline);
+	xfree(fd_path);
+	xfree(link_path);
+	xfree(fd_target);
 
 	return NULL;
 }
@@ -177,7 +195,7 @@ char *pusb_get_tty_by_xorg_display(const char *display, const char *user)
 
 char *pusb_get_tty_by_loginctl()
 {
-	char loginctl_cmd[BUFSIZ] = "LOGINCTL_SESSION_ID=`loginctl user-status | grep -m 1  \"├─session-\" | grep -o '[0-9]\\+'`; loginctl show-session $LOGINCTL_SESSION_ID -p TTY | awk -F= '{print $2}'";
+	char loginctl_cmd[BUFSIZ] = "LC_ALL=c; LOGINCTL_SESSION_ID=`loginctl user-status | grep -m 1  \"├─session-\" | grep -o '[0-9]\\+'`; loginctl show-session $LOGINCTL_SESSION_ID -p TTY | awk -F= '{print $2}'";
 	char buf[BUFSIZ];
 	FILE *fp;
 

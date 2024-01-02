@@ -25,16 +25,16 @@
 
 char *pusb_tmux_get_client_tty(pid_t env_pid)
 {
-    char *tmux_details = getenv("TMUX");
+    char *tmux_details = (char *)xmalloc(BUFSIZ);
+    tmux_details = getenv("TMUX");
     if (tmux_details == NULL) 
     {
         log_debug("		No TMUX env var, checking parent process in case this is a sudo request\n");
-
-        tmux_details = (char *)xmalloc(BUFSIZ);
         tmux_details = pusb_get_process_envvar(env_pid, "TMUX");
 
         if (tmux_details == NULL) 
         {
+            xfree(tmux_details);
             return NULL;
         }
     }
@@ -55,6 +55,7 @@ char *pusb_tmux_get_client_tty(pid_t env_pid)
     if ((fp = popen(get_tmux_session_details_cmd, "r")) == NULL) 
     {
         log_error("tmux detected, but couldn't get session details. Denying since remote check impossible without it!\n");
+        xfree(tmux_details);
         return (0);
     }
 
@@ -70,11 +71,13 @@ char *pusb_tmux_get_client_tty(pid_t env_pid)
             log_debug("		Closing pipe for 'tmux list-clients' failed, this is quite a wtf...\n");
         }
 
+        xfree(tmux_details);
         return tmux_client_tty;
     } 
     else 
     {
         log_error("tmux detected, but couldn't get client details. Denying since remote check impossible without it!\n");
+        xfree(tmux_details);
         return (0);
     }
 }
