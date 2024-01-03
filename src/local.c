@@ -330,9 +330,7 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 		{
 			// DISPLAY contains not only display but also default screen, truncate screen part in this case
 			log_debug("	DISPLAY contains screen, truncating...\n");
-			char display_tmp[sizeof(display)];
-			snprintf(display_tmp, sizeof(display) - 2, "%s", display);
-			snprintf(display, strnlen(display_tmp, (sizeof(display_tmp)+1))-1, "%s", display_tmp);
+			memset(display + strlen(display) - 2, 0, 2);
 		}
 
 		local_request = pusb_is_tty_local((char *) display);
