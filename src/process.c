@@ -24,11 +24,10 @@
  */
 
 #include <stdio.h>
-#include <string.h> 
+#include <string.h>
 #include <stdlib.h>
 #include "process.h"
 #include "mem.h"
-#include "log.h"
 
 /**
  * Get a process name from its PID.
