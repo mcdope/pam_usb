@@ -2,8 +2,8 @@
 # Contributor: Pekka Helenius <fincer89 [at] hotmail [dot] com>
 
 pkgname=pam_usb-git
-pkgver=0.8.2_r500.g7a785de
-pkgrel=3
+pkgver=0.8.4_r547.g2c1e20f
+pkgrel=1
 pkgdesc='Hardware authentication for Linux using ordinary flash media (USB & Card based).'
 arch=($CARCH)
 url='https://github.com/mcdope/pam_usb'
