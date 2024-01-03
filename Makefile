@@ -18,6 +18,12 @@ endif
 ifeq ($(ARCH), i686)
 	LIBDIR ?= lib
 endif
+ifeq ($(ARCH), aarch64) # ARM64, i.e Apple silicon and other up2date CPUs/SoCs
+	LIBDIR ?= lib/aarch64-linux-gnu
+endif
+ifeq ($(ARCH), armv7l) # ARM32, i.e Raspberries
+	LIBDIR ?= lib/arm-linux-gnueabihf
+endif
 
 # compiler/linker options
 CC := gcc
