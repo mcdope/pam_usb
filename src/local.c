@@ -117,6 +117,13 @@ char *pusb_get_tty_from_display_server(const char *display)
 				DIR *d_fd = opendir(fd_path);
 				if (d_fd == NULL) {
 					log_debug("	Determining tty by display server failed (running 'pamusb-check' as user?)\n", fd_path);
+
+					xfree(cmdline_path);
+					xfree(cmdline);
+					xfree(fd_path);
+					xfree(link_path);
+					xfree(fd_target);
+
 					return NULL;
 				}
 
@@ -136,6 +143,11 @@ char *pusb_get_tty_from_display_server(const char *display)
 								closedir(d_fd);
 								closedir(d_proc);
 
+								xfree(cmdline_path);
+								xfree(cmdline);
+								xfree(fd_path);
+								xfree(link_path);
+
 								return fd_target;
 							}
 						}
@@ -146,6 +158,12 @@ char *pusb_get_tty_from_display_server(const char *display)
 		}
 	}
 	closedir(d_proc);
+
+	xfree(cmdline_path);
+	xfree(cmdline);
+	xfree(fd_path);
+	xfree(link_path);
+	xfree(fd_target);
 
 	return NULL;
 }
@@ -177,7 +195,7 @@ char *pusb_get_tty_by_xorg_display(const char *display, const char *user)
 
 char *pusb_get_tty_by_loginctl()
 {
-	char loginctl_cmd[BUFSIZ] = "LOGINCTL_SESSION_ID=`loginctl user-status | grep -m 1  \"├─session-\" | grep -o '[0-9]\\+'`; loginctl show-session $LOGINCTL_SESSION_ID -p TTY | awk -F= '{print $2}'";
+	char loginctl_cmd[BUFSIZ] = "LC_ALL=c; LOGINCTL_SESSION_ID=`loginctl user-status | grep -m 1  \"├─session-\" | grep -o '[0-9]\\+'`; loginctl show-session $LOGINCTL_SESSION_ID -p TTY | awk -F= '{print $2}'";
 	char buf[BUFSIZ];
 	FILE *fp;
 
@@ -209,7 +227,7 @@ char *pusb_get_tty_by_loginctl()
 
 int pusb_is_loginctl_local()
 {
-	char loginctl_cmd[BUFSIZ] = "LOGINCTL_SESSION_ID=`loginctl user-status | grep -m 1  \"├─session-\" | grep -o '[0-9]\\+'`; loginctl show-session $LOGINCTL_SESSION_ID -p Remote | awk -F= '{print $2}'";
+	char loginctl_cmd[BUFSIZ] = "LC_ALL=c; LOGINCTL_SESSION_ID=`loginctl user-status | grep -m 1  \"├─session-\" | grep -o '[0-9]\\+'`; loginctl show-session $LOGINCTL_SESSION_ID -p Remote | awk -F= '{print $2}'";
 	char buf[BUFSIZ];
 	FILE *fp;
 
@@ -312,9 +330,7 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 		{
 			// DISPLAY contains not only display but also default screen, truncate screen part in this case
 			log_debug("	DISPLAY contains screen, truncating...\n");
-			char display_tmp[sizeof(display)];
-			snprintf(display_tmp, sizeof(display) - 2, "%s", display);
-			snprintf(display, strnlen(display_tmp, (sizeof(display_tmp)+1))-1, "%s", display_tmp);
+			memset(display + strlen(display) - 2, 0, 2);
 		}
 
 		local_request = pusb_is_tty_local((char *) display);
