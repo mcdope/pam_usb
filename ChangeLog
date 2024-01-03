@@ -1,3 +1,10 @@
+* 0.8.4
+  [Bugfix] loginctl usage was not sh compatible
+  [Bugfix] Misc. fixes related to memory handling
+  [Enhancement] Don't check every element of ut_addr_v6
+  [Enhancement] Service whitelist is now user configurable
+  [Enhancement] Whitelist additions: lxdm, xscreensaver, klockscreen
+
 * 0.8.3
   [Enhancement] Install pam-auth-update config only on systems having it
   [Feature] pamusb-conf now has a --reset-pads=username option

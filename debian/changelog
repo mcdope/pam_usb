@@ -1,3 +1,14 @@
+libpam-usb (0.8.4) unstable; urgency=medium
+  * [Bugfix] loginctl usage was not sh compatible
+  * [Bugfix] Misc. fixes related to memory handling
+  * [Enhancement] Don't check every element of ut_addr_v6
+  * [Enhancement] Service whitelist is now user configurable
+  * [Enhancement] Whitelist additions: lxdm, xscreensaver, klockscreen
+
+ -- Tobias Bäumer <tobiasbaeumer@gmail.com>  Thu, 04 Jan 2024 21:00:00 +0100
+
+
+
 libpam-usb (0.8.3-1) unstable; urgency=medium
   * [Bugfix] Fix pam-auth-update config not being included in package
 
