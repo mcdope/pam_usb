@@ -24,6 +24,9 @@ endif
 ifeq ($(ARCH), armv7l) # ARM32, i.e Raspberries
 	LIBDIR ?= lib/arm-linux-gnueabihf
 endif
+ifeq ($(ARCH), armv7l) # Motorola 68k - Amiga forever
+	LIBDIR ?= lib/m68k-linux-gnu
+endif
 
 # compiler/linker options
 CC := gcc
