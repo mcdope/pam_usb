@@ -193,12 +193,17 @@ int pusb_conf_parse(
 		log_error("No authentication device(s) configured for user \"%s\".\n", user);
 		xmlFreeDoc(doc);
 		xmlCleanupParser();
+
+		for (int currentDevice = 0; currentDevice < 10; currentDevice++)
+		{
+			xfree(device_list[currentDevice]);
+		}
 		return (0);
 	}
 
 	for (int currentDevice = 0; currentDevice < 10; currentDevice++)
 	{
-		log_error("DBG: currentDevice: %d, strnlen: %d, value: %s\n", currentDevice, strnlen(device_list[currentDevice], 128), device_list[currentDevice]);
+		log_error("DBG: currentDevice: %d, strnlen: %d, value: %s\n", currentDevice, (int) strnlen(device_list[currentDevice], 128), device_list[currentDevice]);
 		if (device_list[currentDevice] == NULL || strnlen(device_list[currentDevice], 128) == 0)
 		{
 			continue;
@@ -215,9 +220,19 @@ int pusb_conf_parse(
 	{
 		xmlFreeDoc(doc);
 		xmlCleanupParser();
+
+		for (int currentDevice = 0; currentDevice < 10; currentDevice++)
+		{
+			xfree(device_list[currentDevice]);
+		}
 		return (0);
 	}
 	xmlFreeDoc(doc);
 	xmlCleanupParser();
+
+	for (int currentDevice = 0; currentDevice < 10; currentDevice++)
+	{
+		xfree(device_list[currentDevice]);
+	}
 	return (1);
 }
