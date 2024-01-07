@@ -1,7 +1,7 @@
 %define _topdir         /usr/local/src/pam_usb/fedora
 %define name            pam_usb 
 %define release         1
-%define version         0.8.3
+%define version         0.8.4
 %define buildroot       %{_topdir}/%{name}‑%{version}‑root
 
 BuildRoot: %{buildroot}
@@ -56,6 +56,13 @@ rm -rf %{buildroot}/usr/share/pam-configs
 %doc %attr(0644,root,root) /usr/share/doc/pam_usb/TROUBLESHOOTING
 
 %changelog
+* Thu Jan 04 2024 Tobias Bäumer <tobiasbaeumer@gmail.com> - 0.8.4
+- [Bugfix] loginctl usage was not sh compatible
+- [Bugfix] Misc. fixes related to memory handling
+- [Enhancement] Don't check every element of ut_addr_v6
+- [Enhancement] Service whitelist is now user configurable
+- [Enhancement] Whitelist additions: lxdm, xscreensaver, klockscreen
+
 * Tue Aug 30 2022 Tobias Bäumer <tobiasbaeumer@gmail.com> - 0.8.3-1
 - [Enhancement] Install pam-auth-update config only on systems having it
 - [Feature] pamusb-conf now has a --reset-pads=username option
