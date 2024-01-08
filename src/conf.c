@@ -203,13 +203,13 @@ int pusb_conf_parse(
 
 	for (int currentDevice = 0; currentDevice < 10; currentDevice++)
 	{
-		log_error("DBG: currentDevice: %d, strnlen: %d, value: %s\n", currentDevice, (int) strnlen(device_list[currentDevice], 128), device_list[currentDevice]);
-		if (device_list[currentDevice] == NULL || strnlen(device_list[currentDevice], 128) == 0)
+		log_error("DBG: currentDevice: %d, strlen: %d, value: %s\n", currentDevice, (int) strlen(device_list[currentDevice]), device_list[currentDevice]);
+		if (device_list[currentDevice] == NULL || strlen(device_list[currentDevice]) == 0)
 		{
 			continue;
 		}
 
-		strncpy(opts->device_list[currentDevice].name, device_list[currentDevice], strnlen(device_list[currentDevice], 128));
+		strcpy(opts->device_list[currentDevice].name, device_list[currentDevice]);
 		pusb_conf_parse_device(opts, doc, currentDevice, device_list[currentDevice]);
 		log_error("DBG: found device\n");
 		log_error("DBG:     name: %s\n", opts->device_list[currentDevice].name);

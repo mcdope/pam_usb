@@ -65,10 +65,10 @@ static int pusb_device_connected(t_pusb_options *opts, UDisksClient *udisks)
 				g_object_unref(drive);
 				if (retval) {
 					strcpy(opts->device.name, opts->device_list[currentDevice].name);
-					strcpy(opts->device.vendor, opts->device_list[currentDevice].vendor, sizeof(opts->device_list[currentDevice].vendor));
-					strcpy(opts->device.model, opts->device_list[currentDevice].model, sizeof(opts->device_list[currentDevice].model));
-					strcpy(opts->device.serial, opts->device_list[currentDevice].serial, sizeof(opts->device_list[currentDevice].serial));
-					strcpy(opts->device.volume_uuid, opts->device_list[currentDevice].volume_uuid, sizeof(opts->device_list[currentDevice].volume_uuid));
+					strcpy(opts->device.vendor, opts->device_list[currentDevice].vendor);
+					strcpy(opts->device.model, opts->device_list[currentDevice].model);
+					strcpy(opts->device.serial, opts->device_list[currentDevice].serial);
+					strcpy(opts->device.volume_uuid, opts->device_list[currentDevice].volume_uuid);
 					currentDevice = 11;
 					break;
 				}
