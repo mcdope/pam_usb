@@ -209,13 +209,13 @@ def userDeviceThread(user):
 			}
 		)
 
-	# @todo: adjust for multiple devices here
+	# @todo: adjust for multiple devices here, should be an array of devices
 	deviceName = user.find('device').text.strip()
 
 	devices = doc.findall("devices/device")
 	deviceOK = False
 	for device in devices:
-		if device.get('id') == deviceName:
+		if device.get('id') == deviceName: # should loop all devices and monitor them all, no part should be devicename bound
 			deviceOK = True
 			break
 
