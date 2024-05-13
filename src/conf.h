@@ -57,6 +57,7 @@ typedef struct		pusb_options
 	char			system_pad_directory[PATH_MAX];
 	char			device_pad_directory[PATH_MAX];
 	t_pusb_device	device;
+	t_pusb_device	device_list[10];
 }					t_pusb_options;
 
 struct		s_opt_list

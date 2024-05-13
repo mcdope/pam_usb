@@ -209,6 +209,7 @@ def userDeviceThread(user):
 			}
 		)
 
+	# @todo: adjust for multiple devices here
 	deviceName = user.find('device').text.strip()
 
 	devices = doc.findall("devices/device")

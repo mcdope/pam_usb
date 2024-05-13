@@ -128,6 +128,47 @@ int pusb_xpath_get_string(
 	return (1);
 }
 
+int pusb_xpath_get_string_list(
+	xmlDocPtr doc,
+	const char *path,
+	char *values[],
+	size_t size
+)
+{
+	xmlXPathObject *result = NULL;
+	xmlNode *node = NULL;
+	xmlChar *result_string = NULL;
+
+	if (!(result = pusb_xpath_match(doc, path)))
+	{
+		return (0);
+	}
+
+	log_error("DBG: Found %d devices for user\n", result->nodesetval->nodeNr);
+	for (int currentResult = 0; currentResult < result->nodesetval->nodeNr; currentResult++)
+	{
+		log_error("DBG: result %d\n", currentResult);
+		node = result->nodesetval->nodeTab[currentResult]->xmlChildrenNode;
+		result_string = xmlNodeListGetString(doc, node, 1);
+		if (!result_string || strcmp("", (char *) result_string) == 0)
+		{
+			log_debug("Empty value for %s\n", path);
+			continue;
+		}
+		if (!pusb_xpath_strip_string(values[currentResult], (char *)result_string, size))
+		{
+			log_debug("Result for %s (%s) is too long (max: %d)\n", path, (const char *)result_string, size);
+			continue;
+		}
+
+		log_error("DBG: Found device %s\n", result_string);
+	}
+
+	xmlFree(result_string);
+	xmlXPathFreeObject(result);
+	return (1);
+}
+
 int pusb_xpath_get_string_from(
 	xmlDocPtr doc,
 	const char *base,

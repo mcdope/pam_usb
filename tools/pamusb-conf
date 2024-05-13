@@ -127,13 +127,6 @@ def addUser(options):
 		print('You must add a device (--add-device) before adding users')
 		sys.exit(1)
 
-	alreadyConfiguredUsers = doc.getElementsByTagName('user')
-	if len(alreadyConfiguredUsers) > 0:
-		for user in alreadyConfiguredUsers:
-			if user.getAttribute('id') == options['userName']:
-				print('This user is already added to the configuration, to edit it you need to do it manually currently - sorry.')
-				sys.exit(1)
-
 	devices = []
 	for device in devicesObj:
 		devices.append(device.getAttribute('id'))
@@ -151,14 +144,29 @@ def addUser(options):
 		]
 	)
 
+	# Check if user exists
 	users = doc.getElementsByTagName('users')
-	user = doc.createElement('user')
-	user.attributes['id'] = options['userName']
-	e = doc.createElement('device')
-	t = doc.createTextNode(device)
-	e.appendChild(t)
-	user.appendChild(e)
-	users[0].appendChild(prettifyElement(user))
+	userElements = doc.getElementsByTagName('user')
+	user = False
+	for _user in userElements:
+		if _user.getAttribute('id') == options['userName']:
+			user = _user
+			break
+
+	if user is False: # does not exist, lets create
+		user = doc.createElement('user')
+		user.attributes['id'] = options['userName']
+		e = doc.createElement('device')
+		t = doc.createTextNode(device)
+		e.appendChild(t)
+		user.appendChild(e)
+		users[0].appendChild(prettifyElement(user))
+	else: # just add another device
+		e = doc.createElement('device')
+		t = doc.createTextNode(device)
+		e.appendChild(t)
+		user.appendChild(e)
+
 	writeConf(options, doc)
 
 def listAvailableDevicesAndVolumes(options):

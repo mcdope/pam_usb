@@ -35,29 +35,43 @@ static int pusb_device_connected(t_pusb_options *opts, UDisksClient *udisks)
 	UDisksObject *object = NULL;
 	UDisksDrive *drive = NULL;
 
-	log_debug("Searching for \"%s\" in the hardware database...\n", opts->device.name);
-
-	for (i = 0; i < g_list_length(objects); ++i)
+	for (int currentDevice = 0; currentDevice < 10; currentDevice++)
 	{
-		object = UDISKS_OBJECT(g_list_nth(objects, i)->data);
-		if (udisks_object_peek_drive(object))
+		if (strcmp(opts->device_list[currentDevice].name, "") == 0)
 		{
-			drive = udisks_object_get_drive(object);
-			retval = strcmp(udisks_drive_get_serial(drive), opts->device.serial) == 0;
-			
-			if (strcmp(opts->device.vendor, "Generic") != 0) 
-			{
-				retval = retval && strcmp(udisks_drive_get_vendor(drive), opts->device.vendor) == 0;
-			}
+			continue;
+		}
 
-			if (strcmp(opts->device.model, "Generic") != 0) 
+		log_error("Searching for \"%s\" in the hardware database...\n", opts->device_list[currentDevice].name);
+
+		for (i = 0; i < g_list_length(objects); ++i)
+		{
+			object = UDISKS_OBJECT(g_list_nth(objects, i)->data);
+			if (udisks_object_peek_drive(object))
 			{
-				retval = retval && strcmp(udisks_drive_get_model(drive), opts->device.model) == 0;
-			}
-			
-			g_object_unref(drive);
-			if (retval) {
-				break;
+				drive = udisks_object_get_drive(object);
+				retval = strcmp(udisks_drive_get_serial(drive), opts->device_list[currentDevice].serial) == 0;
+
+				if (strcmp(opts->device_list[currentDevice].vendor, "Generic") != 0)
+				{
+					retval = retval && strcmp(udisks_drive_get_vendor(drive), opts->device_list[currentDevice].vendor) == 0;
+				}
+
+				if (strcmp(opts->device_list[currentDevice].model, "Generic") != 0)
+				{
+					retval = retval && strcmp(udisks_drive_get_model(drive), opts->device_list[currentDevice].model) == 0;
+				}
+
+				g_object_unref(drive);
+				if (retval) {
+					strcpy(opts->device.name, opts->device_list[currentDevice].name);
+					strcpy(opts->device.vendor, opts->device_list[currentDevice].vendor);
+					strcpy(opts->device.model, opts->device_list[currentDevice].model);
+					strcpy(opts->device.serial, opts->device_list[currentDevice].serial);
+					strcpy(opts->device.volume_uuid, opts->device_list[currentDevice].volume_uuid);
+					currentDevice = 11;
+					break;
+				}
 			}
 		}
 	}
@@ -68,7 +82,7 @@ static int pusb_device_connected(t_pusb_options *opts, UDisksClient *udisks)
 	}
 	else 
 	{
-		log_error("Authentication device \"%s\" is not connected.\n", opts->device.name);
+		log_error("None of the configured authentication devices is connected.\n");
 	}
 
 	g_list_foreach(objects, (GFunc) g_object_unref, NULL);
