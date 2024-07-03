@@ -52,14 +52,14 @@ static int pusb_conf_parse_options(
 	char *xpath = NULL;
 	size_t xpath_size;
 	int i;
-	
+
 	// these can come from argv, so make sure nothing messes up snprintf later
 	char xpath_user[32] = { };
 	char xpath_service[32] = { };
-	snprintf(xpath_user, 32, "%s", user);
-	snprintf(xpath_service, 32, "%s", service);
+	snprintf(xpath_user, sizeof(xpath_user), "%s", user);
+	snprintf(xpath_service, sizeof(xpath_service), "%s", service);
 
-	struct s_opt_list	opt_list[] = {
+	struct s_opt_list opt_list[] = {
 		{ CONF_DEVICE_XPATH, opts->device.name },
 		{ CONF_USER_XPATH, xpath_user },
 		{ CONF_SERVICE_XPATH, xpath_service },
@@ -71,12 +71,16 @@ static int pusb_conf_parse_options(
 	{
 		xpath_size = strlen(opt_list[i].name) + strlen(opt_list[i].value) + 1;
 		xpath = xmalloc(xpath_size);
+		if (xpath == NULL) {
+			log_error("Memory allocation failed\n");
+			return 0;
+		}
 		memset(xpath, 0x00, xpath_size);
 		snprintf(xpath, xpath_size, opt_list[i].name, opt_list[i].value, "");
 		pusb_conf_options_get_from(opts, xpath, doc);
 		xfree(xpath);
 	}
-	return (1);
+	return 1;
 }
 
 static int pusb_conf_device_get_property(
@@ -93,11 +97,15 @@ static int pusb_conf_device_get_property(
 
 	xpath_len = strlen(CONF_DEVICE_XPATH) + strlen(opts->device.name) + strlen(property) + 1;
 	xpath = xmalloc(xpath_len);
+	if (xpath == NULL) {
+		log_error("Memory allocation failed\n");
+		return 0;
+	}
 	memset(xpath, 0x00, xpath_len);
 	snprintf(xpath, xpath_len, CONF_DEVICE_XPATH, opts->device.name, property);
 	retval = pusb_xpath_get_string(doc, xpath, store, size);
 	xfree(xpath);
-	return (retval);
+	return retval;
 }
 
 static int pusb_conf_parse_device(
@@ -108,13 +116,13 @@ static int pusb_conf_parse_device(
 	pusb_conf_device_get_property(opts, doc, "vendor", opts->device.vendor, sizeof(opts->device.vendor));
 	pusb_conf_device_get_property(opts, doc, "model", opts->device.model, sizeof(opts->device.model));
 
-	if (!pusb_conf_device_get_property(opts, doc, "serial", opts->device.serial, sizeof(opts->device.serial))) 
+	if (!pusb_conf_device_get_property(opts, doc, "serial", opts->device.serial, sizeof(opts->device.serial)))
 	{
-		return (0);
+		return 0;
 	}
 
 	pusb_conf_device_get_property(opts, doc, "volume_uuid", opts->device.volume_uuid, sizeof(opts->device.volume_uuid));
-	return (1);
+	return 1;
 }
 
 int pusb_conf_init(t_pusb_options *opts)
@@ -125,10 +133,10 @@ int pusb_conf_init(t_pusb_options *opts)
 	if (uname(&u) == -1)
 	{
 		log_error("uname: %s\n", strerror(errno));
-		return (0);
+		return 0;
 	}
 	snprintf(opts->hostname, sizeof(opts->hostname), "%s", u.nodename);
-	if (strnlen(u.nodename, sizeof(u.nodename)) > sizeof(opts->hostname)) 
+	if (strnlen(u.nodename, sizeof(u.nodename)) > sizeof(opts->hostname))
 	{
 		log_info("Hostname \"%s\" is too long, truncating to \"%s\".\n", u.nodename, opts->hostname);
 	}
@@ -143,7 +151,7 @@ int pusb_conf_init(t_pusb_options *opts)
 	opts->one_time_pad = 1;
 	opts->pad_expiration = 3600;
 	opts->deny_remote = 1;
-	return (1);
+	return 1;
 }
 
 int pusb_conf_parse(
@@ -161,12 +169,12 @@ int pusb_conf_parse(
 	if (strnlen(user, sizeof(user)) > CONF_USER_MAXLEN)
 	{
 		log_error("Username \"%s\" is too long (max: %d).\n", user, CONF_USER_MAXLEN);
-		return (0);
+		return 0;
 	}
 	if (!(doc = xmlReadFile(file, NULL, 0)))
 	{
 		log_error("Unable to parse \"%s\".\n", file);
-		return (0);
+		return 0;
 	}
 	snprintf(device_xpath, sizeof(device_xpath), CONF_USER_XPATH, user, "device");
 	retval = pusb_xpath_get_string(
@@ -180,7 +188,7 @@ int pusb_conf_parse(
 		log_error("No authentication device configured for user \"%s\".\n", user);
 		xmlFreeDoc(doc);
 		xmlCleanupParser();
-		return (0);
+		return 0;
 	}
 	if (!pusb_conf_parse_options(opts, doc, user, service))
 	{
