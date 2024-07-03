@@ -39,8 +39,8 @@ static FILE *pusb_pad_open_device(
 )
 {
 	FILE *f;
-	char path_devpad[1024];
-	char path_userpad[1024];
+	char path_devpad[1024*5];
+	char path_userpad[1024*5];
 	struct stat sb;
 
 	snprintf(path_devpad, sizeof(path_devpad), "%s/%s", mnt_point, opts->device_pad_directory);
@@ -90,7 +90,7 @@ static FILE *pusb_pad_open_system(
 		return NULL;
 	}
 
-	char path[1024];
+	char path[1024*5];
 	snprintf(
 		path,
 		sizeof(path),
