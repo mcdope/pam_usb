@@ -123,6 +123,7 @@ char *pusb_get_tty_from_display_server(const char *display)
 					xfree(fd_path);
 					xfree(link_path);
 					xfree(fd_target);
+					closedir(d_proc);
 
 					return NULL;
 				}
@@ -221,6 +222,11 @@ char *pusb_get_tty_by_loginctl()
 	else 
 	{
 		log_debug("		'loginctl' returned nothing.\n");
+		if (pclose(fp))
+		{
+		    log_debug("		Closing pipe for 'loginctl' failed, this is quite a wtf...\n");
+		}
+
 		return (0);
 	}
 }
