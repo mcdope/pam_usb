@@ -54,6 +54,7 @@ static int pusb_volume_mount(t_pusb_volume *volume)
 	if (!error)
 	{
 		volume->unmount = 1;
+		volume->unmount = 1;
 		retval = 1;
 		log_debug("Mounted device %s to %s.\n", volume->device, volume->mount_point);
 	}
@@ -61,9 +62,16 @@ static int pusb_volume_mount(t_pusb_volume *volume)
 	{
 		g_main_context_iteration(NULL, FALSE);
 		mount_points = udisks_filesystem_get_mount_points(volume->filesystem);
-		volume->mount_point = xstrdup(*mount_points);
-		retval = 1;
-		log_debug("Device %s mounted in between our probe and mount.\n", volume->device);
+		if (mount_points && *mount_points)
+		{
+			volume->mount_point = xstrdup(*mount_points);
+			retval = 1;
+			log_debug("Device %s mounted in between our probe and mount.\n", volume->device);
+		} 
+		else
+		{
+			log_error("Device %s mounted in between our probe and mount, but could not get the list mount points.\n", volume->device);
+		}
 	}
 	else
 	{
@@ -166,7 +174,7 @@ t_pusb_volume *pusb_volume_get(t_pusb_options *opts, UDisksClient *udisks)
 		return (volume);
 	}
 
-	if(!pusb_volume_mount(volume))
+	if (!pusb_volume_mount(volume))
 	{
 		pusb_volume_destroy(volume);
 		return (NULL);
@@ -177,7 +185,7 @@ t_pusb_volume *pusb_volume_get(t_pusb_options *opts, UDisksClient *udisks)
 
 void pusb_volume_destroy(t_pusb_volume *volume)
 {
-	GVariantBuilder	builder;
+	GVariantBuilder builder;
 	GVariant *options;
 	int ret;
 
@@ -207,3 +215,4 @@ void pusb_volume_destroy(t_pusb_volume *volume)
 	xfree(volume->mount_point);
 	xfree(volume);
 }
+
