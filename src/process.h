@@ -25,7 +25,7 @@
 
 #include <unistd.h>
 
-void pusb_get_process_name(const pid_t pid, char * name);
+void pusb_get_process_name(const pid_t pid, char * name, size_t name_len);
 
 void pusb_get_process_parent_id(const pid_t pid, pid_t * ppid);
 

@@ -288,7 +288,7 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 
 	while (pid != 0) 
 	{
-		pusb_get_process_name(pid, name);
+		pusb_get_process_name(pid, name, BUFSIZ);
 		log_debug("	Checking pid %6d (%s)...\n", pid, name);
 
 		if (strstr(name, "tmux") != NULL) 
