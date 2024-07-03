@@ -44,17 +44,17 @@ static int pusb_device_connected(t_pusb_options *opts, UDisksClient *udisks)
 		{
 			drive = udisks_object_get_drive(object);
 			retval = strcmp(udisks_drive_get_serial(drive), opts->device.serial) == 0;
-			
-			if (strcmp(opts->device.vendor, "Generic") != 0) 
+
+			if (strcmp(opts->device.vendor, "Generic") != 0)
 			{
 				retval = retval && strcmp(udisks_drive_get_vendor(drive), opts->device.vendor) == 0;
 			}
 
-			if (strcmp(opts->device.model, "Generic") != 0) 
+			if (strcmp(opts->device.model, "Generic") != 0)
 			{
 				retval = retval && strcmp(udisks_drive_get_model(drive), opts->device.model) == 0;
 			}
-			
+
 			g_object_unref(drive);
 			if (retval) {
 				break;
@@ -62,16 +62,19 @@ static int pusb_device_connected(t_pusb_options *opts, UDisksClient *udisks)
 		}
 	}
 
-	if (retval) 
+	if (retval)
 	{
 		log_info("Authentication device \"%s\" is connected.\n", opts->device.name);
 	}
-	else 
+	else
 	{
 		log_error("Authentication device \"%s\" is not connected.\n", opts->device.name);
 	}
 
-	g_list_foreach(objects, (GFunc) g_object_unref, NULL);
+	for (i = 0; i < g_list_length(objects); ++i)
+	{
+		g_object_unref(g_list_nth(objects, i)->data);
+	}
 	g_list_free(objects);
 
 	return (retval);
