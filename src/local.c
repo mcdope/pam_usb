@@ -286,6 +286,12 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 	pid_t tmux_pid = 0;
 	int local_request = 0;
 
+	char *xrdpSession = getenv("XRDP_SESSION");
+	if (xrdpSession != NULL) {
+		log_error("XRDP session detected, denying.\n", xrdpSession);
+		return (0);
+	}
+
 	while (pid != 0) 
 	{
 		pusb_get_process_name(pid, name, BUFSIZ);
