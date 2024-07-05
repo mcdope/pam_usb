@@ -71,7 +71,7 @@ char *pusb_tmux_get_client_tty(pid_t env_pid)
         char *result = xmalloc(strlen(tmux_client_tty) + 1);
         if (result == NULL) {
             log_error("Memory allocation failed\n");
-            return NULL;
+            return 0;
         }
         strcpy(result, tmux_client_tty);
         return result;

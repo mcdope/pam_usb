@@ -87,7 +87,7 @@ static FILE *pusb_pad_open_system(
 	if (!(user_ent = getpwnam(user)) || !(user_ent->pw_dir))
 	{
 		log_error("Unable to retrieve information for user \"%s\": %s\n", user, strerror(errno));
-		return NULL;
+		return 0;
 	}
 
 	char path[1024*5];

@@ -54,7 +54,6 @@ static int pusb_volume_mount(t_pusb_volume *volume)
 	if (!error)
 	{
 		volume->unmount = 1;
-		volume->unmount = 1;
 		retval = 1;
 		log_debug("Mounted device %s to %s.\n", volume->device, volume->mount_point);
 	}
