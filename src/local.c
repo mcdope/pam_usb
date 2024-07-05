@@ -282,7 +282,7 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 
 	char *xrdpSession = getenv("XRDP_SESSION");
 	if (xrdpSession != NULL) {
-		log_error("XRDP session detected, denying. (value: %s)\n", xrdpSession);
+		log_error("XRDP session detected, denying.\n", xrdpSession);
 		return (0);
 	}
 
