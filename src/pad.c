@@ -238,14 +238,14 @@ static int pusb_pad_update(
 	log_info("Regenerating new pads...\n");
 	if (!(f_device = pusb_pad_open_device(opts, volume, user, "w+")))
 	{
-		log_error("Unable to update pads.\n");
+		log_error("Unable to update device pads.\n");
 		return 0;
 	}
 	pusb_pad_protect(user, fileno(f_device));
 
 	if (!(f_system = pusb_pad_open_system(opts, user, "w+")))
 	{
-		log_error("Unable to update pads.\n");
+		log_error("Unable to update system pads.\n");
 		fclose(f_device);
 		return 0;
 	}
