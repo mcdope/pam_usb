@@ -218,7 +218,7 @@ static int pusb_pad_should_update(t_pusb_options *opts, const char *user)
 	return (1);
 }
 
-static void pusb_pad_update(
+static int pusb_pad_update(
 	t_pusb_options *opts,
 	const char *volume,
 	const char *user
@@ -232,22 +232,22 @@ static void pusb_pad_update(
 
 	if (!pusb_pad_should_update(opts, user))
 	{
-		return;
+		return 1;
 	}
 
 	log_info("Regenerating new pads...\n");
 	if (!(f_device = pusb_pad_open_device(opts, volume, user, "w+")))
 	{
-		log_error("Unable to update pads.\n");
-		return;
+		log_error("Unable to update device pads.\n");
+		return 0;
 	}
 	pusb_pad_protect(user, fileno(f_device));
 
 	if (!(f_system = pusb_pad_open_system(opts, user, "w+")))
 	{
-		log_error("Unable to update pads.\n");
+		log_error("Unable to update system pads.\n");
 		fclose(f_device);
-		return;
+		return 0;
 	}
 	pusb_pad_protect(user, fileno(f_system));
 
@@ -279,6 +279,8 @@ static void pusb_pad_update(
 	fclose(f_system);
 	fclose(f_device);
 	log_debug("One time pads updated.\n");
+
+	return 1;
 }
 
 void generateRandom(char* output, int sizeBytes)
@@ -373,7 +375,10 @@ int pusb_pad_check(
 	retval = pusb_pad_compare(opts, volume->mount_point, user);
 	if (retval)
 	{
-		pusb_pad_update(opts, volume->mount_point, user);
+		if (pusb_pad_update(opts, volume->mount_point, user) != 1) {
+			log_error("Pad check succeeded, but updating failed!\n");
+			retval = 0;
+		}
 	}
 	else
 	{
