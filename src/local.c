@@ -240,7 +240,7 @@ int pusb_is_loginctl_local()
 	if ((fp = popen(loginctl_cmd, "r")) == NULL)
 	{
 		log_debug("		Opening pipe for 'loginctl' failed, this is quite a wtf...\n");
-		return (0);
+		return 0;
 	}
 
 	char *is_remote = NULL;
@@ -256,17 +256,17 @@ int pusb_is_loginctl_local()
 
 		if (strcmp(is_remote, "no") == 0) 
 		{
-			return (1);
+			return 1;
 		}
 		else
 		{
-			return (0);
+			return -1;
 		}
 	}
 	else
 	{
 		log_debug("		'loginctl' returned nothing.\n");
-		return (0);
+		return 0;
 	}
 }
 
@@ -392,10 +392,15 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 			log_debug("	Trying to check for remote access by loginctl\n");
 
 			int loginctl_remote = pusb_is_loginctl_local();
-			if (loginctl_remote != 0)
+			if (loginctl_remote == 1)
 			{
 				log_debug("	loginctl says this session is local\n");
 				local_request = 1;
+			}
+			else if (loginctl_remote == -1)
+			{
+				log_debug("	loginctl says this session is remote\n");
+				return 0;
 			}
 			else
 			{
