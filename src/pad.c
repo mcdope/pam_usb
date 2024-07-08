@@ -46,7 +46,7 @@ static FILE *pusb_pad_open_device(
 	snprintf(path_devpad, sizeof(path_devpad), "%s/%s", mnt_point, opts->device_pad_directory);
 	if (stat(path_devpad, &sb) != 0)
 	{
-		log_debug("Directory %s does not exist, creating one.\n", path_devpad);
+		log_debug("Directory %s does not exist, creating it.\n", path_devpad);
 		if (mkdir(path_devpad, S_IRUSR | S_IWUSR | S_IXUSR) != 0)
 		{
 			log_debug("Unable to create directory %s: %s\n", path_devpad, strerror(errno));
