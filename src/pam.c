@@ -18,6 +18,7 @@
 #define PAM_SM_AUTH
 #include <security/pam_modules.h>
 #include <security/_pam_macros.h>
+#include <string.h>
 
 #include "version.h"
 #include "conf.h"
@@ -34,25 +35,26 @@ int pam_sm_authenticate(
 )
 {
 	t_pusb_options opts;
-	const char *service;
-	const char *user;
-	const char *rhost;
+	const char *service = NULL;
+	const char *user = NULL;
+	const char *rhost = NULL;
 	char *conf_file = PUSB_CONF_FILE;
 	int retval;
 
+	memset(&opts, 0, sizeof(t_pusb_options)); // Initialize opts
 	pusb_log_init(&opts);
 
-	retval = pam_get_item(pamh, PAM_SERVICE, (const void **)(const void *)&service);
+	retval = pam_get_item(pamh, PAM_SERVICE, (const void **)&service);
 	if (retval != PAM_SUCCESS)
 	{
 		log_error("Unable to retrieve the PAM service name.\n");
-		return (PAM_AUTH_ERR);
+		return PAM_AUTH_ERR;
 	}
 
 	if (pam_get_user(pamh, &user, NULL) != PAM_SUCCESS || !user || !*user)
 	{
 		log_error("Unable to retrieve the PAM user name.\n");
-		return (PAM_AUTH_ERR);
+		return PAM_AUTH_ERR;
 	}
 
 	if (argc > 1 && !strcmp(argv[0], "-c"))
@@ -62,32 +64,32 @@ int pam_sm_authenticate(
 
 	if (!pusb_conf_init(&opts))
 	{
-		return (PAM_AUTH_ERR);
+		return PAM_AUTH_ERR;
 	}
 
 	if (!pusb_conf_parse(conf_file, &opts, user, service))
 	{
-		return (PAM_AUTH_ERR);
+		return PAM_AUTH_ERR;
 	}
 
 	if (!opts.enable)
 	{
 		log_debug("Not enabled, exiting...\n");
-		return (PAM_IGNORE);
+		return PAM_IGNORE;
 	}
 
-	if (opts.deny_remote) 
+	if (opts.deny_remote)
 	{
-		retval = pam_get_item(pamh, PAM_RHOST, (const void **)(const void *)&rhost);
+		retval = pam_get_item(pamh, PAM_RHOST, (const void **)&rhost);
 		if (retval != PAM_SUCCESS)
 		{
 			log_error("Unable to retrieve PAM_RHOST.\n");
-			return (PAM_AUTH_ERR);
-		} 
-		else if (rhost != NULL && strcmp(rhost, "") != 0) 
+			return PAM_AUTH_ERR;
+		}
+		else if (rhost != NULL && *rhost != '\0')
 		{
 			log_debug("RHOST is set (%s), must be a remote request - disabling myself for this request!\n", rhost);
-			return (PAM_IGNORE);
+			return PAM_IGNORE;
 		}
 	}
 
@@ -96,15 +98,15 @@ int pam_sm_authenticate(
 	if (pusb_local_login(&opts, user, service) != 1)
 	{
 		log_error("Access denied.\n");
-		return (PAM_AUTH_ERR);
+		return PAM_AUTH_ERR;
 	}
 	if (pusb_device_check(&opts, user))
 	{
 		log_info("Access granted.\n");
-		return (PAM_SUCCESS);
+		return PAM_SUCCESS;
 	}
 	log_error("Access denied.\n");
-	return (PAM_AUTH_ERR);
+	return PAM_AUTH_ERR;
 }
 
 PAM_EXTERN
@@ -115,7 +117,7 @@ int pam_sm_setcred(
 	const char **argv
 )
 {
-	return (PAM_SUCCESS);
+	return PAM_SUCCESS;
 }
 
 PAM_EXTERN
@@ -127,25 +129,26 @@ int pam_sm_acct_mgmt(
 )
 {
 	t_pusb_options opts;
-	const char *service;
-	const char *user;
-	const char *rhost;
+	const char *service = NULL;
+	const char *user = NULL;
+	const char *rhost = NULL;
 	char *conf_file = PUSB_CONF_FILE;
 	int retval;
 
+	memset(&opts, 0, sizeof(t_pusb_options)); // Initialize opts
 	pusb_log_init(&opts);
 
-	retval = pam_get_item(pamh, PAM_SERVICE, (const void **)(const void *)&service);
+	retval = pam_get_item(pamh, PAM_SERVICE, (const void **)&service);
 	if (retval != PAM_SUCCESS)
 	{
 		log_error("Unable to retrieve the PAM service name.\n");
-		return (PAM_AUTH_ERR);
+		return PAM_AUTH_ERR;
 	}
 
 	if (pam_get_user(pamh, &user, NULL) != PAM_SUCCESS || !user || !*user)
 	{
 		log_error("Unable to retrieve the PAM user name.\n");
-		return (PAM_AUTH_ERR);
+		return PAM_AUTH_ERR;
 	}
 
 	if (argc > 1 && !strcmp(argv[0], "-c"))
@@ -155,32 +158,32 @@ int pam_sm_acct_mgmt(
 
 	if (!pusb_conf_init(&opts))
 	{
-		return (PAM_AUTH_ERR);
+		return PAM_AUTH_ERR;
 	}
 
 	if (!pusb_conf_parse(conf_file, &opts, user, service))
 	{
-		return (PAM_AUTH_ERR);
+		return PAM_AUTH_ERR;
 	}
 
 	if (!opts.enable)
 	{
 		log_debug("Not enabled, exiting...\n");
-		return (PAM_IGNORE);
+		return PAM_IGNORE;
 	}
 
-	if (opts.deny_remote) 
+	if (opts.deny_remote)
 	{
-		retval = pam_get_item(pamh, PAM_RHOST, (const void **)(const void *)&rhost);
+		retval = pam_get_item(pamh, PAM_RHOST, (const void **)&rhost);
 		if (retval != PAM_SUCCESS)
 		{
 			log_error("Unable to retrieve PAM_RHOST.\n");
-			return (PAM_AUTH_ERR);
-		} 
-		else if (rhost != NULL) 
+			return PAM_AUTH_ERR;
+		}
+		else if (rhost != NULL && *rhost != '\0')
 		{
 			log_debug("RHOST is set (%s), must be a remote request - disabling myself for this request!\n", rhost);
-			return (PAM_IGNORE);
+			return PAM_IGNORE;
 		}
 	}
 
@@ -190,15 +193,15 @@ int pam_sm_acct_mgmt(
 	if (pusb_local_login(&opts, user, service) != 1)
 	{
 		log_error("Access denied.\n");
-		return (PAM_AUTH_ERR);
+		return PAM_AUTH_ERR;
 	}
 	if (pusb_device_check(&opts, user))
 	{
 		log_info("Access granted.\n");
-		return (PAM_SUCCESS);
+		return PAM_SUCCESS;
 	}
 	log_error("Access denied.\n");
-	return (PAM_AUTH_ERR);
+	return PAM_AUTH_ERR;
 }
 
 

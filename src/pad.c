@@ -39,27 +39,18 @@ static FILE *pusb_pad_open_device(
 )
 {
 	FILE *f;
-	char path_devpad[(sizeof(mnt_point) + sizeof(opts->device_pad_directory) + 2)];
-	char path_userpad[(
-		sizeof(mnt_point) +
-		sizeof(opts->device_pad_directory) +
-		sizeof(opts->hostname) +
-		sizeof(user) +
-		7
-	)];
-	struct stat	sb;
-
-	memset(path_devpad, 0x00, sizeof(path_devpad));
-	memset(path_userpad, 0x00, sizeof(path_userpad));
+	char path_devpad[1024*5];
+	char path_userpad[1024*5];
+	struct stat sb;
 
 	snprintf(path_devpad, sizeof(path_devpad), "%s/%s", mnt_point, opts->device_pad_directory);
 	if (stat(path_devpad, &sb) != 0)
 	{
-		log_debug("Directory %s does not exist, creating one.\n", path_devpad);
+		log_debug("Directory %s does not exist, creating it.\n", path_devpad);
 		if (mkdir(path_devpad, S_IRUSR | S_IWUSR | S_IXUSR) != 0)
 		{
 			log_debug("Unable to create directory %s: %s\n", path_devpad, strerror(errno));
-			return (NULL);
+			return NULL;
 		}
 	}
 
@@ -76,7 +67,7 @@ static FILE *pusb_pad_open_device(
 	if (!f)
 	{
 		log_debug("Cannot open device file: %s\n", strerror(errno));
-		return (NULL);
+		return NULL;
 	}
 	return (f);
 }
@@ -96,11 +87,10 @@ static FILE *pusb_pad_open_system(
 	if (!(user_ent = getpwnam(user)) || !(user_ent->pw_dir))
 	{
 		log_error("Unable to retrieve information for user \"%s\": %s\n", user, strerror(errno));
-		return (0);
+		return 0;
 	}
 
-	char path[(sizeof(user_ent->pw_dir) + sizeof(opts->system_pad_directory) + sizeof(device_name) + 1)];
-	memset(path, 0x00, sizeof(path));
+	char path[1024*5];
 	snprintf(
 		path,
 		sizeof(path),
@@ -114,10 +104,10 @@ static FILE *pusb_pad_open_system(
 		if (mkdir(path, S_IRUSR | S_IWUSR | S_IXUSR) != 0)
 		{
 			log_debug("Unable to create directory %s: %s\n", path, strerror(errno));
-			return (NULL);
+			return NULL;
 		}
 
-		if(chown(path, user_ent->pw_uid, user_ent->pw_gid) != 0) 
+		if (chown(path, user_ent->pw_uid, user_ent->pw_gid) != 0)
 		{
 			log_error("Unable to chown directory %s: %s\n", path, strerror(errno));
 		}
@@ -125,10 +115,10 @@ static FILE *pusb_pad_open_system(
 		chmod(path, S_IRUSR | S_IWUSR | S_IXUSR);
 	}
 	/* change slashes in device name to underscores */
-	snprintf(device_name, sizeof(opts->device.name), "%s", opts->device.name);
-	while(*device_name_ptr) 
+	snprintf(device_name, sizeof(device_name), "%s", opts->device.name);
+	while (*device_name_ptr)
 	{
-		if('/' == *device_name_ptr) 
+		if ('/' == *device_name_ptr)
 		{
 			*device_name_ptr = '_';
 		}
@@ -136,7 +126,6 @@ static FILE *pusb_pad_open_system(
 		device_name_ptr++;
 	}
 
-	memset(path, 0x00, sizeof(path));
 	snprintf(
 		path,
 		sizeof(path),
@@ -149,9 +138,9 @@ static FILE *pusb_pad_open_system(
 	if (!f)
 	{
 		log_debug("Cannot open system file: %s\n", strerror(errno));
-		return (NULL);
+		return NULL;
 	}
-	return (f);
+	return f;
 }
 
 static int pusb_pad_protect(const char *user, int fd)
@@ -162,19 +151,19 @@ static int pusb_pad_protect(const char *user, int fd)
 	if (!(user_ent = getpwnam(user)))
 	{
 		log_error("Unable to retrieve information for user \"%s\": %s\n", user, strerror(errno));
-		return (0);
+		return 0;
 	}
 	if (fchown(fd, user_ent->pw_uid, user_ent->pw_gid) == -1)
 	{
 		log_debug("Unable to change owner of the pad: %s\n", strerror(errno));
-		return (0);
+		return 0;
 	}
 	if (fchmod(fd, S_IRUSR | S_IWUSR) == -1)
 	{
 		log_debug("Unable to change mode of the pad: %s\n", strerror(errno));
-		return (0);
+		return 0;
 	}
-	return (1);
+	return 1;
 }
 
 static int pusb_pad_should_update(t_pusb_options *opts, const char *user)
@@ -188,19 +177,19 @@ static int pusb_pad_should_update(t_pusb_options *opts, const char *user)
 	if (!(f_system = pusb_pad_open_system(opts, user, "r")))
 	{
 		log_debug("Unable to open system pad, pads must be generated.\n");
-		return (1);
+		return 1;
 	}
 	if (fstat(fileno(f_system), &st) == -1)
 	{
 		fclose(f_system);
-		return (1);
+		return 1;
 	}
 	fclose(f_system);
 
 	if (time(&now) == ((time_t)-1))
 	{
 		log_error("Unable to fetch current time.\n");
-		return (1);
+		return 1;
 	}
 
 	delta = now - st.st_mtime;
@@ -208,14 +197,14 @@ static int pusb_pad_should_update(t_pusb_options *opts, const char *user)
 	if (delta > opts->pad_expiration)
 	{
 		log_debug("Pads expired %u seconds ago, updating...\n", delta - opts->pad_expiration);
-		return (1);
+		return 1;
 	}
 	else
 	{
 		log_debug("Pads were generated %u seconds ago, not updating.\n", delta);
-		return (0);
+		return 0;
 	}
-	return (1);
+	return 1;
 }
 
 static int pusb_pad_update(
@@ -257,7 +246,7 @@ static int pusb_pad_update(
 	 * See https://crypto.stackexchange.com/a/35032
 	 */
 	devrandom = open("/dev/random", O_RDONLY);
-	if (devrandom < 0 || read(devrandom, &seed, sizeof seed) != sizeof seed) 
+	if (devrandom < 0 || read(devrandom, &seed, sizeof seed) != sizeof seed)
 	{
 		log_debug("/dev/random seeding failed...\n");
 		seed = getpid() * time(NULL); /* low-entropy fallback */
@@ -317,32 +306,32 @@ static int pusb_pad_compare(
 
 	if (!(f_system = pusb_pad_open_system(opts, user, "r")))
 	{
-		return (1);
+		return 1;
 	}
 
 	if (!(f_device = pusb_pad_open_device(opts, volume, user, "r")))
 	{
 		fclose(f_system);
-		return (0);
+		return 0;
 	}
 	log_debug("Loading device pad...\n");
 	bytes_read = fread(magic_device, sizeof(char), sizeof(magic_device), f_device);
-	if (!bytes_read) 
+	if (!bytes_read)
 	{
 		log_error("Can't read device pad!\n");
 		fclose(f_system);
 		fclose(f_device);
-		return (0);
+		return 0;
 	}
 
 	log_debug("Loading system pad...\n");
 	bytes_read = fread(magic_system, sizeof(char), sizeof(magic_system), f_system);
-	if (!bytes_read) 
+	if (!bytes_read)
 	{
 		log_error("Can't read system pad!\n");
 		fclose(f_system);
 		fclose(f_device);
-		return (0);
+		return 0;
 	}
 
 	retval = memcmp(magic_system, magic_device, sizeof(magic_system));
@@ -369,7 +358,7 @@ int pusb_pad_check(
 	volume = pusb_volume_get(opts, udisks);
 	if (!volume)
 	{
-		return (0);
+		return 0;
 	}
 
 	retval = pusb_pad_compare(opts, volume->mount_point, user);
@@ -386,5 +375,5 @@ int pusb_pad_check(
 	}
 
 	pusb_volume_destroy(volume);
-	return (retval);
+	return retval;
 }

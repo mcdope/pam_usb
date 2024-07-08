@@ -26,12 +26,12 @@
 char *pusb_tmux_get_client_tty(pid_t env_pid)
 {
     char *tmux_details = getenv("TMUX");
-    if (tmux_details == NULL) 
+    if (tmux_details == NULL)
     {
         log_debug("		No TMUX env var, checking parent process in case this is a sudo request\n");
         tmux_details = pusb_get_process_envvar(env_pid, "TMUX");
 
-        if (tmux_details == NULL) 
+        if (tmux_details == NULL)
         {
             return NULL;
         }
@@ -50,29 +50,36 @@ char *pusb_tmux_get_client_tty(pid_t env_pid)
 
     char buf[BUFSIZ];
     FILE *fp;
-    if ((fp = popen(get_tmux_session_details_cmd, "r")) == NULL) 
+    if ((fp = popen(get_tmux_session_details_cmd, "r")) == NULL)
     {
         log_error("tmux detected, but couldn't get session details. Denying since remote check impossible without it!\n");
         return (0);
     }
 
     char *tmux_client_tty = NULL;
-    if (fgets(buf, BUFSIZ, fp) != NULL) 
+    if (fgets(buf, BUFSIZ, fp) != NULL)
     {
         tmux_client_tty = strtok(buf, ":");
         tmux_client_tty += 5; // cut "/dev/"
         log_debug("		Got tmux_client_tty: %s\n", tmux_client_tty);
 
-        if (pclose(fp)) 
+        if (pclose(fp))
         {
             log_debug("		Closing pipe for 'tmux list-clients' failed, this is quite a wtf...\n");
         }
 
-        return tmux_client_tty;
-    } 
-    else 
+        char *result = xmalloc(strlen(tmux_client_tty) + 1);
+        if (result == NULL) {
+            log_error("Memory allocation failed\n");
+            return 0;
+        }
+        strcpy(result, tmux_client_tty);
+        return result;
+    }
+    else
     {
         log_error("tmux detected, but couldn't get client details. Denying since remote check impossible without it!\n");
+        pclose(fp);
         return (0);
     }
 }
@@ -95,52 +102,55 @@ int pusb_tmux_has_remote_clients(const char* username)
         "(.+)([0-9A-Fa-f]{1,4}):([0-9A-Fa-f]{1,4}):([0-9A-Fa-f]{1,4}):([0-9A-Fa-f]{1,4})(.+)tmux(.+)" // v6
     }; // ... yes, these allow invalid addresses. No, I don't care. This isn't about validation but detecting remote access. Good enough ¯\_(ツ)_/¯
 
-    for (int i = 0; i <= 1; i++) 
+    for (int i = 0; i <= 1; i++)
     {
         log_debug("		Checking for IPv%d connections...\n", (4 + (i * 2)));
 
         if ((fp = popen("LC_ALL=c; w", "r")) == NULL)
         {
             log_error("tmux detected, but couldn't get `w`. Denying since remote check for tmux impossible without it!\n");
-            return (-1);
+            return -1;
         }
 
-        while (fgets(buf, BUFSIZ, fp) != NULL) 
+        while (fgets(buf, BUFSIZ, fp) != NULL)
         {
-            sprintf(regex_raw, "%s%s", username, regex_tpl[i]);
+            snprintf(regex_raw, BUFSIZ, "%s%s", username, regex_tpl[i]);
 
             status = regcomp(&regex, regex_raw, REG_EXTENDED);
-            if (status) 
+            if (status)
             {
                 log_debug("		Couldn't compile regex!\n");
                 regfree(&regex);
-                return (-1);
+                pclose(fp);
+                return -1;
             }
 
             status = regexec(&regex, buf, 0, NULL, 0);
-            if (!status) 
+            if (!status)
             {
                 log_error("tmux detected and at least one remote client is connected to the session, denying!\n");
                 regfree(&regex);
+                pclose(fp);
                 return 1;
             }
-            else if (status != REG_NOMATCH) 
+            else if (status != REG_NOMATCH)
             {
                 regerror(status, &regex, msgbuf, sizeof(msgbuf));
                 log_debug("		Regex match failed: %s\n", msgbuf);
                 regfree(&regex);
+                pclose(fp);
                 return -1;
             }
 
             regfree(&regex);
         }
 
-        if (pclose(fp)) 
+        if (pclose(fp))
         {
             log_debug("		Closing pipe for 'w' failed, this is quite a wtf...\n");
         }
     }
 
-    // If we would have detected a remote access we would have returned by now. Safe to return 0 now
+    // If we had detected a remote access we would have returned by now. Safe to return 0 now
     return 0;
 }
