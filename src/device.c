@@ -76,16 +76,19 @@ static int pusb_device_connected(t_pusb_options *opts, UDisksClient *udisks)
 		}
 	}
 
-	if (retval) 
+	if (retval)
 	{
 		log_info("Authentication device \"%s\" is connected.\n", opts->device.name);
 	}
-	else 
+	else
 	{
 		log_error("None of the configured authentication devices is connected.\n");
 	}
 
-	g_list_foreach(objects, (GFunc) g_object_unref, NULL);
+	for (i = 0; i < g_list_length(objects); ++i)
+	{
+		g_object_unref(g_list_nth(objects, i)->data);
+	}
 	g_list_free(objects);
 
 	return (retval);
