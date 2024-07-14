@@ -119,12 +119,12 @@ static int pusb_conf_parse_device(
 	pusb_conf_device_get_property(opts, doc, "vendor", opts->device_list[deviceIndex].vendor, sizeof(opts->device_list[deviceIndex].vendor), deviceId);
 	pusb_conf_device_get_property(opts, doc, "model", opts->device_list[deviceIndex].model, sizeof(opts->device_list[deviceIndex].model), deviceId);
 
-	if (!pusb_conf_device_get_property(opts, doc, "serial", opts->device.serial, sizeof(opts->device.serial), deviceId))
+	if (!pusb_conf_device_get_property(opts, doc, "serial", opts->device_list[deviceIndex].serial, sizeof(opts->device_list[deviceIndex].serial), deviceId))
 	{
 		return 0;
 	}
 
-	pusb_conf_device_get_property(opts, doc, "volume_uuid", opts->device.volume_uuid, sizeof(opts->device.volume_uuid), deviceId);
+	pusb_conf_device_get_property(opts, doc, "volume_uuid", opts->device_list[deviceIndex].volume_uuid, sizeof(opts->device_list[deviceIndex].volume_uuid), deviceId);
 	return 1;
 }
 
@@ -221,6 +221,9 @@ int pusb_conf_parse(
 		log_error("DBG: found device\n");
 		log_error("DBG:     name: %s\n", opts->device_list[currentDevice].name);
 		log_error("DBG:     vendor: %s\n", opts->device_list[currentDevice].vendor);
+		log_error("DBG:     model: %s\n", opts->device_list[currentDevice].model);
+		log_error("DBG:     serial: %s\n", opts->device_list[currentDevice].serial);
+		log_error("DBG:     volume_uuid: %s\n", opts->device_list[currentDevice].volume_uuid);
 	}
 
 	if (!pusb_conf_parse_options(opts, doc, user, service))
