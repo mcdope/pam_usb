@@ -210,21 +210,30 @@ def userDeviceThread(user):
 			}
 		)
 
-	device_names = {}
-	to_watch = {}
+	devices_for_user = []
+	to_watch = []
 
 	all_devices = doc.findall("devices/device")
-	user_devices = user.findall("device")
-	for device in user_devices:
-		device_names += device.get('id')
+	logger.info('Found %d devices available for configuration.' % len(all_devices))
 
+	user_devices = user.findall("device")
+	logger.info('Found %d devices configured for user.' % len(user_devices))
+	for device in user_devices:
+		devices_for_user.append(device.text)
+	logger.info('devices_for_users: %s' % devices_for_user)
+
+	logger.info('Got all device data and configured devices for user, now creating watch list...')
 	deviceOK = False
 	for device in all_devices:
-		if device.get('id') in device_names:
-			to_watch += {"name": device.get('id'), "serial": device.get('serial')}
+		logger.info('Iterating all devices to find data for user devices...')
+		if device.get('id') in devices_for_user:
+			logger.info('Found a valid device for user "%s", adding to watchlist.' % userName)
+			to_watch.append({"name": device.get('id'), "serial": device.findtext('serial')})
 			deviceOK = True
+		else:
+			logger.info('Device "%s" is not valid for user' % device.get('id'))
 
-	if not deviceOK:
+	if not deviceOK or len(to_watch) == 0:
 		logger.error('Device(s) not found in configuration file.')
 		return 1
 
@@ -298,18 +307,24 @@ def userDeviceThread(user):
 
 				resumeTimestamp = datetime.datetime.now()
 
+	logger.info('Binding to signals...')
 	login1Interface = login1ManagerDBusIface()
 	for signal in ['PrepareForSleep', 'PrepareForShutdown']:
 		login1Interface.connect_to_signal(signal, onSuspendOrResume, member_keyword='member')
 
-	hpDevs = {}
+	logger.info('Setting up HotPlugDevices for configured %d user devices...' % (len(to_watch)))
+	hpDevs = []
 	for watch_this in to_watch:
+		logger.info('Creating hpDev for device "%s" with serial "%s"...' % (watch_this.get('name'), watch_this.get('serial')))
+
 		hpDev = HotPlugDevice(watch_this.get('serial'), watch_this.get('name'))
 		hpDev.addCallback(authChangeCallback)
-		hpDevs += hpDev
 
 		logger.info('Watching device "%s" for user "%s"' % (watch_this.get('name'), userName))
-		hpDev.run()
+		hpDev.run() # @todo: asap as run() is called the loop doesnt continue anymore
+		hpDevs.append(hpDev)
+
+	logger.info('All HotPlugDevices created.')
 
 udisks = UDisks.Client.new_sync()
 udisksObjectManager = udisks.get_object_manager()
