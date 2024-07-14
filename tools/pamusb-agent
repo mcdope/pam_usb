@@ -314,6 +314,7 @@ def userDeviceThread(user):
 
 	logger.info('Setting up HotPlugDevices for configured %d user devices...' % (len(to_watch)))
 	hpDevs = []
+	threads = []
 	for watch_this in to_watch:
 		logger.info('Creating hpDev for device "%s" with serial "%s"...' % (watch_this.get('name'), watch_this.get('serial')))
 
@@ -321,7 +322,11 @@ def userDeviceThread(user):
 		hpDev.addCallback(authChangeCallback)
 
 		logger.info('Watching device "%s" for user "%s"' % (watch_this.get('name'), userName))
-		hpDev.run() # @todo: asap as run() is called the loop doesnt continue anymore
+
+		thread = threading.Thread(target=hpDev.run)
+		thread.start()
+
+		threads.append(thread)
 		hpDevs.append(hpDev)
 
 	logger.info('All HotPlugDevices created.')
