@@ -121,6 +121,7 @@ jobs:
           ./.build/*.rpm
           ./.build/*.zst
     - name: Cleanup
+      if: always()
       env:
         TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
         TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
