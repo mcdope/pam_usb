@@ -63,6 +63,9 @@ class HotPlugDevice:
 
 		return False
 
+	def getWatchedDeviceName(self):
+		return self.__name
+
 	def __scanDevices(self):
 		for udi in udisksObjectManager.get_objects():
 			if udi.get_block():
@@ -240,6 +243,13 @@ def userDeviceThread(user):
 	resumeTimestamp = datetime.datetime.min
 
 	def authChangeCallback(event, deviceName):
+		nonlocal hpDevs
+
+		for otherDeviceThread in hpDevs:
+			if not otherDeviceThread.getWatchedDeviceName() == deviceName and otherDeviceThread.isDeviceConnected():
+				logger.info('Device "%s" removed or plugged but another one is connected anyway, ignoring' % deviceName)
+				return
+
 		if event == 'removed':
 			nonlocal resumeTimestamp
 			currentTimestamp = datetime.datetime.now()
