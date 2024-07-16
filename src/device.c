@@ -31,7 +31,7 @@ static int pusb_device_connected(t_pusb_options *opts, UDisksClient *udisks)
 	GDBusObjectManager *manager = udisks_client_get_object_manager(udisks);
 	GList *objects = g_dbus_object_manager_get_objects(manager);
 	int retval = 0;
-	int	i;
+	int i;
 	UDisksObject *object = NULL;
 	UDisksDrive *drive = NULL;
 
@@ -44,7 +44,7 @@ static int pusb_device_connected(t_pusb_options *opts, UDisksClient *udisks)
 
 		log_error("Searching for \"%s\" in the hardware database...\n", opts->device_list[currentDevice].name);
 
-        log_debug("Found %d drives to check/iterate...\n", g_list_length(objects));
+		log_debug("Found %d drives to check/iterate...\n", g_list_length(objects));
 		for (i = 0; i < g_list_length(objects); ++i)
 		{
 			object = UDISKS_OBJECT(g_list_nth(objects, i)->data);
@@ -52,7 +52,7 @@ static int pusb_device_connected(t_pusb_options *opts, UDisksClient *udisks)
 			{
 				drive = udisks_object_get_drive(object);
 				retval = strcmp(udisks_drive_get_serial(drive), opts->device_list[currentDevice].serial) == 0;
-                log_debug("Looking for serial '%s', found '%s'...\n", opts->device_list[currentDevice].serial, udisks_drive_get_serial(drive));
+				log_debug("Looking for serial '%s', found '%s'...\n", opts->device_list[currentDevice].serial, udisks_drive_get_serial(drive));
 
 				if (strcmp(opts->device_list[currentDevice].vendor, "Generic") != 0)
 				{
@@ -66,12 +66,12 @@ static int pusb_device_connected(t_pusb_options *opts, UDisksClient *udisks)
 
 				g_object_unref(drive);
 				if (retval) {
-					strcpy(opts->device.name, opts->device_list[currentDevice].name);
-					strcpy(opts->device.vendor, opts->device_list[currentDevice].vendor);
-					strcpy(opts->device.model, opts->device_list[currentDevice].model);
-					strcpy(opts->device.serial, opts->device_list[currentDevice].serial);
-					strcpy(opts->device.volume_uuid, opts->device_list[currentDevice].volume_uuid);
-					currentDevice = 11;
+					strncpy(opts->device.name, opts->device_list[currentDevice].name, sizeof(opts->device.name) - 1);
+					strncpy(opts->device.vendor, opts->device_list[currentDevice].vendor, sizeof(opts->device.vendor) - 1);
+					strncpy(opts->device.model, opts->device_list[currentDevice].model, sizeof(opts->device.model) - 1);
+					strncpy(opts->device.serial, opts->device_list[currentDevice].serial, sizeof(opts->device.serial) - 1);
+					strncpy(opts->device.volume_uuid, opts->device_list[currentDevice].volume_uuid, sizeof(opts->device.volume_uuid) - 1);
+					currentDevice = 10;
 					break;
 				}
 			}
@@ -106,7 +106,7 @@ int pusb_device_check(t_pusb_options *opts, const char *user)
 	if (udisks_client_error != NULL)
 	{
 		log_error("Unable to check for device, could not get UDisksClient! Error was: %s\n", udisks_client_error->message);
-		g_error_free (udisks_client_error);
+		g_error_free(udisks_client_error);
 		return (0);
 	}
 
