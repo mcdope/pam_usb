@@ -326,8 +326,6 @@ def userDeviceThread(user):
 		threads.append(thread)
 		hpDevs.append(hpDev)
 
-	logger.info('All HotPlugDevices created.')
-
 udisks = UDisks.Client.new_sync()
 udisksObjectManager = udisks.get_object_manager()
 
