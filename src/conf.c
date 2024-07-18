@@ -210,7 +210,6 @@ int pusb_conf_parse(
 
 	for (int currentDevice = 0; currentDevice < 10; currentDevice++)
 	{
-		log_error("DBG: currentDevice: %d, strlen: %d, value: %s\n", currentDevice, (int) strlen(device_list[currentDevice]), device_list[currentDevice]);
 		if (device_list[currentDevice] == NULL || strlen(device_list[currentDevice]) == 0)
 		{
 			continue;
@@ -218,12 +217,6 @@ int pusb_conf_parse(
 
 		strcpy(opts->device_list[currentDevice].name, device_list[currentDevice]);
 		pusb_conf_parse_device(opts, doc, currentDevice, device_list[currentDevice]);
-		log_error("DBG: found device\n");
-		log_error("DBG:     name: %s\n", opts->device_list[currentDevice].name);
-		log_error("DBG:     vendor: %s\n", opts->device_list[currentDevice].vendor);
-		log_error("DBG:     model: %s\n", opts->device_list[currentDevice].model);
-		log_error("DBG:     serial: %s\n", opts->device_list[currentDevice].serial);
-		log_error("DBG:     volume_uuid: %s\n", opts->device_list[currentDevice].volume_uuid);
 	}
 
 	if (!pusb_conf_parse_options(opts, doc, user, service))
