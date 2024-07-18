@@ -217,24 +217,15 @@ def userDeviceThread(user):
 	to_watch = []
 
 	all_devices = doc.findall("devices/device")
-	logger.info('Found %d devices available for configuration.' % len(all_devices))
-
 	user_devices = user.findall("device")
-	logger.info('Found %d devices configured for user.' % len(user_devices))
 	for device in user_devices:
 		devices_for_user.append(device.text)
-	logger.info('devices_for_users: %s' % devices_for_user)
 
-	logger.info('Got all device data and configured devices for user, now creating watch list...')
 	deviceOK = False
 	for device in all_devices:
-		logger.info('Iterating all devices to find data for user devices...')
 		if device.get('id') in devices_for_user:
-			logger.info('Found a valid device for user "%s", adding to watchlist.' % userName)
 			to_watch.append({"name": device.get('id'), "serial": device.findtext('serial')})
 			deviceOK = True
-		else:
-			logger.info('Device "%s" is not valid for user' % device.get('id'))
 
 	if not deviceOK or len(to_watch) == 0:
 		logger.error('Device(s) not found in configuration file.')
@@ -326,12 +317,10 @@ def userDeviceThread(user):
 	hpDevs = []
 	threads = []
 	for watch_this in to_watch:
-		logger.info('Creating hpDev for device "%s" with serial "%s"...' % (watch_this.get('name'), watch_this.get('serial')))
+		logger.info('Watching device "%s" for user "%s"' % (watch_this.get('name'), userName))
 
 		hpDev = HotPlugDevice(watch_this.get('serial'), watch_this.get('name'))
 		hpDev.addCallback(authChangeCallback)
-
-		logger.info('Watching device "%s" for user "%s"' % (watch_this.get('name'), userName))
 
 		thread = threading.Thread(target=hpDev.run)
 		thread.start()

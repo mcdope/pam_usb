@@ -44,7 +44,6 @@ static int pusb_device_connected(t_pusb_options *opts, UDisksClient *udisks)
 
 		log_error("Searching for \"%s\" in the hardware database...\n", opts->device_list[currentDevice].name);
 
-		log_debug("Found %d drives to check/iterate...\n", g_list_length(objects));
 		for (i = 0; i < g_list_length(objects); ++i)
 		{
 			object = UDISKS_OBJECT(g_list_nth(objects, i)->data);
@@ -52,7 +51,6 @@ static int pusb_device_connected(t_pusb_options *opts, UDisksClient *udisks)
 			{
 				drive = udisks_object_get_drive(object);
 				retval = strcmp(udisks_drive_get_serial(drive), opts->device_list[currentDevice].serial) == 0;
-				log_debug("Looking for serial '%s', found '%s'...\n", opts->device_list[currentDevice].serial, udisks_drive_get_serial(drive));
 
 				if (strcmp(opts->device_list[currentDevice].vendor, "Generic") != 0)
 				{
