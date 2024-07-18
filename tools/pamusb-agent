@@ -308,12 +308,10 @@ def userDeviceThread(user):
 
 				resumeTimestamp = datetime.datetime.now()
 
-	logger.info('Binding to signals...')
 	login1Interface = login1ManagerDBusIface()
 	for signal in ['PrepareForSleep', 'PrepareForShutdown']:
 		login1Interface.connect_to_signal(signal, onSuspendOrResume, member_keyword='member')
 
-	logger.info('Setting up HotPlugDevices for configured %d user devices...' % (len(to_watch)))
 	hpDevs = []
 	threads = []
 	for watch_this in to_watch:
