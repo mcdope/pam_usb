@@ -31,21 +31,21 @@ static xmlXPathObject *pusb_xpath_match(xmlDocPtr doc, const char *path)
 	if (context == NULL)
 	{
 		log_error("Unable to create XML context\n");
-		return (NULL);
+		return NULL;
 	}
 	result = xmlXPathEvalExpression((xmlChar *)path, context);
 	xmlXPathFreeContext(context);
 	if (result == NULL)
 	{
 		log_error("Error in xmlXPathEvalExpression\n");
-		return (NULL);
+		return NULL;
 	}
 	if (xmlXPathNodeSetIsEmpty(result->nodesetval))
 	{
 		xmlXPathFreeObject(result);
-		return (NULL);
+		return NULL;
 	}
-	return (result);
+	return result;
 }
 
 static int pusb_xpath_strip_string(char *dest, const char *src, size_t size)
@@ -71,18 +71,18 @@ static int pusb_xpath_strip_string(char *dest, const char *src, size_t size)
 
 	if (first_char == -1 || last_char == -1)
 	{
-		return (0);
+		return 0;
 	}
 
 	if ((last_char - first_char) > (size - 1))
 	{
 		log_error("Device name is too long: %s", src);
-		return (0);
+		return 0;
 	}
 
 	memset(dest, 0x0, size);
 	strncpy(dest, &(src[first_char]), last_char - first_char + 1);
-	return (1);
+	return 1;
 }
 
 int pusb_xpath_get_string(
@@ -98,14 +98,14 @@ int pusb_xpath_get_string(
 
 	if (!(result = pusb_xpath_match(doc, path)))
 	{
-		return (0);
+		return 0;
 	}
 
 	if (result->nodesetval->nodeNr > 1)
 	{
 		xmlXPathFreeObject(result);
 		log_debug("Syntax error: %s: more than one record found\n", path);
-		return (0);
+		return 0;
 	}
 
 	node = result->nodesetval->nodeTab[0]->xmlChildrenNode;
@@ -114,18 +114,55 @@ int pusb_xpath_get_string(
 	{
 		xmlXPathFreeObject(result);
 		log_debug("Empty value for %s\n", path);
-		return (0);
+		return 0;
 	}
 	if (!pusb_xpath_strip_string(value, (const char *)result_string, size))
 	{
 		xmlFree(result_string);
 		xmlXPathFreeObject(result);
 		log_debug("Result for %s (%s) is too long (max: %d)\n", path, (const char *)result_string, size);
-		return (0);
+		return 0;
 	}
 	xmlFree(result_string);
 	xmlXPathFreeObject(result);
-	return (1);
+	return 1;
+}
+
+int pusb_xpath_get_string_list(
+	xmlDocPtr doc,
+	const char *path,
+	char *values[],
+	size_t size
+)
+{
+	xmlXPathObject *result = NULL;
+	xmlNode *node = NULL;
+	xmlChar *result_string = NULL;
+
+	if (!(result = pusb_xpath_match(doc, path)))
+	{
+		return 0;
+	}
+
+	for (int currentResult = 0; currentResult < result->nodesetval->nodeNr; currentResult++)
+	{
+		node = result->nodesetval->nodeTab[currentResult]->xmlChildrenNode;
+		result_string = xmlNodeListGetString(doc, node, 1);
+		if (!result_string || strcmp("", (char *)result_string) == 0)
+		{
+			log_debug("Empty value for %s\n", path);
+			continue;
+		}
+		if (!pusb_xpath_strip_string(values[currentResult], (char *)result_string, size))
+		{
+			log_debug("Result for %s (%s) is too long (max: %d)\n", path, (const char *)result_string, size);
+			continue;
+		}
+	}
+
+	xmlFree(result_string);
+	xmlXPathFreeObject(result);
+	return 1;
 }
 
 int pusb_xpath_get_string_from(
@@ -142,6 +179,11 @@ int pusb_xpath_get_string_from(
 
 	xpath_size = strlen(base) + strlen(path) + 1;
 	xpath = xmalloc(xpath_size);
+	if (xpath == NULL)
+	{
+		log_error("Memory allocation failed\n");
+		return 0;
+	}
 	memset(xpath, 0x00, xpath_size);
 	snprintf(xpath, xpath_size, "%s%s", base, path);
 	retval = pusb_xpath_get_string(doc, xpath, value, size);
@@ -151,7 +193,7 @@ int pusb_xpath_get_string_from(
 	}
 
 	xfree(xpath);
-	return (retval);
+	return retval;
 }
 
 int pusb_xpath_get_bool(xmlDocPtr doc, const char *path, int *value)
@@ -160,23 +202,23 @@ int pusb_xpath_get_bool(xmlDocPtr doc, const char *path, int *value)
 
 	if (!pusb_xpath_get_string(doc, path, ret, sizeof(ret)))
 	{
-		return (0);
+		return 0;
 	}
 
 	if (!strcmp(ret, "true"))
 	{
 		*value = 1;
-		return (1);
+		return 1;
 	}
 
 	if (!strcmp(ret, "false"))
 	{
 		*value = 0;
-		return (1);
+		return 1;
 	}
 
 	log_debug("Expecting a boolean, got %s\n", ret);
-	return (0);
+	return 0;
 }
 
 int pusb_xpath_get_bool_from(
@@ -192,11 +234,16 @@ int pusb_xpath_get_bool_from(
 
 	xpath_size = strlen(base) + strlen(path) + 1;
 	xpath = xmalloc(xpath_size);
+	if (xpath == NULL)
+	{
+		log_error("Memory allocation failed\n");
+		return 0;
+	}
 	memset(xpath, 0x00, xpath_size);
 	snprintf(xpath, xpath_size, "%s%s", base, path);
 	retval = pusb_xpath_get_bool(doc, xpath, value);
 	xfree(xpath);
-	return (retval);
+	return retval;
 }
 
 int pusb_xpath_get_time(xmlDocPtr doc, const char *path, time_t *value)
@@ -207,7 +254,7 @@ int pusb_xpath_get_time(xmlDocPtr doc, const char *path, time_t *value)
 
 	if (!pusb_xpath_get_string(doc, path, ret, sizeof(ret)))
 	{
-		return (0);
+		return 0;
 	}
 
 	last = &(ret[strlen(ret) - 1]);
@@ -231,16 +278,16 @@ int pusb_xpath_get_time(xmlDocPtr doc, const char *path, time_t *value)
 	else if (!isdigit(*last))
 	{
 		log_debug("Expecting a time modifier, got %c\n", *last);
-		return (0);
+		return 0;
 	}
 	if (!isdigit(*last))
 	{
 		*last = '\0';
 	}
 
-	*value = (time_t) atoi(ret) * coef;
+	*value = (time_t)atoi(ret) * coef;
 
-	return (0);
+	return 1;
 }
 
 int pusb_xpath_get_time_from(
@@ -256,11 +303,16 @@ int pusb_xpath_get_time_from(
 
 	xpath_size = strlen(base) + strlen(path) + 1;
 	xpath = xmalloc(xpath_size);
+	if (xpath == NULL)
+	{
+		log_error("Memory allocation failed\n");
+		return 0;
+	}
 	memset(xpath, 0x00, xpath_size);
 	snprintf(xpath, xpath_size, "%s%s", base, path);
 	retval = pusb_xpath_get_time(doc, xpath, value);
 	xfree(xpath);
-	return (retval);
+	return retval;
 }
 
 int pusb_xpath_get_int(xmlDocPtr doc, const char *path, int *value)
@@ -269,11 +321,11 @@ int pusb_xpath_get_int(xmlDocPtr doc, const char *path, int *value)
 
 	if (!pusb_xpath_get_string(doc, path, ret, sizeof(ret)))
 	{
-		return (0);
+		return 0;
 	}
 
 	*value = atoi(ret);
-	return (1);
+	return 1;
 }
 
 int pusb_xpath_get_int_from(
@@ -289,9 +341,14 @@ int pusb_xpath_get_int_from(
 
 	xpath_size = strlen(base) + strlen(path) + 1;
 	xpath = xmalloc(xpath_size);
+	if (xpath == NULL)
+	{
+		log_error("Memory allocation failed\n");
+		return 0;
+	}
 	memset(xpath, 0x00, xpath_size);
 	snprintf(xpath, xpath_size, "%s%s", base, path);
 	retval = pusb_xpath_get_int(doc, xpath, value);
 	xfree(xpath);
-	return (retval);
+	return retval;
 }
