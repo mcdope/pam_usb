@@ -17,7 +17,6 @@ Features
 * `Non-intrusive.` pam\_usb doesn't require any modifications of the USB storage device to work (no additional partitions required).
 * USB Serial number, model and vendor verification.
 * Support for **One Time Pads** authentication.
-* You can use the same device across multiple machines.
 * Support for all kind of removable devices (SD, MMC, etc).
 * Can optionally unlock your GNOME keyring
 
