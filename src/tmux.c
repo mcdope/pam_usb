@@ -45,7 +45,7 @@ char *pusb_tmux_get_client_tty(pid_t env_pid)
     log_debug("		Got tmux_socket_path: %s\n", tmux_socket_path);
 
     char get_tmux_session_details_cmd[128];
-    sprintf(get_tmux_session_details_cmd, "LC_ALL=c; tmux -S \"%s\" list-clients -t \"\\$%s\"", tmux_socket_path, tmux_client_id);
+    sprintf(get_tmux_session_details_cmd, "LC_ALL=C; tmux -S \"%s\" list-clients -t \"\\$%s\"", tmux_socket_path, tmux_client_id);
     log_debug("		Built get_tmux_session_details_cmd: %s\n", get_tmux_session_details_cmd);
 
     char buf[BUFSIZ];
@@ -106,7 +106,7 @@ int pusb_tmux_has_remote_clients(const char* username)
     {
         log_debug("		Checking for IPv%d connections...\n", (4 + (i * 2)));
 
-        if ((fp = popen("LC_ALL=c; w", "r")) == NULL)
+        if ((fp = popen("LC_ALL=C; w", "r")) == NULL)
         {
             log_error("tmux detected, but couldn't get `w`. Denying since remote check for tmux impossible without it!\n");
             return -1;
