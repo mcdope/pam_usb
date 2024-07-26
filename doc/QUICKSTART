@@ -30,7 +30,7 @@ Once you've connected your USB device to the computer, use pamusb-conf to add it
 
 Note that `MyDevice` can be any arbitrary name you'd like, but will be used as an XML attribute value so stay away from any special characters and stick to A-Z. 
 
-Also, you can add as many devices as you want. However, each user can currently only use a single device so additional devices can only be used for additional users.
+Also, you can add as many devices as you want. However, in versions prior to v0.8.5 each user can currently only use a single device so additional devices can only be used for additional users. Starting from v0.8.5 a single user can have multiple devices assigned as well.
 
 Next, configure users you want to be able to authenticate with pam_usb:
 
