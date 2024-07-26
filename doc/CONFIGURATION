@@ -8,6 +8,8 @@ The configuration file is formatted in XML and subdivided in 4 sections:
 * Users declaration and settings
 * Services declaration and settings
 
+Note that for changes to the agent / events config you need to restart the agent service for them to take effect. Other changes are picked up on next pam_usb usage.
+
 The syntax is the following:
 
 ```xml
@@ -104,8 +106,6 @@ The syntax is the following:
 Some cheap devices don't report a vendor and/or model. To use these devices you can use "Generic" for these values, then it won't be checked.
 Be aware that this reduces security if you have `one_time_pads` disabled since the device containing the volume won't be checked anymore (but these attributes could be faked with a custom firmware anyway).
 
-You can configure as many devices as you want, but each user can only be configured to use a single device (currently).
-
 ### Example:
 
 ```xml
@@ -126,6 +126,8 @@ You can configure as many devices as you want, but each user can only be configu
 | `id`     | Attribute | Login of the user                         | `root`     |
 | `device` | Element   | `id` of the device associated to the user | `MyDevice` |
 | `agent`  | Element   | Agent commands, for use with pamusb-agent |            |
+
+Note that one `<user>` can have multiple `<device>` (from v0.8.5 up).
 
 ### Agent
 
@@ -224,13 +226,17 @@ sudo pamusb-conf --add-device=<devicename>
 
 where `<devicename>` is a recognizable name for your device. This value is used internally in the configuration file as device `id` value and in output shown to users. (Note: because of it being used as an XML attribute value, it shouldn't contain ampersands etc.)
 
+You can do this for multiple devices obviously.
+
 3. Add necessary user configuration into `/etc/security/pam_usb.conf` by running:
 
 ```
 sudo pamusb-conf --add-user=<username>
 ```
 
-where `<username>` is a valid Unix user name.
+where `<username>` is a valid Unix user name. 
+
+If you added multiple devices you can repeat this command to choose an additional device for this user (from v0.8.5 up).
 
 4. Tweak `/etc/security/pam_usb.conf` manually as desired. Link devices and users, etc.
 
