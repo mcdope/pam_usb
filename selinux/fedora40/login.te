@@ -1,0 +1,24 @@
+
+module login 1.0;
+
+require {
+	type local_login_t;
+	type user_home_t;
+	type dosfs_t;
+	class file { create getattr open read setattr write };
+	class dir { add_name getattr search write };
+}
+
+#============= local_login_t ==============
+
+#!!!! This avc is allowed in the current policy
+allow local_login_t dosfs_t:dir { add_name getattr search write };
+
+#!!!! This avc is allowed in the current policy
+allow local_login_t dosfs_t:file { create getattr open read setattr write };
+
+#!!!! This avc is allowed in the current policy
+allow local_login_t user_home_t:dir { add_name write };
+
+#!!!! This avc is allowed in the current policy
+allow local_login_t user_home_t:file { create open read write };
