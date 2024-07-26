@@ -1,3 +1,12 @@
+libpam-usb (0.8.5) unstable; urgency=medium
+  * [Feature] Support multiple devices per user
+  * [Enhancement] Misc. memory and string handling stuff
+  * [Enhancement] Deny if pads can't be updated
+  * [Enhancement] SELinux! Wiki now has a doc on how to create your own profile
+  * [Bugfix] LC_ALL usage
+
+ -- Tobias Bäumer <tobiasbaeumer@gmail.com>  Fri, 26 Jul 2024 21:00:00 +0200
+
 libpam-usb (0.8.4) unstable; urgency=medium
   * [Bugfix] loginctl usage was not sh compatible
   * [Bugfix] Misc. fixes related to memory handling
