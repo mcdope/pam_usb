@@ -56,6 +56,13 @@ rm -rf %{buildroot}/usr/share/pam-configs
 %doc %attr(0644,root,root) /usr/share/doc/pam_usb/TROUBLESHOOTING
 
 %changelog
+* Thu Jul 26 2024 Tobias Bäumer <tobiasbaeumer@gmail.com> - 0.8.5
+- [Feature] Support multiple devices per user
+- [Enhancement] Misc. memory and string handling stuff
+- [Enhancement] Deny if pads can't be updated
+- [Enhancement] SELinux! There is now a profile for Fedora 40 (not installed automatically!) and a doc on how to create your own (see Wiki)
+- [Bugfix] LC_ALL usage
+
 * Thu Jan 04 2024 Tobias Bäumer <tobiasbaeumer@gmail.com> - 0.8.4
 - [Bugfix] loginctl usage was not sh compatible
 - [Bugfix] Misc. fixes related to memory handling
