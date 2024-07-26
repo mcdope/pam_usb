@@ -59,7 +59,7 @@ But if it does: please create an issue which should contain the output of `w` an
 Getting 'Pad checking failed!' when trying to authenticate
 --------------
 
-This error means that either the machine/host specific pad file on the device, or - more likely - the user specific pad file in your homedir is not in sync anymore. 
+This error means that either the machine/host specific pad file on the device, or - more likely - the user specific pad file in your homedir is not in sync anymore. It can also be caused if you use the same device on two computers and both share the same username (guess why I know :facepalm:).
 
 It can happen if you remove the authentication device without unmounting it before, manually mess with the pad files (like copying from a previous device) or your system crashed before file buffers were written to the media and similar. 
 
@@ -70,6 +70,37 @@ To resolve this you can use `pamusb-conf --reset-pads=<USERNAME>`, which will re
 Agent configuration / commands don't work like expected
 --------------
 
+You have restarted the agent service after your config changes, right? RIIIIIIGHT? Seriously, you need to restart it for changes to be picked up.
+
 The agent will log all executed commands, as well as their exitcode; stdout and stderr (since v0.8.3). You can view this log either via systemd, or - easier - by `tail`'ing `/var/log/auth.log`.
 
 You can use this to a) verify your config is picked up like expected and b) configured commands do what you want. For some programs, esp. ones expecting to be run within a graphical environment, you will have to provide environment values via `<env>` tags in the agent configuration. Usually the log will provide you with some good clues. But feel free to open a support issue if you need help.
+
+
+pam_usb not working in login manager when the device wasn't plugged before login manager started / always asked for password
+--------------
+
+Are you using `lightdm` by any chance? 
+
+Some login managers auto-select the first user they have in their list. This starts the pam chain and pam_usb will see "device is not plugged" and deny the request. At that point then pam_unix (or whatever your next module is) kicks in and asks for the password. This is intended behavior in pam_usb - the actual issue here is the login manager assuming which user wants to login. 
+
+Even if you now plug the device, from pam_usb POV the request is failed/finished and it wont care anymore. You will have to press [ESC] to abort the current authentication request and click/select the user again (if not auto-selected).
+
+It's planned to implement a workaround for this in #221, but no ETA for that.
+
+
+My media isn't accepted after I unplugged it before
+--------------
+
+Is that media NTFS formatted? NTFS really doesn't like unplugging while being mounted. It becomes flagged as "dirty" and you will have to run `chkdsk /R /F /V` on it.
+
+It isn't NTFS? That's a bug most likely, please report it as issue.
+
+SELinux and pam_usb
+--------------
+
+If you have SELinux enabled you will likely get errors with pam_usb. At least on Fedora 40 you need to allow some things that are by default denied. 
+
+There is now a profile available for Fedora 40 that you can install to allow pam_usb to work like intended. To install it download both files from `selinux/<yourDistribution>` to some directory, open a shell in that directory and then run `semodule login.pp`. Replace "login" with the actual profile you want to install, but so far there is only one for login. It may work on other distributions or releases, too but this is untested. 
+
+In case it doesn't work for you, see the discussion at https://github.com/mcdope/pam_usb/discussions/241 to find out how to create your own profile.

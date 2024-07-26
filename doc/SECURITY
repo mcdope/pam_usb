@@ -1,3 +1,11 @@
+# General note about security
+
+`pam_usb` is intended as an "user comfort" utility. While it can enhance security, if used as a second factor, it can also reduce it. 
+
+Make sure you are aware of how it works and what you combine it with (see other warnings). 
+
+Also I want to point it that this isn't audited. I've tried to raise funds for it but there was literally no interest in it seemingly...
+
 # Warning about XDMCP
 
 You should under no circumstances enable pamusb and XDMCP at the same time. Most graphical login managers are whitelisted and will not be checked for "remoteness" since issue #51 was fixed. This means if you enable XDMCP and have a usb device for an already configured user attached anyone connecting to your X-Server could login as that user!
@@ -5,6 +13,10 @@ You should under no circumstances enable pamusb and XDMCP at the same time. Most
 I repeat, UNDER NO CIRCUMSTANCES ENABLE PAMUSB AND XDMCP AT THE SAME TIME! Don't say you haven't be warned if someone "hacks" your system because of this.
 
 Note: you shouldn't use XDMCP these days anyway... 
+
+# Warning about TeamViewer and x11vnc
+
+Currently the local-check doesn't detect either TeamViewer or x11vnc connections. The same applies to gnome desktop sharing and I guess others also. There are attempts to resolve this, but even then there will likely always be some remote access software being able to circumvent the local check.
 
 # Warning about remote access (SSH etc)
 
