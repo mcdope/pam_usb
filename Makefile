@@ -157,6 +157,8 @@ install: all
 # force pam-auth-update config install if building a deb
 	if test $(DEB_TARGET_ARCH) != "" > /dev/null 2>&1; then mkdir -p $(PAM_CONF_DEST) && $(INSTALL) -m644 $(PAM_CONF) $(PAM_CONF_DEST)/libpam-usb; fi
 
+	update-alternatives --install /usr/bin/pinentry pinentry $(TOOLS_DEST)/pamusb-pinentry 100 || exit 0
+
 deinstall:
 	$(RM) -f $(PAM_USB_DEST)/$(PAM_USB)
 	$(RM) -f \
