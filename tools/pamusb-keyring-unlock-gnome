@@ -19,13 +19,13 @@
 pamusb-check `whoami` > /dev/null 2>&1 || (logger -p local0.error -t ${0##*/}[$$] pamusb-check failed. && exit 1)
 
 # Check if password file exists, first try $HOME then the auth device
-if [ ! -f ~/pamusb/.keyring_unlock_password ]; then
+if [ ! -f ~/.pamusb/.keyring_unlock_password ]; then
     logger -p local0.notice -t ${0##*/}[$$] No password file found, exiting.
     exit 0
 fi
 
 # Ensure file has 0600 (if FS supports it)
-PERMISSIONS=`stat -c "%a %n" ~/pamusb/.keyring_unlock_password | awk '{print $1}'`
+PERMISSIONS=`stat -c "%a %n" ~/.pamusb/.keyring_unlock_password | awk '{print $1}'`
 if [ ! "$PERMISSIONS" = "600" ]; then
     logger -p local0.error -t ${0##*/}[$$] Bad permissions on ~/.keyring_unlock_password. Please change them to 0600.
     exit 1
@@ -40,7 +40,7 @@ else
 fi
 
 # Read UNLOCK_PASSWORD from $KEYFILE
-. ~/pamusb/.keyring_unlock_password
+. ~/.pamusb/.keyring_unlock_password
 
 # Perform unlock
 echo -n $UNLOCK_PASSWORD | gnome-keyring-daemon --daemonize --login \
