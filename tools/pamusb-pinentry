@@ -19,7 +19,7 @@ import os
 import subprocess
 import getpass
 from dotenv import load_dotenv
-load_dotenv("~/.pamusb-pinentry.env")
+load_dotenv(os.path.expanduser("~/.pamusb/.pinentry.env"))
 
 pinentryPassword = os.getenv('PINENTRY_PASSWORD')
 fallbackPinentryApp = os.getenv('PINENTRY_FALLBACK_APP')
