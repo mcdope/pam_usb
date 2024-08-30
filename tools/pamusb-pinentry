@@ -1,0 +1,38 @@
+#!/usr/bin/env python3
+#
+# Copyright (c) 2024 Dhruva Sambrani <dhruvasambrani19@gmail.com>
+#
+# This file is part of the pam_usb project. pam_usb is free software;
+# you can redistribute it and/or modify it under the terms of the GNU General
+# Public License version 2, as published by the Free Software Foundation.
+#
+# pam_usb is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more
+# details.
+#
+# You should have received a copy of the GNU General Public License along with
+# this program; if not, write to the Free Software Foundation, Inc., 51 Franklin
+# Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+import os
+import subprocess
+import getpass
+from dotenv import load_dotenv
+load_dotenv(os.path.expanduser("~/.pamusb/.pinentry.env"))
+
+pinentryPassword = os.getenv('PINENTRY_PASSWORD')
+fallbackPinentryApp = os.getenv('PINENTRY_FALLBACK_APP')
+
+isAuthenticated = subprocess.run(["pamusb-check", getpass.getuser()], capture_output=True)
+if (isAuthenticated.returncode == 0):
+    print("OK Pleased to meet you")
+    while True:
+        line = input().split()
+        if line[0] == "GETPIN":
+            print("D %s" % pinentryPassword)
+        elif line[0] == "BYE":
+            exit()
+        print("OK")
+else:
+    subprocess.run(fallbackPinentryApp)

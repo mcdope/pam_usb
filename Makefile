@@ -66,6 +66,7 @@ PAMUSB_CHECK := pamusb-check
 PAMUSB_CONF := pamusb-conf
 PAMUSB_AGENT := pamusb-agent
 PAMUSB_KEYRING_GNOME := pamusb-keyring-unlock-gnome
+PAMUSB_PINENTRY := pamusb-pinentry
 TOOLS_DEST := $(DESTDIR)$(PREFIX)/bin
 TOOLS_SRC := tools
 
@@ -145,7 +146,7 @@ install: all
 		$(PAM_USB_DEST)
 
 	$(INSTALL) -m755 $(PAM_USB) $(PAM_USB_DEST)
-	$(INSTALL) -m755 $(PAMUSB_CHECK) $(TOOLS_SRC)/$(PAMUSB_CONF) $(TOOLS_SRC)/$(PAMUSB_AGENT) $(TOOLS_SRC)/$(PAMUSB_KEYRING_GNOME) $(TOOLS_DEST)
+	$(INSTALL) -m755 $(PAMUSB_CHECK) $(TOOLS_SRC)/$(PAMUSB_CONF) $(TOOLS_SRC)/$(PAMUSB_AGENT) $(TOOLS_SRC)/$(PAMUSB_KEYRING_GNOME) $(TOOLS_SRC)/$(PAMUSB_PINENTRY) $(TOOLS_DEST)
 	$(INSTALL) -m644 $(DOCS) $(DOCS_DEST)
 	$(INSTALL) -m644 $(MANS) $(MANS_DEST)
 
@@ -156,6 +157,8 @@ install: all
 # force pam-auth-update config install if building a deb
 	if test $(DEB_TARGET_ARCH) != "" > /dev/null 2>&1; then mkdir -p $(PAM_CONF_DEST) && $(INSTALL) -m644 $(PAM_CONF) $(PAM_CONF_DEST)/libpam-usb; fi
 
+	update-alternatives --install /usr/bin/pinentry pinentry $(TOOLS_DEST)/pamusb-pinentry 100 || exit 0
+
 deinstall:
 	$(RM) -f $(PAM_USB_DEST)/$(PAM_USB)
 	$(RM) -f \
@@ -163,6 +166,7 @@ deinstall:
 		$(TOOLS_DEST)/$(PAMUSB_CONF) \
 		$(TOOLS_DEST)/$(PAMUSB_AGENT) \
 		$(TOOLS_DEST)/$(PAMUSB_KEYRING_GNOME) \
+		$(TOOLS_DEST)/$(PAMUSB_PINENTRY) \
 		$(PAM_CONF_DEST)/$(PAM_CONF)
 
 	$(RM) -rf $(DOCS_DEST)
