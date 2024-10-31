@@ -14,6 +14,7 @@ Version:   %{version}
 Release:   %{release}
 Prefix:    /usr
 Group:     System Environment/Base
+BuildRequires: rsync libudisks2-devel libxml2-devel
 Requires:  pam python3-gobject gawk
 
 %description
