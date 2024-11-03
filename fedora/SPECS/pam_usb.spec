@@ -52,13 +52,14 @@ rm -rf %{buildroot}/usr/share/pam-configs
 %doc %attr(0644,root,root) /usr/share/man/man1/pamusb-check.1.gz
 %doc %attr(0644,root,root) /usr/share/man/man1/pamusb-conf.1.gz
 %doc %attr(0644,root,root) /usr/share/man/man1/pamusb-keyring-unlock-gnome.1.gz
+%doc %attr(0644,root,root) /usr/share/man/man1/pamusb-pinentry.1.gz
 %doc %attr(0644,root,root) /usr/share/doc/pam_usb/CONFIGURATION
 %doc %attr(0644,root,root) /usr/share/doc/pam_usb/QUICKSTART
 %doc %attr(0644,root,root) /usr/share/doc/pam_usb/SECURITY
 %doc %attr(0644,root,root) /usr/share/doc/pam_usb/TROUBLESHOOTING
 
 %changelog
-* Thu Jul 26 2024 Tobias Bäumer <tobiasbaeumer@gmail.com> - 0.8.5
+* Fri Jul 26 2024 Tobias Bäumer <tobiasbaeumer@gmail.com> - 0.8.5
 - [Feature] Support multiple devices per user
 - [Enhancement] Misc. memory and string handling stuff
 - [Enhancement] Deny if pads can't be updated
