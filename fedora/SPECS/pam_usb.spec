@@ -25,7 +25,9 @@ Adds auth over usb-stick to pam
 cd %{_topdir}/BUILD
 rm -rf %{name}-%{version}
 mkdir %{name}-%{version}
-rsync -a %{_topdir}/../ %{name}-%{version} --exclude fedora --exclude arch_linux --exclude .build --exclude .github  --exclude .idea  --exclude .vscode
+# rsync -a %{_topdir}/../ %{name}-%{version} --exclude fedora --exclude arch_linux --exclude .build --exclude .github  --exclude .idea  --exclude .vscode
+shopt -s extglob
+cp -a %{_topdir}/../!(fedora|arch_linux|.build|.github|.idea|.vscode) %{name}-%{version}
 cd %{name}-%{version}
 chmod -Rf a+rX,u+w,g-w,o-w .
 
