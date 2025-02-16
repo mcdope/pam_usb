@@ -29,9 +29,9 @@ if (isAuthenticated.returncode == 0):
     print("OK Pleased to meet you")
     while True:
         line = input().split()
-        if line[0] == "GETPIN":
+        if line[0].upper() == "GETPIN":
             print("D %s" % pinentryPassword)
-        elif line[0] == "BYE":
+        elif line[0].upper() == "BYE":
             exit()
         print("OK")
 else:
