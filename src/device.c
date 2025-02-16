@@ -54,18 +54,29 @@ static int pusb_device_connected(t_pusb_options *opts, UDisksClient *udisks)
 				if (strcmp(opts->device_list[currentDevice].serial, "Generic") != 0)
 				{
 					retval = strcmp(udisks_drive_get_serial(drive), opts->device_list[currentDevice].serial) == 0;
-				} else {
+				} 
+				else 
+				{
+					log_error("'Generic' serial configured, this reduces your security! Please use a proper device exposing vendor, model, and serial.\n");
 					retval = 1;
 				}
 
 				if (strcmp(opts->device_list[currentDevice].vendor, "Generic") != 0)
 				{
 					retval = retval && strcmp(udisks_drive_get_vendor(drive), opts->device_list[currentDevice].vendor) == 0;
+				} 
+				else 
+				{
+					log_error("'Generic' vendor configured, this reduces your security! Please use a proper device exposing vendor, model, and serial.\n");
 				}
 
 				if (strcmp(opts->device_list[currentDevice].model, "Generic") != 0)
 				{
 					retval = retval && strcmp(udisks_drive_get_model(drive), opts->device_list[currentDevice].model) == 0;
+				} 
+				else 
+				{
+					log_error("'Generic' model configured, this reduces your security! Please use a proper device exposing vendor, model, and serial.\n");
 				}
 
 				g_object_unref(drive);
