@@ -13,6 +13,8 @@ Please fork the repository, implement your changes in a branch and then submit a
 In that pull request you should...
 - explain what exactly your change does
 - why it does that
+- assign yourself
+- assign matching tags
 
 Ideally you would create an issue before, assigning it to yourself and reference it in your pull request but that is not a hard requirement.
 
