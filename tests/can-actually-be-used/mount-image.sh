@@ -8,7 +8,7 @@ echo "Info: sleeping 5s to ensure kernel picks up our new device..."
 sleep 5
 
 # Determine device id, create partition and format it
-CREATED_DEVICE=$(lsblk | grep 16M | awk '{ print $1 }')
+CREATED_DEVICE=$(lsblk | grep disk | grep 16M | awk '{ print $1 }')
 echo "Info: fake device registered as /dev/$CREATED_DEVICE"
 echo "Info: creating partition..."
 echo 'type=83' | sudo sfdisk /dev/$CREATED_DEVICE
