@@ -305,8 +305,10 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 
 		previous_pid = pid;
 		pusb_get_process_parent_id(pid, & pid);
-		if (strstr(name, "sshd") != NULL || strstr(name, "telnetd") != NULL) 
-		{
+		if (strstr(name, "sshd") != NULL
+			|| strstr(name, "telnetd") != NULL
+			|| (strstr(name, "code") != NULL && strstr(name, "tunnel") != NULL)
+		) {
 			log_error("One of the parent processes found to be a remote access daemon, denying.\n");
 			return (0);
 		}
