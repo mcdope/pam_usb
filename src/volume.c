@@ -74,7 +74,7 @@ static int pusb_volume_mount(t_pusb_volume *volume)
 	}
 	else
 	{
-		log_error("Failed to mount device %s.\n", volume->device);
+		log_error("Failed to mount device %s: %s\n", volume->device, error->message);
 	}
 
 	if (error)
