@@ -103,7 +103,7 @@ The syntax is the following:
 | `volume_uuid` | Element   | UUID of the device's volume used to store pads | `6F6B-42FC`            |
 
 ### Note:
-Some cheap devices don't report a vendor and/or model. To use these devices you can use "Generic" for these values, then it won't be checked.
+Some cheap devices don't report a vendor and/or model, some not even a serial (see https://github.com/mcdope/pam_usb/issues/261). To use these devices you can use "Generic" for these values, then it won't be checked.
 Be aware that this reduces security if you have `one_time_pads` disabled since the device containing the volume won't be checked anymore (but these attributes could be faked with a custom firmware anyway).
 
 ### Example:
