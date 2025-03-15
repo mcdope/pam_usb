@@ -1,0 +1,27 @@
+# Contributing
+
+## Basics
+
+You want to contribute? Awesome! Thanks for that!
+
+Every contribution is required to be GPLv2 (or compatible) licensed (see COPYING). If you don't specify any license GPLv2 will be assumed.
+
+## How to contribute code changes
+
+Please fork the repository, implement your changes in a branch and then submit a pull request. 
+
+In that pull request you should...
+- explain what exactly your change does
+- why it does that
+- assign yourself
+- assign matching tags
+
+Ideally you would create an issue before, assigning it to yourself and reference it in your pull request but that is not a hard requirement.
+
+## How to contribute documentation
+
+The Wiki should be editable by anyone, feel free to just work on it. In case you want to work on the manpages: these are managed in code - see "How to contribute code changes"
+
+## How to suggest new features
+
+Please create an issue.
