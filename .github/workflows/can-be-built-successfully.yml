@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Install requirements
       run: sudo apt install libudisks2-dev libxml2-dev python-is-python3 libpam0g-dev pkg-config gir1.2-glib-2.0 libglib2.0-dev
     - name: make
