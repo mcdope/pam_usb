@@ -14,6 +14,7 @@ Version:   %{version}
 Release:   %{release}
 Prefix:    /usr
 Group:     System Environment/Base
+BuildRequires: libudisks2-devel libxml2-devel
 Requires:  pam python3-gobject gawk
 
 %description
@@ -24,7 +25,8 @@ Adds auth over usb-stick to pam
 cd %{_topdir}/BUILD
 rm -rf %{name}-%{version}
 mkdir %{name}-%{version}
-rsync -a %{_topdir}/../ %{name}-%{version} --exclude fedora --exclude arch_linux --exclude .build --exclude .github  --exclude .idea  --exclude .vscode
+shopt -s extglob
+cp -a %{_topdir}/../!(fedora|arch_linux|.build|.github|.idea|.vscode) %{name}-%{version}
 cd %{name}-%{version}
 chmod -Rf a+rX,u+w,g-w,o-w .
 
@@ -43,6 +45,7 @@ rm -rf %{buildroot}/usr/share/pam-configs
 %attr(0755,root,root) /usr/bin/pamusb-check
 %attr(0755,root,root) /usr/bin/pamusb-conf
 %attr(0755,root,root) /usr/bin/pamusb-keyring-unlock-gnome
+%attr(0755,root,root) /usr/bin/pamusb-pinentry
 
 %config(noreplace) %attr(0644,root,root) /etc/security/pam_usb.conf
 
@@ -50,13 +53,14 @@ rm -rf %{buildroot}/usr/share/pam-configs
 %doc %attr(0644,root,root) /usr/share/man/man1/pamusb-check.1.gz
 %doc %attr(0644,root,root) /usr/share/man/man1/pamusb-conf.1.gz
 %doc %attr(0644,root,root) /usr/share/man/man1/pamusb-keyring-unlock-gnome.1.gz
+%doc %attr(0644,root,root) /usr/share/man/man1/pamusb-pinentry.1.gz
 %doc %attr(0644,root,root) /usr/share/doc/pam_usb/CONFIGURATION
 %doc %attr(0644,root,root) /usr/share/doc/pam_usb/QUICKSTART
 %doc %attr(0644,root,root) /usr/share/doc/pam_usb/SECURITY
 %doc %attr(0644,root,root) /usr/share/doc/pam_usb/TROUBLESHOOTING
 
 %changelog
-* Thu Jul 26 2024 Tobias Bäumer <tobiasbaeumer@gmail.com> - 0.8.5
+* Fri Jul 26 2024 Tobias Bäumer <tobiasbaeumer@gmail.com> - 0.8.5
 - [Feature] Support multiple devices per user
 - [Enhancement] Misc. memory and string handling stuff
 - [Enhancement] Deny if pads can't be updated
