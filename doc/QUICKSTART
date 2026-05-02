@@ -131,7 +131,7 @@ If you still want to use it, you will have to do four things:
 Auto-unlock your GPG keys
 ------------------------------
 
-You should think twice if you want to enable this feature. To use it you need to put your password in cleartext into your home directory. 
+You should think twice if you want to enable this feature. To use it you need to put your password in cleartext into your home directory. You will also have to install `python3-dotenv` additionally for this to work.
 
 If you still want to use it, you will have to do four things:
 * create `.pinentry.env` in `~/.pamusb/`
