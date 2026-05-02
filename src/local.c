@@ -93,10 +93,11 @@ char *pusb_get_tty_from_display_server(const char *display)
 		if (dent_proc->d_type == DT_DIR && atoi(dent_proc->d_name) != 0 && strcmp(dent_proc->d_name, ".") != 0 && strcmp(dent_proc->d_name, "..") != 0)
 		{
 			memset(cmdline_path, 0, 32);
-			sprintf(cmdline_path, "/proc/%s/cmdline", dent_proc->d_name);
+			snprintf(cmdline_path, 32, "/proc/%s/cmdline", dent_proc->d_name);
 
 			memset(cmdline, 0, 4096);
 			int cmdline_file = open(cmdline_path, O_RDONLY | O_CLOEXEC);
+			if (cmdline_file < 0) continue;
 			int bytes_read = read(cmdline_file, cmdline, 4096);
 			close(cmdline_file);
 			for (int i = 0 ; i < bytes_read; i++) 
@@ -112,7 +113,7 @@ char *pusb_get_tty_from_display_server(const char *display)
 				|| strstr(cmdline, "gdm-wayland-session") != NULL) //@todo: find & add other wayland hosts
 			{
 				memset(fd_path, 0, 32);
-				sprintf(fd_path, "/proc/%s/fd", dent_proc->d_name);
+				snprintf(fd_path, 32, "/proc/%s/fd", dent_proc->d_name);
 
 				DIR *d_fd = opendir(fd_path);
 				if (d_fd == NULL) {
@@ -136,9 +137,11 @@ char *pusb_get_tty_from_display_server(const char *display)
 						memset(link_path, 0, 32);
 						memset(fd_target, 0, 32);
 
-						sprintf(link_path, "/proc/%s/fd/%s", dent_proc->d_name, dent_fd->d_name);
-						if (readlink(link_path, fd_target, 32) != -1)
+						snprintf(link_path, 32, "/proc/%s/fd/%s", dent_proc->d_name, dent_fd->d_name);
+						ssize_t rlen = readlink(link_path, fd_target, 31);
+						if (rlen != -1)
 						{
+							fd_target[rlen] = '\0';
 							if (strstr(fd_target, "/dev/tty") != NULL)
 							{
 								closedir(d_fd);
@@ -176,8 +179,8 @@ char *pusb_get_tty_by_xorg_display(const char *display, const char *user)
 	setutxent();
 	while ((utent = getutxent())) 
 	{
-		if (strncmp(utent->ut_host, display, strnlen(display, sizeof(display))) == 0
-			&& strncmp(utent->ut_user, user, strnlen(user, sizeof(user))) == 0
+		if (strncmp(utent->ut_host, display, strlen(display)) == 0
+			&& strncmp(utent->ut_user, user, strlen(user)) == 0
 			&& (
 				strncmp(utent->ut_line, "tty", sizeof(utent->ut_line)) == 0
 				|| strncmp(utent->ut_line, "console", sizeof(utent->ut_line)) == 0
@@ -186,7 +189,7 @@ char *pusb_get_tty_by_xorg_display(const char *display, const char *user)
 		)
 		{
 			endutxent();
-			return utent->ut_line;
+			return xstrdup(utent->ut_line);
 		}
 	}
 
@@ -200,26 +203,26 @@ char *pusb_get_tty_by_loginctl()
 	char buf[BUFSIZ];
 	FILE *fp;
 
-	if ((fp = popen(loginctl_cmd, "r")) == NULL) 
+	if ((fp = popen(loginctl_cmd, "r")) == NULL)
 	{
 		log_debug("		Opening pipe for 'loginctl' failed, this is quite a wtf...\n");
-		return (0);
+		return NULL;
 	}
 
 	char *tty = NULL;
-	if (fgets(buf, BUFSIZ, fp) != NULL) 
+	if (fgets(buf, BUFSIZ, fp) != NULL)
 	{
 		tty = strtok(buf, "\n");
 		log_debug("		Got tty: %s\n", tty);
 
-		if (pclose(fp)) 
+		if (pclose(fp))
 		{
 			log_debug("		Closing pipe for 'loginctl' failed, this is quite a wtf...\n");
 		}
 
-		return tty;
-	} 
-	else 
+		return tty ? xstrdup(tty) : NULL;
+	}
+	else
 	{
 		log_debug("		'loginctl' returned nothing.\n");
 		if (pclose(fp))
@@ -227,7 +230,7 @@ char *pusb_get_tty_by_loginctl()
 		    log_debug("		Closing pipe for 'loginctl' failed, this is quite a wtf...\n");
 		}
 
-		return (0);
+		return NULL;
 	}
 }
 
@@ -315,7 +318,7 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 	}
 
 	const char *session_tty;
-	char *display = getenv("DISPLAY");
+	const char *display_env = getenv("DISPLAY");
 
 	if (local_request == 0 && strstr(name, "tmux") != NULL && tmux_pid != 0) 
 	{
@@ -326,41 +329,44 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 		}
 
 		char *tmux_client_tty = pusb_tmux_get_client_tty(tmux_pid);
-		if (tmux_client_tty != NULL && tmux_client_tty != 0) 
+		if (tmux_client_tty != NULL)
 		{
 			local_request = pusb_is_tty_local(tmux_client_tty);
-		} 
-		else if (tmux_client_tty == 0) 
+			xfree(tmux_client_tty);
+		}
+		else
 		{
 			return 0;
 		}
 	}
 
-	if (local_request == 0 && display != NULL) 
+	if (local_request == 0 && display_env != NULL)
 	{
+		char display[256];
+		snprintf(display, sizeof(display), "%s", display_env);
 		log_debug("	Using DISPLAY %s for utmp search\n", display);
 
-		if (strstr(display, ".0") != NULL) 
+		if (strstr(display, ".0") != NULL)
 		{
 			// DISPLAY contains not only display but also default screen, truncate screen part in this case
 			log_debug("	DISPLAY contains screen, truncating...\n");
 			memset(display + strlen(display) - 2, 0, 2);
 		}
 
-		local_request = pusb_is_tty_local((char *) display);
+		local_request = pusb_is_tty_local(display);
 
-		char *xorg_tty = (char *)xmalloc(32);
 		if (local_request == 0)
 		{
 			log_debug("	Trying to get tty from display server\n");
-			xorg_tty = pusb_get_tty_from_display_server(display);
+			char *display_server_tty = pusb_get_tty_from_display_server(display);
 
-			if (xorg_tty != NULL)
+			if (display_server_tty != NULL)
 			{
-				log_debug("	Retrying with tty %s, obtained from display server, for utmp search\n", xorg_tty);
-				local_request = pusb_is_tty_local(xorg_tty);
-			} 
-			else 
+				log_debug("	Retrying with tty %s, obtained from display server, for utmp search\n", display_server_tty);
+				local_request = pusb_is_tty_local(display_server_tty);
+				xfree(display_server_tty);
+			}
+			else
 			{
 				log_debug("		Failed, no result while trying to get TTY from display server\n");
 			}
@@ -368,18 +374,20 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 			if (local_request == 0)
 			{
 				log_debug("	Trying to get tty by DISPLAY\n");
-				xorg_tty = pusb_get_tty_by_xorg_display(display, user);
+				char *xorg_tty = pusb_get_tty_by_xorg_display(display, user);
 
 				if (xorg_tty != NULL)
 				{
 					log_debug("	Retrying with tty %s, obtained by DISPLAY, for utmp search\n", xorg_tty);
 					local_request = pusb_is_tty_local(xorg_tty);
-				} else {
+					xfree(xorg_tty);
+				}
+				else
+				{
 					log_debug("		Failed, no result while searching utmp for display %s owned by user %s\n", display, user);
 				}
 			}
 		}
-		xfree(xorg_tty);
 	}
 
 	if (local_request == 0) 
@@ -408,19 +416,17 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 			{
 				log_debug("	Trying to get tty by loginctl\n");
 
-				char *loginctl_tty = (char *)xmalloc(32);
-				loginctl_tty = pusb_get_tty_by_loginctl();
-				if (loginctl_tty != 0)
+				char *loginctl_tty = pusb_get_tty_by_loginctl();
+				if (loginctl_tty != NULL)
 				{
 					log_debug("	Retrying with tty %s, obtained by loginctl, for utmp search\n", loginctl_tty);
 					local_request = pusb_is_tty_local(loginctl_tty);
+					xfree(loginctl_tty);
 				}
 				else
 				{
-					log_debug("		Failed, could not obtain tty from loginctl - see line before this for reason.\n", loginctl_tty);
+					log_debug("		Failed, could not obtain tty from loginctl - see line before this for reason.\n");
 				}
-
-				xfree(loginctl_tty);
 			}
 		}
 	}

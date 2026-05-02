@@ -251,7 +251,7 @@ static int pusb_pad_update(
 		log_debug("/dev/random seeding failed...\n");
 		seed = getpid() * time(NULL); /* low-entropy fallback */
 	}
-	if (devrandom > 0)
+	if (devrandom >= 0)
 	{
 		close(devrandom);
 	}
@@ -280,6 +280,7 @@ void generateRandom(char* output, int sizeBytes)
 	if((fd = open("/dev/random", O_RDONLY)) == -1)
 	{
 		log_error("impossible to read randomness source\n");
+		return;
 	}
 
 	bytes_read = read(fd, output, sizeBytes);
