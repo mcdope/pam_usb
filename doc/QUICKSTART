@@ -99,6 +99,8 @@ At this point, you should be able to authenticate with the relevant removable de
     * Regenerating new pads...
     * Access granted.
 
+If you want to use pamusb with `run0` from systemd, you will have to add it to the file `systemd-run0` in your PAM configuration. At least according to its manpage, I haven't tested it.
+
 Agent
 -----
 
@@ -121,12 +123,21 @@ You should think twice if you want to enable this feature. To use it you need to
 The tool will only work if that file has permissions only for the owner, however - anyone with root/sudo access will still be able to read it. Keep that in mind before using this feature. Even worse: if you have samba user shares enabled you would share your password via SMB shares - to whoever can access that share. To be clear: this is a comfort feature and is insecure by design. 
 
 If you still want to use it, you will have to do four things:
-* create `.keyring_unlock_password` in your home directory
+* create `.keyring_unlock_password` in `~/`
 * in that file you put `UNLOCK_PASSWORD="your_password"` (including the quotes)
 * set permissions so only yourself (and root) can read the file by running `chmod 0600 ~/.keyring_unlock_password`
 * create an autostart entry in GNOME for `/usr/bin/pamusb-keyring-unlock-gnome`
 
+Auto-unlock your GPG keys
+------------------------------
 
+You should think twice if you want to enable this feature. To use it you need to put your password in cleartext into your home directory. You will also have to install `python3-dotenv` additionally for this to work.
+
+If you still want to use it, you will have to do four things:
+* create `.pinentry.env` in `~/.pamusb/`
+* put `PINENTRY_PASSWORD=yourGpgKeyPassword` in there
+* also put `PINENTRY_FALLBACK_APP=/path/to/fallback/pinentry` there (eg `/usr/bin/pinentry-gnome3` or whatever you're using right now)
+* configure GPG to use this application by setting it in `~/.gnupg/gpg-agent.conf`. To do so add `pinentry-program /path/to/pamusb-pinentry` (default: `/usr/bin/pamusb-pinentry`)
 
 Fine Tuning
 -----------

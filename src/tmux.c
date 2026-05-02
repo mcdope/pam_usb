@@ -38,14 +38,20 @@ char *pusb_tmux_get_client_tty(pid_t env_pid)
     }
 
     char *tmux_client_id = strrchr(tmux_details, ',');
+    if (tmux_client_id == NULL)
+    {
+        log_debug("		Malformed TMUX env var (no comma), cannot get client id\n");
+        return NULL;
+    }
     tmux_client_id++; // ... to strip leading comma
     log_debug("		Got tmux_client_id: %s\n", tmux_client_id);
 
     char *tmux_socket_path = strtok(tmux_details, ",");
     log_debug("		Got tmux_socket_path: %s\n", tmux_socket_path);
 
-    char get_tmux_session_details_cmd[128];
-    sprintf(get_tmux_session_details_cmd, "LC_ALL=C; tmux -S \"%s\" list-clients -t \"\\$%s\"", tmux_socket_path, tmux_client_id);
+    size_t get_tmux_session_details_cmd_len = strlen(tmux_socket_path) + strlen(tmux_client_id) + 64;
+    char *get_tmux_session_details_cmd = xmalloc(get_tmux_session_details_cmd_len);
+    snprintf(get_tmux_session_details_cmd, get_tmux_session_details_cmd_len, "LC_ALL=C; tmux -S \"%s\" list-clients -t \"\\$%s\"", tmux_socket_path, tmux_client_id);
     log_debug("		Built get_tmux_session_details_cmd: %s\n", get_tmux_session_details_cmd);
 
     char buf[BUFSIZ];
@@ -53,13 +59,21 @@ char *pusb_tmux_get_client_tty(pid_t env_pid)
     if ((fp = popen(get_tmux_session_details_cmd, "r")) == NULL)
     {
         log_error("tmux detected, but couldn't get session details. Denying since remote check impossible without it!\n");
-        return (0);
+        xfree(get_tmux_session_details_cmd);
+        return NULL;
     }
+    xfree(get_tmux_session_details_cmd);
 
     char *tmux_client_tty = NULL;
     if (fgets(buf, BUFSIZ, fp) != NULL)
     {
         tmux_client_tty = strtok(buf, ":");
+        if (tmux_client_tty == NULL)
+        {
+            log_error("tmux detected, but couldn't parse client tty. Denying.\n");
+            pclose(fp);
+            return NULL;
+        }
         tmux_client_tty += 5; // cut "/dev/"
         log_debug("		Got tmux_client_tty: %s\n", tmux_client_tty);
 
@@ -69,10 +83,6 @@ char *pusb_tmux_get_client_tty(pid_t env_pid)
         }
 
         char *result = xmalloc(strlen(tmux_client_tty) + 1);
-        if (result == NULL) {
-            log_error("Memory allocation failed\n");
-            return 0;
-        }
         strcpy(result, tmux_client_tty);
         return result;
     }
@@ -80,7 +90,7 @@ char *pusb_tmux_get_client_tty(pid_t env_pid)
     {
         log_error("tmux detected, but couldn't get client details. Denying since remote check impossible without it!\n");
         pclose(fp);
-        return (0);
+        return NULL;
     }
 }
 

@@ -173,6 +173,8 @@ configuration will take effect.
 </user>
 ```
 
+For systemd based distributions you can use `loginctl lock-session` as lock `<cmd>`, to unlock you can use `loginctl unlock-session`.
+
 ----------
 
 ## Services
