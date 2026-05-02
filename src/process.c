@@ -40,7 +40,7 @@
 void pusb_get_process_name(const pid_t pid, char *name, size_t name_len)
 {
 	char procfile[BUFSIZ];
-	sprintf(procfile, "/proc/%d/cmdline", pid);
+	snprintf(procfile, sizeof(procfile), "/proc/%d/cmdline", pid);
 	FILE* f = fopen(procfile, "r");
 	if (f)
 	{
@@ -60,7 +60,7 @@ void pusb_get_process_name(const pid_t pid, char *name, size_t name_len)
 void pusb_get_process_parent_id(const pid_t pid, pid_t *ppid)
 {
 	char buffer[BUFSIZ];
-	sprintf(buffer, "/proc/%d/stat", pid);
+	snprintf(buffer, sizeof(buffer), "/proc/%d/stat", pid);
 	FILE* fp = fopen(buffer, "r");
 	if (fp)
 	{
@@ -71,7 +71,8 @@ void pusb_get_process_parent_id(const pid_t pid, pid_t *ppid)
 			strtok(NULL, " "); // (2) comm  %s
 			strtok(NULL, " "); // (3) state  %c
 			char *s_ppid = strtok(NULL, " "); // (4) ppid  %d
-			*ppid = atoi(s_ppid);
+			if (s_ppid != NULL)
+				*ppid = atoi(s_ppid);
 		}
 		fclose(fp);
 	}
@@ -95,7 +96,7 @@ char *pusb_get_process_envvar(pid_t pid, char *var)
 	char buffer[BUFSIZ];
 	char *output = NULL;
 
-	sprintf(buffer, "/proc/%d/environ", pid);
+	snprintf(buffer, sizeof(buffer), "/proc/%d/environ", pid);
 	FILE* fp = fopen(buffer, "r");
 	if (fp)
 	{

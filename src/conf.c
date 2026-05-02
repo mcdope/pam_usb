@@ -169,7 +169,7 @@ int pusb_conf_parse(
 	char device_xpath[sizeof(CONF_USER_XPATH) + CONF_USER_MAXLEN + sizeof("device")];
 
 	log_debug("Parsing settings...\n", user, service);
-	if (strnlen(user, sizeof(user)) > CONF_USER_MAXLEN)
+	if (strlen(user) > CONF_USER_MAXLEN)
 	{
 		log_error("Username \"%s\" is too long (max: %d).\n", user, CONF_USER_MAXLEN);
 		return 0;
@@ -193,7 +193,8 @@ int pusb_conf_parse(
 		doc,
 		device_xpath,
 		device_list,
-		sizeof(opts->device.name)
+		sizeof(opts->device.name),
+		10
 	);
 	if (!retval)
 	{

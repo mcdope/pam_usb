@@ -132,7 +132,8 @@ int pusb_xpath_get_string_list(
 	xmlDocPtr doc,
 	const char *path,
 	char *values[],
-	size_t size
+	size_t size,
+	int max_count
 )
 {
 	xmlXPathObject *result = NULL;
@@ -144,7 +145,7 @@ int pusb_xpath_get_string_list(
 		return 0;
 	}
 
-	for (int currentResult = 0; currentResult < result->nodesetval->nodeNr; currentResult++)
+	for (int currentResult = 0; currentResult < result->nodesetval->nodeNr && currentResult < max_count; currentResult++)
 	{
 		node = result->nodesetval->nodeTab[currentResult]->xmlChildrenNode;
 		result_string = xmlNodeListGetString(doc, node, 1);
