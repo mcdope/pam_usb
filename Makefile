@@ -86,6 +86,10 @@ MANS_DEST := $(DESTDIR)$(PREFIX)/share/man/man1
 PAM_CONF := debian/pam-auth-update/usb
 PAM_CONF_DEST := $(DESTDIR)$(PREFIX)/share/pam-configs
 
+# polkit config
+POLKIT_CONF := doc/systemd-polkit-agent-helper-pamusb.conf
+POLKIT_CONF_DEST := $(DESTDIR)/etc/systemd/system/polkit-agent-helper@.service.d
+
 # Binaries
 RM  := rm
 INSTALL	:= install
@@ -151,6 +155,7 @@ install: all
 	$(INSTALL) -m644 $(MANS) $(MANS_DEST)
 
 	if test -d $(PAM_CONF_DEST); then $(INSTALL) -m644 $(PAM_CONF) $(PAM_CONF_DEST)/libpam-usb; fi
+	if test -d $(POLKIT_CONF_DEST); then $(INSTALL) -m644 $(POLKIT_CONF) $(POLKIT_CONF_DEST)/systemd-polkit-agent-helper-pamusb.conf; fi
 	if test -f $(CONFS_DEST)/pam_usb.conf; then $(INSTALL) -b -m644 $(CONFS) $(CONFS_DEST)/pam_usb.conf.dist; fi
 	if test ! -f $(CONFS_DEST)/pam_usb.conf; then $(INSTALL) -b -m644 $(CONFS) $(CONFS_DEST); fi
 
