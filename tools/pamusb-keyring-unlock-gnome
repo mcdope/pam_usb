@@ -18,7 +18,7 @@
 # Check for valid authentication
 pamusb-check `whoami` > /dev/null 2>&1 || (logger -p local0.error -t ${0##*/}[$$] pamusb-check failed. && exit 1)
 
-# Check if password file exists, first try $HOME then the auth device
+# Check if password file exists
 if [ ! -f ~/.pamusb/.keyring_unlock_password ]; then
     logger -p local0.notice -t ${0##*/}[$$] No password file found, exiting.
     exit 0
