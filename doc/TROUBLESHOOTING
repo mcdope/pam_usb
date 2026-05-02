@@ -88,6 +88,15 @@ Even if you now plug the device, from pam_usb POV the request is failed/finished
 
 It's planned to implement a workaround for this in #221, but no ETA for that.
 
+My screen wont lock when using pam_usb
+--------------
+
+Are you using KDE / `klockscreen` by any chance? And is your device still plugged?
+
+Some lockscreens start the PAM chain already at time of lock. If you use only a password, that's fine. But if you use pam_usb, it will see "hey, the device is there and valid - I'll allow this". It's basically the inverted version of the topic in the paragraph above (see https://github.com/mcdope/pam_usb/wiki/Troubleshooting#pam_usb-not-working-in-login-manager-when-the-device-wasnt-plugged-before-login-manager-started--always-asked-for-password)
+
+If you are not using KDE, please create an issue.
+
 
 My media isn't accepted after I unplugged it before
 --------------
