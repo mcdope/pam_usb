@@ -113,3 +113,16 @@ If you have SELinux enabled you will likely get errors with pam_usb. At least on
 There is now a profile available for Fedora 40 that you can install to allow pam_usb to work like intended. To install it download both files from `selinux/<yourDistribution>` to some directory, open a shell in that directory and then run `semodule login.pp`. Replace "login" with the actual profile you want to install, but so far there is only one for login. It may work on other distributions or releases, too but this is untested. 
 
 In case it doesn't work for you, see the discussion at https://github.com/mcdope/pam_usb/discussions/241 to find out how to create your own profile.
+
+PolicyKit and pam_usb
+--------------
+
+PolicyKit and pam_usb are incompatible by design, since polkit isn't made for conversation less authentication flow. Modules like fingerprint have special dbus integrations in polkit allowing them to work, which is not an option for us. 
+
+You need to actively exclude pam_usb from polkit-1 authentication requests. This can be done by putting the following line BEFORE your pam_usb line in your pam config:
+
+```
+[success=1 default=ignore]	pam_succeed_if.so service = polkit-1 quiet
+```
+
+On Debian based distributions this is done automatically when installed from package.
