@@ -5,7 +5,6 @@
 
 if [ "$1" = "configure" ] || [ "$1" = "abort-upgrade" ] || [ "$1" = "abort-deconfigure" ] || [ "$1" = "abort-remove" ] ; then
     pam-auth-update --package
-    systemctl daemon-reload
 
     ALREADY_CONFIGED=`cat /etc/security/pam_usb.conf 2>&1 | grep "<device id=" | grep -v "MyDevice" | wc -l`
     if [ "$ALREADY_CONFIGED" = "0" ]

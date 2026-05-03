@@ -59,9 +59,6 @@ rm -rf %{buildroot}/usr/share/pam-configs
 %doc %attr(0644,root,root) /usr/share/doc/pam_usb/SECURITY
 %doc %attr(0644,root,root) /usr/share/doc/pam_usb/TROUBLESHOOTING
 
-%post
-systemctl daemon-reload
-
 %changelog
 * Fri Jul 26 2024 Tobias Bäumer <tobiasbaeumer@gmail.com> - 0.8.5
 - [Feature] Support multiple devices per user
