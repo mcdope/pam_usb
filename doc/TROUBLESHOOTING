@@ -117,7 +117,7 @@ In case it doesn't work for you, see the discussion at https://github.com/mcdope
 PolicyKit and pam_usb
 --------------
 
-PolicyKit and pam_usb are incompatible by design, since polkit isn't made for conversation less authentication flow. Modules like fingerprint have special dbus integrations in polkit allowing them to work, which is not an option for us. 
+PolicyKit and pam_usb are incompatible by design, since polkit isn't made for conversation less authentication flow. Modules like fingerprint have special dbus integrations in polkit allowing them to work, which is not an option for us. For more details see https://github.com/mcdope/pam_usb/issues/278#issuecomment-4365862274 and the comments below.
 
 You need to actively exclude pam_usb from polkit-1 authentication requests. This can be done by putting the following line BEFORE your pam_usb line in your pam config:
 
