@@ -103,6 +103,33 @@ int pam_sm_authenticate(
 	if (pusb_device_check(&opts, user))
 	{
 		log_info("Access granted.\n");
+
+		/**
+		 * <PolicyKit workaround>
+		 * polkit is REALLY unhappy if we don't do emit PAM_PROMPT_ECHO_OFF
+		 * Sadly this requires the user to press a button after authenticating, this is unavoidable by polkit design
+		 * @see https://gemini.google.com/share/6ca3bdb2436f
+		 **/
+		if (strcmp(service, "polkit-1") == 0) {
+			log_debug("PolicyKit authentication detected, applying workaround.\n");
+			const struct pam_conv *conv;
+			int polkit_conv_retval = pam_get_item(pamh, PAM_CONV, (const void **)&conv);
+
+			if (polkit_conv_retval == PAM_SUCCESS && conv != NULL && conv->conv != NULL) {
+				int polkit_retval;
+				char *response = NULL;
+
+				polkit_retval = pam_prompt(pamh, PAM_PROMPT_ECHO_OFF, &response, "Password: ");
+
+				if (polkit_retval == PAM_SUCCESS) {
+					if (response != NULL) {
+						free(response);
+					}
+				}
+			}
+		}
+		// </PolicyKit workaround>
+
 		return PAM_SUCCESS;
 	}
 	log_error("Access denied.\n");
