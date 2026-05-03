@@ -1,3 +1,12 @@
+* 0.8.6
+  [Enhancement] Documentation updates
+  [Enhancement] Remote VSCode tunnels are now detected in deny_remote check (thx @jaoppb)
+  [Bugfix] Fixed multiple memory issues
+  [Bugfix] Possible pad corruption fixed (#278)
+  [Bugfix] Exclude pam_usb from polkit authentication flow (see documentation)
+  [Tools] Add optional pinentry application (see documentation)
+  [Misc] We are the official upstream (since 2024, shortly after 0.8.5)
+
 * 0.8.5
   [Feature] Support multiple devices per user
   [Enhancement] Misc. memory and string handling stuff
