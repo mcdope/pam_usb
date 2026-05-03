@@ -1,3 +1,14 @@
+libpam-usb (0.8.6) unstable; urgency=medium
+  * [Enhancement] Documentation updates
+  * [Enhancement] Remote VSCode tunnels are now detected in deny_remote check (thx @jaoppb)
+  * [Bugfix] Fixed multiple memory issues
+  * [Bugfix] Possible pad corruption fixed (#278)
+  * [Bugfix] Exclude pam_usb from polkit authentication flow (see documentation)
+  * [Tools] Add optional pinentry application (see documentation)
+  * [Misc] We are the official upstream (since 2024, shortly after 0.8.5)
+
+ -- Tobias Bäumer <tobiasbaeumer@gmail.com>  Sun, 03 May 2026 21:00:00 +0200
+
 libpam-usb (0.8.5) unstable; urgency=medium
   * [Feature] Support multiple devices per user
   * [Enhancement] Misc. memory and string handling stuff

@@ -1,7 +1,7 @@
 %define _topdir         /usr/local/src/pam_usb/fedora
 %define name            pam_usb 
 %define release         1
-%define version         0.8.5
+%define version         0.8.6
 %define buildroot       %{_topdir}/%{name}‑%{version}‑root
 
 BuildRoot: %{buildroot}
@@ -60,6 +60,15 @@ rm -rf %{buildroot}/usr/share/pam-configs
 %doc %attr(0644,root,root) /usr/share/doc/pam_usb/TROUBLESHOOTING
 
 %changelog
+* Fri May 03 2026 Tobias Bäumer <tobiasbaeumer@gmail.com> - 0.8.6
+- [Enhancement] Documentation updates
+- [Enhancement] Remote VSCode tunnels are now detected in deny_remote check (thx @jaoppb)
+- [Bugfix] Fixed multiple memory issues
+- [Bugfix] Possible pad corruption fixed (#278)
+- [Tools] Add optional pinentry application (see documentation)
+- [Misc] We are the official upstream (since 2024, shortly after 0.8.5)
+- IMPORTANT: Exclude pam_usb from polkit authentication flow (see QUICKSTART/TROUBLESHOOTING)
+
 * Fri Jul 26 2024 Tobias Bäumer <tobiasbaeumer@gmail.com> - 0.8.5
 - [Feature] Support multiple devices per user
 - [Enhancement] Misc. memory and string handling stuff
