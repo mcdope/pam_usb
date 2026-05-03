@@ -31,16 +31,15 @@
 #include "volume.h"
 #include "pad.h"
 
-static FILE *pusb_pad_open_device(
+static int pusb_pad_build_device_path(
 	t_pusb_options *opts,
 	const char *mnt_point,
 	const char *user,
-	const char *mode
+	char *path_out,
+	size_t path_size
 )
 {
-	FILE *f;
 	char path_devpad[1024*5];
-	char path_userpad[1024*5];
 	struct stat sb;
 
 	snprintf(path_devpad, sizeof(path_devpad), "%s/%s", mnt_point, opts->device_pad_directory);
@@ -50,39 +49,34 @@ static FILE *pusb_pad_open_device(
 		if (mkdir(path_devpad, S_IRUSR | S_IWUSR | S_IXUSR) != 0)
 		{
 			log_debug("Unable to create directory %s: %s\n", path_devpad, strerror(errno));
-			return NULL;
+			return 0;
 		}
 	}
 
 	snprintf(
-		path_userpad,
-		sizeof(path_userpad),
+		path_out,
+		path_size,
 		"%s/%s/%s.%s.pad",
 		mnt_point,
 		opts->device_pad_directory,
 		user,
 		opts->hostname
 	);
-	f = fopen(path_userpad, mode);
-	if (!f)
-	{
-		log_debug("Cannot open device file: %s\n", strerror(errno));
-		return NULL;
-	}
-	return (f);
+	return 1;
 }
 
-static FILE *pusb_pad_open_system(
+static int pusb_pad_build_system_path(
 	t_pusb_options *opts,
 	const char *user,
-	const char *mode
+	char *path_out,
+	size_t path_size
 )
 {
-	FILE *f;
 	struct passwd *user_ent = NULL;
 	struct stat sb;
 	char device_name[128];
 	char *device_name_ptr = device_name;
+	char dir_path[1024*5];
 
 	if (!(user_ent = getpwnam(user)) || !(user_ent->pw_dir))
 	{
@@ -90,29 +84,28 @@ static FILE *pusb_pad_open_system(
 		return 0;
 	}
 
-	char path[1024*5];
 	snprintf(
-		path,
-		sizeof(path),
+		dir_path,
+		sizeof(dir_path),
 		"%s/%s",
 		user_ent->pw_dir,
 		opts->system_pad_directory
 	);
-	if (stat(path, &sb) != 0)
+	if (stat(dir_path, &sb) != 0)
 	{
-		log_debug("Directory %s does not exist, creating one.\n", path);
-		if (mkdir(path, S_IRUSR | S_IWUSR | S_IXUSR) != 0)
+		log_debug("Directory %s does not exist, creating one.\n", dir_path);
+		if (mkdir(dir_path, S_IRUSR | S_IWUSR | S_IXUSR) != 0)
 		{
-			log_debug("Unable to create directory %s: %s\n", path, strerror(errno));
-			return NULL;
+			log_debug("Unable to create directory %s: %s\n", dir_path, strerror(errno));
+			return 0;
 		}
 
-		if (chown(path, user_ent->pw_uid, user_ent->pw_gid) != 0)
+		if (chown(dir_path, user_ent->pw_uid, user_ent->pw_gid) != 0)
 		{
-			log_error("Unable to chown directory %s: %s\n", path, strerror(errno));
+			log_error("Unable to chown directory %s: %s\n", dir_path, strerror(errno));
 		}
 
-		chmod(path, S_IRUSR | S_IWUSR | S_IXUSR);
+		chmod(dir_path, S_IRUSR | S_IWUSR | S_IXUSR);
 	}
 	/* change slashes in device name to underscores */
 	snprintf(device_name, sizeof(device_name), "%s", opts->device.name);
@@ -127,13 +120,52 @@ static FILE *pusb_pad_open_system(
 	}
 
 	snprintf(
-		path,
-		sizeof(path),
+		path_out,
+		path_size,
 		"%s/%s/%s.pad",
 		user_ent->pw_dir,
 		opts->system_pad_directory,
 		device_name
 	);
+	return 1;
+}
+
+static FILE *pusb_pad_open_device(
+	t_pusb_options *opts,
+	const char *mnt_point,
+	const char *user,
+	const char *mode
+)
+{
+	FILE *f;
+	char path[1024*5];
+
+	if (!pusb_pad_build_device_path(opts, mnt_point, user, path, sizeof(path)))
+	{
+		return NULL;
+	}
+	f = fopen(path, mode);
+	if (!f)
+	{
+		log_debug("Cannot open device file: %s\n", strerror(errno));
+		return NULL;
+	}
+	return f;
+}
+
+static FILE *pusb_pad_open_system(
+	t_pusb_options *opts,
+	const char *user,
+	const char *mode
+)
+{
+	FILE *f;
+	char path[1024*5];
+
+	if (!pusb_pad_build_system_path(opts, user, path, sizeof(path)))
+	{
+		return NULL;
+	}
 	f = fopen(path, mode);
 	if (!f)
 	{
@@ -215,6 +247,10 @@ static int pusb_pad_update(
 {
 	FILE *f_device = NULL;
 	FILE *f_system = NULL;
+	char path_device[1024*5];
+	char path_system[1024*5];
+	char path_device_tmp[1024*5 + 8];
+	char path_system_tmp[1024*5 + 8];
 	char magic[1024];
 	unsigned int seed;
 	int devrandom;
@@ -225,20 +261,21 @@ static int pusb_pad_update(
 	}
 
 	log_info("Regenerating new pads...\n");
-	if (!(f_device = pusb_pad_open_device(opts, volume, user, "w+")))
-	{
-		log_error("Unable to update device pads.\n");
-		return 0;
-	}
-	pusb_pad_protect(user, fileno(f_device));
 
-	if (!(f_system = pusb_pad_open_system(opts, user, "w+")))
+	if (!pusb_pad_build_device_path(opts, volume, user, path_device, sizeof(path_device)))
 	{
-		log_error("Unable to update system pads.\n");
-		fclose(f_device);
+		log_error("Unable to determine device pad path.\n");
 		return 0;
 	}
-	pusb_pad_protect(user, fileno(f_system));
+
+	if (!pusb_pad_build_system_path(opts, user, path_system, sizeof(path_system)))
+	{
+		log_error("Unable to determine system pad path.\n");
+		return 0;
+	}
+
+	snprintf(path_device_tmp, sizeof(path_device_tmp), "%s.tmp", path_device);
+	snprintf(path_system_tmp, sizeof(path_system_tmp), "%s.tmp", path_system);
 
 	log_debug("Generating %d bytes unique pad...\n", sizeof(magic));
 	/**
@@ -258,17 +295,66 @@ static int pusb_pad_update(
 
 	generateRandom(magic, sizeof(magic));
 
-	log_debug("Writing pad to the device...\n");
-	fwrite(magic, sizeof(char), sizeof(magic), f_system);
+	if (!(f_device = fopen(path_device_tmp, "w")))
+	{
+		log_error("Unable to create temp device pad: %s\n", strerror(errno));
+		return 0;
+	}
+	pusb_pad_protect(user, fileno(f_device));
+
+	if (!(f_system = fopen(path_system_tmp, "w")))
+	{
+		log_error("Unable to create temp system pad: %s\n", strerror(errno));
+		fclose(f_device);
+		unlink(path_device_tmp);
+		return 0;
+	}
+	pusb_pad_protect(user, fileno(f_system));
+
 	log_debug("Writing pad to the system...\n");
-	fwrite(magic, sizeof(char), sizeof(magic), f_device);
+	if (fwrite(magic, sizeof(char), sizeof(magic), f_system) != sizeof(magic))
+	{
+		log_error("Failed to write system pad: %s\n", strerror(errno));
+		fclose(f_system);
+		fclose(f_device);
+		unlink(path_system_tmp);
+		unlink(path_device_tmp);
+		return 0;
+	}
+
+	log_debug("Writing pad to the device...\n");
+	if (fwrite(magic, sizeof(char), sizeof(magic), f_device) != sizeof(magic))
+	{
+		log_error("Failed to write device pad: %s\n", strerror(errno));
+		fclose(f_system);
+		fclose(f_device);
+		unlink(path_system_tmp);
+		unlink(path_device_tmp);
+		return 0;
+	}
+
 	log_debug("Synchronizing filesystems...\n");
 	fsync(fileno(f_system));
 	fsync(fileno(f_device));
 	fclose(f_system);
 	fclose(f_device);
-	log_debug("One time pads updated.\n");
 
+	if (rename(path_system_tmp, path_system) != 0)
+	{
+		log_error("Failed to install system pad: %s\n", strerror(errno));
+		unlink(path_system_tmp);
+		unlink(path_device_tmp);
+		return 0;
+	}
+
+	if (rename(path_device_tmp, path_device) != 0)
+	{
+		log_error("Failed to install device pad: %s\n", strerror(errno));
+		unlink(path_device_tmp);
+		return 0;
+	}
+
+	log_debug("One time pads updated.\n");
 	return 1;
 }
 

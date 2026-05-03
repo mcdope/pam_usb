@@ -77,6 +77,7 @@ This is a current standard which uses passwords to authenticate a user.
 
 Alter your `/etc/pam.d/common-auth` configuration to:
 
+    [success=1 default=ignore]	pam_succeed_if.so service = polkit-1 quiet
     auth    sufficient      pam_usb.so
     auth    required        pam_unix.so nullok_secure
 
