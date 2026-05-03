@@ -263,3 +263,5 @@ build-arch: buildenv-arch
 		-v`pwd`:/usr/local/src/pam_usb \
 		--rm mcdope/pam_usb-arch-build \
 		sh -c "chown -R builduser:builduser . && sudo -u builduser make zst && chown -R $(UID):$(GID) ."
+
+build-all: buildenv-arch buildenv-debian buildenv-fedora build-arch build-debian build-fedora
