@@ -17,6 +17,7 @@
 
 import sys
 import os
+import re
 import gi
 import subprocess
 import socket
@@ -352,14 +353,23 @@ def resetPads():
 			if user.getAttribute('id') == options['resetPads']:
 				# Device specific pad for user
 				userDevice = user.getElementsByTagName('device')[0].firstChild.nodeValue
+				if '/' in userDevice or '..' in userDevice:
+					print('Invalid device ID in config (path traversal): %s' % userDevice)
+					sys.exit(1)
 				padFiles.append('/home/%s/.pamusb/%s.pad' % (options['resetPads'], userDevice))
 
 				# User specific pad for device
 				for details in devicesObj:
 					if details.getAttribute('id') == userDevice:
 						deviceUUID = details.getElementsByTagName('volume_uuid')[0].firstChild.nodeValue
+						if not re.match(r'^[0-9a-fA-F\-]+$', deviceUUID):
+							print('Invalid device UUID in config: %s' % deviceUUID)
+							sys.exit(1)
 						try:
-							deviceMountPoint = subprocess.check_output(['mount | grep `readlink -f /dev/disk/by-uuid/%s` | awk \'{print $3}\'' % (deviceUUID)], shell=True)
+							deviceMountPoint = subprocess.check_output(
+								['findmnt', '-n', '-o', 'TARGET', '--source', '/dev/disk/by-uuid/' + deviceUUID],
+								stderr=subprocess.DEVNULL
+							)
 							padFiles.append('%s/.pamusb/%s.%s.pad' % (deviceMountPoint.decode().strip(), options['resetPads'], socket.gethostname()))
 						except subprocess.CalledProcessError as err:
 							print('Could not get device mountpoint: ', err)

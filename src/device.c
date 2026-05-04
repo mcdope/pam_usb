@@ -50,16 +50,28 @@ static int pusb_device_connected(t_pusb_options *opts, UDisksClient *udisks)
 			if (udisks_object_peek_drive(object))
 			{
 				drive = udisks_object_get_drive(object);
-				retval = strcmp(udisks_drive_get_serial(drive), opts->device_list[currentDevice].serial) == 0;
+
+				const gchar *serial = udisks_drive_get_serial(drive);
+				if (!serial)
+				{
+					log_debug("Drive has no serial number, skipping.\n");
+					g_object_unref(drive);
+					continue;
+				}
+				retval = strcmp(serial, opts->device_list[currentDevice].serial) == 0;
 
 				if (strcmp(opts->device_list[currentDevice].vendor, "Generic") != 0)
 				{
-					retval = retval && strcmp(udisks_drive_get_vendor(drive), opts->device_list[currentDevice].vendor) == 0;
+					const gchar *vendor = udisks_drive_get_vendor(drive);
+					retval = retval && vendor != NULL &&
+					         strcmp(vendor, opts->device_list[currentDevice].vendor) == 0;
 				}
 
 				if (strcmp(opts->device_list[currentDevice].model, "Generic") != 0)
 				{
-					retval = retval && strcmp(udisks_drive_get_model(drive), opts->device_list[currentDevice].model) == 0;
+					const gchar *model = udisks_drive_get_model(drive);
+					retval = retval && model != NULL &&
+					         strcmp(model, opts->device_list[currentDevice].model) == 0;
 				}
 
 				g_object_unref(drive);

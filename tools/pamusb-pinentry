@@ -16,6 +16,7 @@
 # Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 import os
+import sys
 import subprocess
 import getpass
 from dotenv import load_dotenv
@@ -35,4 +36,8 @@ if (isAuthenticated.returncode == 0):
             exit()
         print("OK")
 else:
-    subprocess.run(fallbackPinentryApp)
+    if fallbackPinentryApp and os.path.isabs(fallbackPinentryApp) and os.path.isfile(fallbackPinentryApp) and os.access(fallbackPinentryApp, os.X_OK):
+        subprocess.run([fallbackPinentryApp])
+    else:
+        sys.stderr.write('PINENTRY_FALLBACK_APP is not set or not a valid executable path, cannot fall back.\n')
+        sys.exit(1)
