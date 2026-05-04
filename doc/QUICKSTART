@@ -77,7 +77,6 @@ This is a current standard which uses passwords to authenticate a user.
 
 Alter your `/etc/pam.d/common-auth` configuration to:
 
-    [success=1 default=ignore]	pam_succeed_if.so service = polkit-1 quiet
     auth    sufficient      pam_usb.so
     auth    required        pam_unix.so nullok_secure
 
@@ -124,9 +123,9 @@ You should think twice if you want to enable this feature. To use it you need to
 The tool will only work if that file has permissions only for the owner, however - anyone with root/sudo access will still be able to read it. Keep that in mind before using this feature. Even worse: if you have samba user shares enabled you would share your password via SMB shares - to whoever can access that share. To be clear: this is a comfort feature and is insecure by design. 
 
 If you still want to use it, you will have to do four things:
-* create `.keyring_unlock_password` in `~/`
+* create `.keyring_unlock_password` in `~/.pamusb/`
 * in that file you put `UNLOCK_PASSWORD="your_password"` (including the quotes)
-* set permissions so only yourself (and root) can read the file by running `chmod 0600 ~/.keyring_unlock_password`
+* set permissions so only yourself (and root) can read the file by running `chmod 0600 ~/.pamusb/.keyring_unlock_password`
 * create an autostart entry in GNOME for `/usr/bin/pamusb-keyring-unlock-gnome`
 
 Auto-unlock your GPG keys

@@ -48,6 +48,7 @@ rm -rf %{buildroot}/usr/share/pam-configs
 %attr(0755,root,root) /usr/bin/pamusb-pinentry
 
 %config(noreplace) %attr(0644,root,root) /etc/security/pam_usb.conf
+%config(noreplace) %attr(0644,root,root) /usr/lib/systemd/system/polkit-agent-helper@.service.d/systemd-polkit-agent-helper-pamusb.conf
 
 %doc %attr(0644,root,root) /usr/share/man/man1/pamusb-agent.1.gz
 %doc %attr(0644,root,root) /usr/share/man/man1/pamusb-check.1.gz

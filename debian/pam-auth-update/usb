@@ -4,8 +4,6 @@ Priority: 1000
 
 Auth-Type: Primary
 Auth:
-    [success=1 default=ignore]	pam_succeed_if.so service = polkit-1 quiet
 	sufficient	pam_usb.so
 Auth-Initial:
-    [success=1 default=ignore]	pam_succeed_if.so service = polkit-1 quiet
 	sufficient	pam_usb.so

@@ -114,15 +114,35 @@ There is now a profile available for Fedora 40 that you can install to allow pam
 
 In case it doesn't work for you, see the discussion at https://github.com/mcdope/pam_usb/discussions/241 to find out how to create your own profile.
 
-PolicyKit and pam_usb
+PolicyKit 127 and pam_usb
 --------------
 
-PolicyKit and pam_usb are incompatible by design, since polkit isn't made for conversation less authentication flow. Modules like fingerprint have special dbus integrations in polkit allowing them to work, which is not an option for us. For more details see https://github.com/mcdope/pam_usb/issues/278#issuecomment-4365862274 and the comments below.
+PolicyKit starting from 127 and pam_usb are incompatible in the default configuration. This is caused by the [introduction of a socket based polkit-agent-helper](https://github.com/polkit-org/polkit/commit/c007940054392b67b84b6044dda8a215040d8eb5). You will have to a) disable the socket service b) re-enable suid and c) redo that on every polkit upgrade until they fix their agent (not only pam_usb is influenced by this). 
 
-You need to actively exclude pam_usb from polkit-1 authentication requests. This can be done by putting the following line BEFORE your pam_usb line in your pam config:
+Details:
 
+#### 1. Disable the Systemd Socket
+Stop and disable the socket so systemd stops intercepting the authentication requests. Open your terminal and run:
+```bash
+sudo systemctl disable --now polkit-agent-helper.socket
 ```
-[success=1 default=ignore]	pam_succeed_if.so service = polkit-1 quiet
-```
 
-On Debian based distributions this is done automatically when installed from package.
+#### 2. Restore the SUID Bit on the Helper Binary
+Because you disabled the socket, polkit will fall back to executing the agent helper directly. For this to work, the binary **must** have the SUID (Set Owner User ID) bit set. Since your distribution's package manager likely stripped this bit in the v127 update, you will need to restore it manually.
+
+First, locate your `polkit-agent-helper-1` binary. It is typically found at one of these two paths, depending on your distribution:
+* `/usr/lib/polkit-1/polkit-agent-helper-1` (Debian, Ubuntu, Fedora, openSUSE)
+* `/usr/libexec/polkit-1/polkit-agent-helper-1` (Arch Linux)
+
+Once you confirm the path, restore the SUID bit and set root ownership:
+```bash
+sudo chown root:root /usr/lib/polkit-1/polkit-agent-helper-1
+sudo chmod u+s /usr/lib/polkit-1/polkit-agent-helper-1
+```
+*(Remember to replace the path if your system uses the `/usr/libexec/` directory).*
+
+#### A Quick Warning on Package Updates
+Because you are modifying the permissions of a package-managed file manually, a future update to the `polkit` package might overwrite your changes and strip the SUID bit again. Many distributions are currently working on patches or have temporarily downgraded polkit to `126` in their repositories, so keeping your system up-to-date should eventually resolve the underlying bug natively.
+
+#### Alternative way, without messing with polkit
+Create a copy of your common-auth pam config (or whatever file it is on your distribution) and name it polkit-1. Remove pam_usb from it. 
