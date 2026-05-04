@@ -40,6 +40,7 @@ static void pusb_conf_options_get_from(
 	pusb_xpath_get_time_from(doc, from, "option[@name='pad_expiration']", &(opts->pad_expiration));
 	pusb_xpath_get_time_from(doc, from, "option[@name='probe_timeout']", &(opts->probe_timeout));
 	pusb_xpath_get_bool_from(doc, from, "option[@name='deny_remote']", &(opts->deny_remote));
+	pusb_xpath_get_bool_from(doc, from, "option[@name='superuser']", &(opts->superuser));
 }
 
 static int pusb_conf_parse_options(
@@ -220,6 +221,49 @@ int pusb_conf_parse(
 		pusb_conf_parse_device(opts, doc, currentDevice, device_list[currentDevice]);
 	}
 
+	/* Mark devices that carry superuser="true" in the user's <device> elements. */
+	{
+		size_t su_len = sizeof(CONF_USER_XPATH) + CONF_USER_MAXLEN
+		                + sizeof("device[@superuser='true']");
+		char *su_xpath = xmalloc(su_len);
+		if (!su_xpath)
+		{
+			log_error("Memory allocation failed\n");
+			xmlFreeDoc(doc);
+			xmlCleanupParser();
+			for (int i = 0; i < 10; i++) xfree(device_list[i]);
+			return 0;
+		}
+		snprintf(su_xpath, su_len, CONF_USER_XPATH, user, "device[@superuser='true']");
+
+		char *su_names[10];
+		for (int i = 0; i < 10; i++)
+		{
+			su_names[i] = xmalloc(128);
+			memset(su_names[i], 0, 128);
+		}
+
+		if (pusb_xpath_get_string_list(doc, su_xpath, su_names, sizeof(opts->device.name), 10))
+		{
+			for (int i = 0; i < 10; i++)
+			{
+				if (opts->device_list[i].name[0] == '\0') continue;
+				for (int j = 0; j < 10; j++)
+				{
+					if (su_names[j][0] == '\0') continue;
+					if (strcmp(opts->device_list[i].name, su_names[j]) == 0)
+					{
+						opts->device_list[i].superuser = 1;
+						break;
+					}
+				}
+			}
+		}
+
+		for (int i = 0; i < 10; i++) xfree(su_names[i]);
+		xfree(su_xpath);
+	}
+
 	if (!pusb_conf_parse_options(opts, doc, user, service))
 	{
 		xmlFreeDoc(doc);
@@ -231,6 +275,23 @@ int pusb_conf_parse(
 		}
 		return (0);
 	}
+
+	/* If the service requires a superuser device, remove non-superuser devices. */
+	if (opts->superuser)
+	{
+		log_debug("Service \"%s\" requires superuser device. Filtering device list.\n", service);
+		for (int i = 0; i < 10; i++)
+		{
+			if (opts->device_list[i].name[0] == '\0') continue;
+			if (!opts->device_list[i].superuser)
+			{
+				log_debug("Device \"%s\" excluded for service \"%s\" (no superuser attribute).\n",
+				          opts->device_list[i].name, service);
+				memset(&opts->device_list[i], 0, sizeof(t_pusb_device));
+			}
+		}
+	}
+
 	xmlFreeDoc(doc);
 	xmlCleanupParser();
 
