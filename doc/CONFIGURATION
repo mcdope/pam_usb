@@ -1,255 +1,383 @@
-Configuration file reference
-============================
-
-The configuration file is formatted in XML and subdivided in 4 sections:
-
-* Default options, shared among every device, user and service
-* Devices declaration and settings
-* Users declaration and settings
-* Services declaration and settings
-
-Note that for changes to the agent / events config you need to restart the agent service for them to take effect. Other changes are picked up on next pam_usb usage.
-
-The syntax is the following:
-
-```xml
-<configuration>
-    <defaults>
-        <!-- default options -->
-    </defaults>
-
-    <devices>
-        <!-- devices definitions -->
-    </devices>
-
-    <users>
-        <!-- users definitions -->
-    </users>
-
-    <services>
-        <!-- services definitions -->
-    </services>
-</configuration>
-```
-
-----------
-
-## Options
-
-|          Name          |  Type   |       Default       |                         Description                              |
-|------------------------|---------|---------------------|------------------------------------------------------------------|
-| `enable`               | Boolean | `true`              | Enable pam_usb                                                   |
-| `debug`                | Boolean | `false`             | Enable debug messages                                            |
-| `quiet`                | Boolean | `false`             | Quiet mode                                                       |
-| `color_log`            | Boolean | `true`              | Enable colored output                                            |
-| `one_time_pad`         | Boolean | `true`              | Enable the use of one time device-associated pad files           |
-| `deny_remote`          | Boolean | `true`              | Deny access from remote host (SSH)                               |
-| `probe_timeout`        | Time    | `10s`               | Time to wait for the volume to be detected                       |
-| `pad_expiration`       | Time    | `1h`                | Time between pad file regeneration                               |
-| `hostname`             | String  | Computer's hostname | Must be unique accross computers using the same device           |
-| `system_pad_directory` | String  | `.pamusb`           | Relative path to the user's home used to store one time pads     |
-| `device_pad_directory` | String  | `.pamusb`           | Relative path to the device used to store one time pad files     |
-
-### Example:
-
-```xml
-<configuration>
-    <defaults>
-        <!-- Disable colored output by default -->
-        <option name="color_log">false</option>
-        <!-- Enable debug output -->
-        <option name="debug">true</option>
-    </defaults>
-
-    <users>
-        <user id="root">
-            <!-- Enable colored output for user "root" -->
-            <option name="color_log">true</option>
-        </user>
-
-        <user id="scox">
-             <!-- Disable debug output for user "scox" -->
-             <option name="debug">false</option>
-        </user>
-    </users>
-
-    <devices>
-        <device id="mydevice">
-            <!-- Wait 15 seconds instead of the default 10 seconds for "mydevice" to be detected -->
-            <option name="probe_timeout">15</option>
-        </device>
-    </devices>
-
-    <services>
-        <service id="su">
-            <!-- Disable pam_usb for "su" ("su" will ask for a password as usual) -->
-            <option name="enable">false<option>
-       </service>
-    </services>
-</configuration>
-```
-
-----------
-
-## Devices
-
-
-|     Name      |   Type    |                  Description                   |        Example         |
-|---------------|-----------|------------------------------------------------|------------------------|
-| `id`          | Attribute | Arbitrary device name                          | `MyDevice`             |
-| `vendor`      | Element   | Device's vendor name                           | `SanDisk Corp.`        |
-| `model`       | Element   | Device's model name                            | `Cruzer Titanium`      |
-| `serial`      | Element   | Serial number of the device                    | `SNDKXXXXXXXXXXXXXXXX` |
-| `volume_uuid` | Element   | UUID of the device's volume used to store pads | `6F6B-42FC`            |
-
-### Note:
-Some cheap devices don't report a vendor and/or model. To use these devices you can use "Generic" for these values, then it won't be checked.
-Be aware that this reduces security if you have `one_time_pads` disabled since the device containing the volume won't be checked anymore (but these attributes could be faked with a custom firmware anyway).
-
-### Example:
-
-```xml
-<device id="MyDevice">
-    <vendor>SanDisk Corp.</vendor>
-    <model>Cruzer Titanium</model>
-    <serial>SNDKXXXXXXXXXXXXXXXX</serial>
-    <volume_uuid>6F6B-42FC</volume_uuid>
-</device>
-```
-
-----------
-
-## Users
-
-|   Name   |   Type    |                Description                |  Example   |
-|----------|-----------|-------------------------------------------|------------|
-| `id`     | Attribute | Login of the user                         | `root`     |
-| `device` | Element   | `id` of the device associated to the user | `MyDevice` |
-| `agent`  | Element   | Agent commands, for use with pamusb-agent |            |
-
-Note that one `<user>` can have multiple `<device>` (from v0.8.5 up).
-
-### Agent
-
-The agent is to be run as system service. If you installed by using the debian package it will automatically be configured as
-systemd service unit. In case you use another init / service management you will need to set it up yourself before any event
-configuration will take effect.
-
-
-| Name  |   Type    |                                             Description                                                         |
-|-------|-----------|-----------------------------------------------------------------------------------------------------------------|
-| `env` | Attribute | Environment variable for the command. For multiple environment variables use multiple `env` tags.               |
-| `cmd` | Attribute | Agent command, associated with `env` tags in the same agent element. Multiple/chained `cmd` elements supported. |
-
-### Example:
-
-```xml
-<user id="scox">
-    <device>MyDevice</device>
-
-    <!-- When the user "scox" removes the usb device, lock the screen and pause beep-media-player -->
-    <agent event="lock">
-        <env>DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus</env>
-        <env>HOME=/home/scox</env>
-        <cmd>gnome-screensaver-command --lock</cmd>
-        <cmd>sleep 5</cmd>
-        <cmd>pkill -SIGSTOP -u 1000</cmd>
-    </agent>
-    <agent event="lock">
-        <cmd>beep-media-player --pause</cmd>
-    </agent>
-
-    <!-- Resume operations when the usb device is plugged back and authenticated -->
-    <agent event="unlock">
-        <env>DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus</env>
-        <env>HOME=/home/scox</env>
-        <cmd>pkill -SIGCONT -u 1000</cmd>
-        <cmd>sleep 5</cmd>
-        <cmd>gnome-screensaver-command --deactivate</cmd>
-    </agent>
-    <agent event="unlock">
-        <cmd>beep-media-player --play</cmd>
-    </agent>
-</user>
-```
-
-For systemd based distributions you can use `loginctl lock-session` as lock `<cmd>`, to unlock you can use `loginctl unlock-session`.
-
-----------
-
-## Services
-
-| Name |   Type    |     Description     | Example |
-|------|-----------|---------------------|---------|
-| `id` | Attribute | Name of the service | `su`    |
-
-### Example:
-
-```xml
-<service id="su">
-    <!--
-       Here you can put service specific options such as "enable", "debug" etc.
-       See the options section of this document.
-    -->
-</service>
-```
-
-----------
-
-Location of the configuration file
-----------------------------------
-
-By default, `pam_usb.so` and its tools will look for the configuration file at `/etc/security/pam_usb.conf`.
-
-If you want to use a different location, you will have to use the `-c` flag.
-
-```
-# /etc/pam.d/system-auth
-auth    sufficient      pam_usb.so -c /some/other/path.conf
-auth    required        pam_unix.so nullok_secure
-```
-
-You will also have to use the `-c` option when calling pam_usb's tools.
-
-```
-pamusb-agent -c /some/other/path.conf
-```
-
-Example configuration
-----------------------------------
-
-1. Insert a removable block device
-
-2. Add necessary device configuration into `/etc/security/pam_usb.conf` by running:
-
-```
-sudo pamusb-conf --add-device=<devicename>
-```
-
-where `<devicename>` is a recognizable name for your device. This value is used internally in the configuration file as device `id` value and in output shown to users. (Note: because of it being used as an XML attribute value, it shouldn't contain ampersands etc.)
-
-You can do this for multiple devices obviously.
-
-3. Add necessary user configuration into `/etc/security/pam_usb.conf` by running:
-
-```
-sudo pamusb-conf --add-user=<username>
-```
-
-where `<username>` is a valid Unix user name. 
-
-If you added multiple devices you can repeat this command to choose an additional device for this user (from v0.8.5 up).
-
-4. Tweak `/etc/security/pam_usb.conf` manually as desired. Link devices and users, etc.
-
-If you use one time pads (default), you need to do the following:
-
-5. Run `/usr/bin/pamusb-check --debug <username>`
-
-where `<username>` is associated with the removable block device.
-
-By default, this command creates directory `$HOME/.pamusb/` with a protected device-associated `.pad` file. If you format the device, you must
-delete the `$HOME/.pamusb/<devicename>.pad` file (or run `pamusb-conf --reset-pads=username`). The created `.pad` file can't be used with a new partition UUIDs for the same or any removable block device.
-
-6. Add proper PAM configuration into `/etc/pam.d/common-auth` as described in [Getting Started](https://github.com/mcdope/pam_usb/wiki/Getting-Started#setting-up-the-pam-module). For testing purposes, it's highly recommended to start with `sufficient` PAM option before possibly moving to `required` or `requisite` option since you can bypass faulty `pam_usb` configurations.
-7. Test the device/user configuration by running `/usr/bin/pamusb-check <username>`. The removable block device must be attached (mount not required) and the user must have proper configuration in `/etc/security/pam_usb.conf` file.
+  Configuration file reference                                                                                                                                                                                                                                                                                                                                                     
+  ============================                                                                                                                                                                                                                                                                                                                                                     
+                                                                                                                                                                                                                                                                                                                                                                                   
+  The configuration file is formatted in XML and subdivided in 4 sections:                                                                                                                                                                                                                                                                                                         
+                                                                                                                                                                                                                                                                                                                                                                                   
+  * Default options, shared among every device, user and service                                                                                                                                                                                                                                                                                                                   
+  * Devices declaration and settings                                                                                                                                                                                                                                                                                                                                               
+  * Users declaration and settings                                                                                                                                                                                                                                                                                                                                                 
+  * Services declaration and settings                                                                                                                                                                                                                                                                                                                                              
+                                                                                                                                                                                                                                                                                                                                                                                   
+  Note that for changes to the agent / events config you need to restart the agent service for them to take effect. Other changes are picked up on next pam_usb usage.                                                                                                                                                                                                             
+   
+  The syntax is the following:                                                                                                                                                                                                                                                                                                                                                     
+                                                            
+  ```xml
+  <configuration>                                                                                                                                                                                                                                                                                                                                                                  
+      <defaults>
+          <!-- default options -->                                                                                                                                                                                                                                                                                                                                                 
+      </defaults>                                           
+
+      <devices>
+          <!-- devices definitions -->
+      </devices>                                                                                                                                                                                                                                                                                                                                                                   
+   
+      <users>                                                                                                                                                                                                                                                                                                                                                                      
+          <!-- users definitions -->                        
+      </users>
+
+      <services>
+          <!-- services definitions -->
+      </services>
+  </configuration>
+  ```
+
+  ----------
+                                                                                                                                                                                                                                                                                                                                                                                   
+  ## Options
+                                                                                                                                                                                                                                                                                                                                                                                   
+  |          Name          |  Type   |       Default       |                         Description                              |
+  |------------------------|---------|---------------------|------------------------------------------------------------------|
+  | `enable`               | Boolean | `true`              | Enable pam_usb                                                   |
+  | `debug`                | Boolean | `false`             | Enable debug messages                                            |                                                                                                                                                                                                                                                    
+  | `quiet`                | Boolean | `false`             | Quiet mode                                                       |
+  | `color_log`            | Boolean | `true`              | Enable colored output                                            |                                                                                                                                                                                                                                                    
+  | `one_time_pad`         | Boolean | `true`              | Enable the use of one time device-associated pad files           |                                                                                                                                                                                                                                                    
+  | `deny_remote`          | Boolean | `true`              | Deny access from remote host (SSH)                               |                                                                                                                                                                                                                                                    
+  | `superuser`            | Boolean | `false`             | Require a superuser-capable device for this service. Only meaningful on `<service>`. (v0.8.7+) |                                                                                                                                                                                                                      
+  | `probe_timeout`        | Time    | `10s`               | Time to wait for the volume to be detected                       |                                                                                                                                                                                                                                                    
+  | `pad_expiration`       | Time    | `1h`                | Time between pad file regeneration                               |                                                                                                                                                                                                                                                    
+  | `hostname`             | String  | Computer's hostname | Must be unique accross computers using the same device           |                                                                                                                                                                                                                                                    
+  | `system_pad_directory` | String  | `.pamusb`           | Relative path to the user's home used to store one time pads     |                                                                                                                                                                                                                                                    
+  | `device_pad_directory` | String  | `.pamusb`           | Relative path to the device used to store one time pad files     |                                                                                                                                                                                                                                                    
+                                                                                                                                                                                                                                                                                                                                                                                   
+  ### Example:                                                                                                                                                                                                                                                                                                                                                                     
+                                                                                                                                                                                                                                                                                                                                                                                   
+  ```xml                                                                                                                                                                                                                                                                                                                                                                           
+  <configuration>                                           
+      <defaults>
+          <!-- Disable colored output by default -->
+          <option name="color_log">false</option>
+          <!-- Enable debug output -->                                                                                                                                                                                                                                                                                                                                             
+          <option name="debug">true</option>
+      </defaults>                                                                                                                                                                                                                                                                                                                                                                  
+                                                            
+      <users>
+          <user id="root">                                                                                                                                                                                                                                                                                                                                                         
+              <!-- Enable colored output for user "root" -->
+              <option name="color_log">true</option>                                                                                                                                                                                                                                                                                                                               
+          </user>                                           
+                                                                                                                                                                                                                                                                                                                                                                                   
+          <user id="scox">                                  
+               <!-- Disable debug output for user "scox" -->
+               <option name="debug">false</option>                                                                                                                                                                                                                                                                                                                                 
+          </user>
+      </users>                                                                                                                                                                                                                                                                                                                                                                     
+                                                            
+      <devices>
+          <device id="mydevice">
+              <!-- Wait 15 seconds instead of the default 10 seconds for "mydevice" to be detected -->                                                                                                                                                                                                                                                                             
+              <option name="probe_timeout">15</option>                                                                                                                                                                                                                                                                                                                             
+          </device>                                                                                                                                                                                                                                                                                                                                                                
+      </devices>                                                                                                                                                                                                                                                                                                                                                                   
+                                                            
+      <services>
+          <service id="su">
+              <!-- Disable pam_usb for "su" ("su" will ask for a password as usual) -->
+              <option name="enable">false<option>                                                                                                                                                                                                                                                                                                                                  
+         </service>
+      </services>                                                                                                                                                                                                                                                                                                                                                                  
+  </configuration>                                          
+  ```
+
+  ----------
+
+  ## Devices                                                                                                                                                                                                                                                                                                                                                                       
+   
+                                                                                                                                                                                                                                                                                                                                                                                   
+  |     Name      |   Type    |                  Description                   |        Example         |
+  |---------------|-----------|------------------------------------------------|------------------------|                                                                                                                                                                                                                                                                          
+  | `id`          | Attribute | Arbitrary device name                          | `MyDevice`             |
+  | `vendor`      | Element   | Device's vendor name                           | `SanDisk Corp.`        |                                                                                                                                                                                                                                                                          
+  | `model`       | Element   | Device's model name                            | `Cruzer Titanium`      |                                                                                                                                                                                                                                                                          
+  | `serial`      | Element   | Serial number of the device                    | `SNDKXXXXXXXXXXXXXXXX` |                                                                                                                                                                                                                                                                          
+  | `volume_uuid` | Element   | UUID of the device's volume used to store pads | `6F6B-42FC`            |                                                                                                                                                                                                                                                                          
+                                                                                                                                                                                                                                                                                                                                                                                   
+  ### Note:                                                                                                                                                                                                                                                                                                                                                                        
+  Some cheap devices don't report a vendor and/or model. To use these devices you can use "Generic" for these values, then it won't be checked.                                                                                                                                                                                                                                    
+  Be aware that this reduces security if you have `one_time_pads` disabled since the device containing the volume won't be checked anymore (but these attributes could be faked with a custom firmware anyway).                                                                                                                                                                    
+                                                                                                                                                                                                                                                                                                                                                                                   
+  ### Example:                                                                                                                                                                                                                                                                                                                                                                     
+                                                                                                                                                                                                                                                                                                                                                                                   
+  ```xml                                                    
+  <device id="MyDevice">
+      <vendor>SanDisk Corp.</vendor>
+      <model>Cruzer Titanium</model>                                                                                                                                                                                                                                                                                                                                               
+      <serial>SNDKXXXXXXXXXXXXXXXX</serial>
+      <volume_uuid>6F6B-42FC</volume_uuid>                                                                                                                                                                                                                                                                                                                                         
+  </device>                                                                                                                                                                                                                                                                                                                                                                        
+  ```
+                                                                                                                                                                                                                                                                                                                                                                                   
+  ----------                                                
+
+  ## Users
+
+  |   Name   |   Type    |                Description                |  Example   |
+  |----------|-----------|-------------------------------------------|------------|
+  | `id`     | Attribute | Login of the user                         | `root`     |                                                                                                                                                                                                                                                                                                
+  | `device` | Element   | `id` of the device associated to the user | `MyDevice` |
+  | `agent`  | Element   | Agent commands, for use with pamusb-agent |            |                                                                                                                                                                                                                                                                                                
+                                                                                                                                                                                                                                                                                                                                                                                   
+  Note that one `<user>` can have multiple `<device>` (from v0.8.5 up).
+                                                                                                                                                                                                                                                                                                                                                                                   
+  The `<device>` element accepts an optional `superuser="true"` attribute to mark that device as eligible for superuser services such as `sudo`, `su`, and `polkit-1`. Devices without this attribute are excluded when the service requires a superuser device. See [Superuser device restriction](#superuser-device-restriction) (v0.8.7+).                                      
+   
+  ### Agent                                                                                                                                                                                                                                                                                                                                                                        
+                                                            
+  The agent is to be run as system service. If you installed by using the debian package it will automatically be configured as                                                                                                                                                                                                                                                    
+  systemd service unit. In case you use another init / service management you will need to set it up yourself before any event
+  configuration will take effect.                                                                                                                                                                                                                                                                                                                                                  
+                                                            
+                                                                                                                                                                                                                                                                                                                                                                                   
+  | Name  |   Type    |                                             Description                                                         |
+  |-------|-----------|-----------------------------------------------------------------------------------------------------------------|                                                                                                                                                                                                                                          
+  | `env` | Attribute | Environment variable for the command. For multiple environment variables use multiple `env` tags.               |
+  | `cmd` | Attribute | Agent command, associated with `env` tags in the same agent element. Multiple/chained `cmd` elements supported. |                                                                                                                                                                                                                                          
+                                                                                                                                                                                                                                                                                                                                                                                   
+  ### Example:                                                                                                                                                                                                                                                                                                                                                                     
+                                                                                                                                                                                                                                                                                                                                                                                   
+  ```xml                                                    
+  <user id="scox">
+      <device>MyDevice</device>
+                                                                                                                                                                                                                                                                                                                                                                                   
+      <!-- When the user "scox" removes the usb device, lock the screen and pause beep-media-player -->
+      <agent event="lock">                                                                                                                                                                                                                                                                                                                                                         
+          <env>DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus</env>
+          <env>HOME=/home/scox</env>                                                                                                                                                                                                                                                                                                                                               
+          <cmd>gnome-screensaver-command --lock</cmd>       
+          <cmd>sleep 5</cmd>                                                                                                                                                                                                                                                                                                                                                       
+          <cmd>pkill -SIGSTOP -u 1000</cmd>                 
+      </agent>                                                                                                                                                                                                                                                                                                                                                                     
+      <agent event="lock">                                  
+          <cmd>beep-media-player --pause</cmd>                                                                                                                                                                                                                                                                                                                                     
+      </agent>                                              
+                                                                                                                                                                                                                                                                                                                                                                                   
+      <!-- Resume operations when the usb device is plugged back and authenticated -->
+      <agent event="unlock">                                                                                                                                                                                                                                                                                                                                                       
+          <env>DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus</env>
+          <env>HOME=/home/scox</env>                                                                                                                                                                                                                                                                                                                                               
+          <cmd>pkill -SIGCONT -u 1000</cmd>                 
+          <cmd>sleep 5</cmd>                                                                                                                                                                                                                                                                                                                                                       
+          <cmd>gnome-screensaver-command --deactivate</cmd>                                                                                                                                                                                                                                                                                                                        
+      </agent>
+      <agent event="unlock">                                                                                                                                                                                                                                                                                                                                                       
+          <cmd>beep-media-player --play</cmd>               
+      </agent>                                                                                                                                                                                                                                                                                                                                                                     
+  </user>
+  ```                                                                                                                                                                                                                                                                                                                                                                              
+                                                            
+  For systemd based distributions you can use `loginctl lock-session` as lock `<cmd>`, to unlock you can use `loginctl unlock-session`.                                                                                                                                                                                                                                            
+   
+  ----------                                                                                                                                                                                                                                                                                                                                                                       
+                                                            
+  ## Services
+
+  | Name |   Type    |     Description     | Example |
+  |------|-----------|---------------------|---------|
+  | `id` | Attribute | Name of the service | `su`    |                                                                                                                                                                                                                                                                                                                             
+   
+  Services can use all options from the [Options](#options) section. The `superuser` option (v0.8.7+) is only meaningful here — setting it on a service requires users to authenticate with a device marked `superuser="true"`. See [Superuser device restriction](#superuser-device-restriction).                                                                                 
+                                                            
+  ### Example:                                                                                                                                                                                                                                                                                                                                                                     
+                                                            
+  ```xml
+  <service id="su">
+      <!--
+         Here you can put service specific options such as "enable", "debug" etc.
+         See the options section of this document.                                                                                                                                                                                                                                                                                                                                 
+      -->                                                                                                                                                                                                                                                                                                                                                                          
+  </service>                                                                                                                                                                                                                                                                                                                                                                       
+  ```                                                                                                                                                                                                                                                                                                                                                                              
+                                                            
+  ----------
+
+  ## Superuser device restriction
+
+  *Available from v0.8.7.*                                                                                                                                                                                                                                                                                                                                                         
+   
+  This feature lets you designate specific USB devices as **superuser-capable** — valid for privilege-escalation services such as `sudo`, `su`, and `polkit-1` — while other registered devices for the same user remain valid only for non-privileged services (login, screensaver unlock, etc.).                                                                                 
+                                                            
+  A single `superuser="true"` attribute on a `<device>` element covers all services you mark as requiring it. No per-service device entries are needed.                                                                                                                                                                                                                            
+                                                            
+  **Use case:** In a shared-account environment (e.g. a school lab), students and teachers use the same Unix account. Students carry a StudentUSB that lets them log in; teachers carry a TeacherUSB that additionally grants `sudo` access. The configuration enforces this without creating separate accounts.                                                                   
+                                                            
+  ### How it works                                                                                                                                                                                                                                                                                                                                                                 
+                                                            
+  Two things must be configured for the restriction to take effect:                                                                                                                                                                                                                                                                                                                
+   
+  1. **Mark the device** as superuser-capable in the `<user>` block, using the `superuser="true"` attribute on its `<device>` element.                                                                                                                                                                                                                                             
+  2. **Mark the service** as requiring a superuser device by setting `<option name="superuser">true</option>` inside the corresponding `<service>` block.
+                                                                                                                                                                                                                                                                                                                                                                                   
+  When a user authenticates against a service marked `superuser=true`, any device in their list that does **not** carry `superuser="true"` is excluded for that attempt. If no superuser-capable device is present, authentication is denied and the next PAM module in the stack runs.                                                                                            
+                                                                                                                                                                                                                                                                                                                                                                                   
+  Services **not** marked `superuser=true` are unaffected — all registered devices remain valid (fully backward-compatible).                                                                                                                                                                                                                                                       
+                                                            
+  ### User configuration                                                                                                                                                                                                                                                                                                                                                           
+                                                            
+  ```xml
+  <user id="alex">
+      <!-- Works for login and all non-superuser services -->
+      <device>StudentUSB</device>                                                                                                                                                                                                                                                                                                                                                  
+   
+      <!-- Works for all services, including sudo, su, polkit-1 -->                                                                                                                                                                                                                                                                                                                
+      <device superuser="true">TeacherUSB</device>                                                                                                                                                                                                                                                                                                                                 
+  </user>                                                                                                                                                                                                                                                                                                                                                                          
+  ```                                                                                                                                                                                                                                                                                                                                                                              
+                                                                                                                                                                                                                                                                                                                                                                                   
+  A device with `superuser="true"` is **not** restricted to superuser services — it works for every service, including login. The attribute only adds eligibility for superuser-marked services.                                                                                                                                                                                   
+   
+  ### Service configuration                                                                                                                                                                                                                                                                                                                                                        
+                                                            
+  ```xml
+  <service id="sudo">
+      <option name="superuser">true</option>
+  </service>
+
+  <service id="su">
+      <option name="superuser">true</option>                                                                                                                                                                                                                                                                                                                                       
+  </service>
+                                                                                                                                                                                                                                                                                                                                                                                   
+  <!-- polkit-1 is already whitelisted for deny_remote; add superuser on top -->
+  <service id="polkit-1">                                                                                                                                                                                                                                                                                                                                                          
+      <option name="superuser">true</option>
+      <option name="deny_remote">false</option>                                                                                                                                                                                                                                                                                                                                    
+  </service>                                                                                                                                                                                                                                                                                                                                                                       
+  ```
+                                                                                                                                                                                                                                                                                                                                                                                   
+  The `superuser` option can be applied to any service name that appears in your PAM configuration — it is not limited to `sudo`, `su`, and `polkit-1`.                                                                                                                                                                                                                            
+   
+  ### Complete example                                                                                                                                                                                                                                                                                                                                                             
+                                                            
+  ```xml
+  <configuration>
+      <devices>
+          <device id="StudentUSB">
+              <vendor>SanDisk Corp.</vendor>
+              <model>Cruzer Blade</model>                                                                                                                                                                                                                                                                                                                                          
+              <serial>SNDKXXXXXXXXXXXXXXXX</serial>
+              <volume_uuid>AAAA-1111</volume_uuid>                                                                                                                                                                                                                                                                                                                                 
+          </device>                                                                                                                                                                                                                                                                                                                                                                
+   
+          <device id="TeacherUSB">                                                                                                                                                                                                                                                                                                                                                 
+              <vendor>Kingston</vendor>                     
+              <model>DataTraveler</model>
+              <serial>KNGXXXXXXXXXXXXXXXXX</serial>                                                                                                                                                                                                                                                                                                                                
+              <volume_uuid>BBBB-2222</volume_uuid>                                                                                                                                                                                                                                                                                                                                 
+          </device>                                                                                                                                                                                                                                                                                                                                                                
+      </devices>                                                                                                                                                                                                                                                                                                                                                                   
+                                                            
+      <users>
+          <user id="labuser">
+              <device>StudentUSB</device>
+              <device superuser="true">TeacherUSB</device>                                                                                                                                                                                                                                                                                                                         
+          </user>
+      </users>                                                                                                                                                                                                                                                                                                                                                                     
+                                                            
+      <services>
+          <service id="sudo">
+              <option name="superuser">true</option>                                                                                                                                                                                                                                                                                                                               
+          </service>
+          <service id="su">                                                                                                                                                                                                                                                                                                                                                        
+              <option name="superuser">true</option>        
+          </service>
+          <service id="polkit-1">
+              <option name="superuser">true</option>                                                                                                                                                                                                                                                                                                                               
+              <option name="deny_remote">false</option>
+          </service>                                                                                                                                                                                                                                                                                                                                                               
+      </services>                                           
+  </configuration>
+  ```
+
+  | Device | Service | Outcome |                                                                                                                                                                                                                                                                                                                                                   
+  |--------|---------|---------|
+  | StudentUSB | login, gdm, screensaver | Allowed |                                                                                                                                                                                                                                                                                                                               
+  | StudentUSB | sudo, su, polkit-1 | **Denied** - no `superuser` attribute |                                                                                                                                                                                                                                                                                                      
+  | TeacherUSB | login, gdm, screensaver | Allowed |                                                                                                                                                                                                                                                                                                                               
+  | TeacherUSB | sudo, su, polkit-1 | Allowed |                                                                                                                                                                                                                                                                                                                                    
+                                                                                                                                                                                                                                                                                                                                                                                   
+  ### Debug output                                                                                                                                                                                                                                                                                                                                                                 
+   
+  With `<option name="debug">true</option>`, the filtering is logged:                                                                                                                                                                                                                                                                                                              
+                                                            
+  ```                                                                                                                                                                                                                                                                                                                                                                              
+  Service "sudo" requires superuser device. Filtering device list.
+  Device "StudentUSB" excluded for service "sudo" (no superuser attribute).
+  ```                                                                                                                                                                                                                                                                                                                                                                              
+   
+  ### Notes                                                                                                                                                                                                                                                                                                                                                                        
+                                                            
+  - Adding more superuser-granted services requires only a new `<service>` entry — no change to device or user configuration.                                                                                                                                                                                                                                                      
+  - If a user has no device with `superuser="true"` and authenticates against a superuser-marked service, pam_usb denies the request. The fallback PAM module (e.g. `pam_unix`) still runs if configured as `sufficient` rather than `required`.
+  - `pamusb-conf` does not yet have a CLI flag for the `superuser` attribute — add it manually to the `<device>` element after running `pamusb-conf --add-user`.                                                                                                                                                                                                                   
+                                                                                                                                                                                                                                                                                                                                                                                   
+  ----------                                                                                                                                                                                                                                                                                                                                                                       
+                                                                                                                                                                                                                                                                                                                                                                                   
+  Location of the configuration file                                                                                                                                                                                                                                                                                                                                               
+  ----------------------------------
+                                                                                                                                                                                                                                                                                                                                                                                   
+  By default, `pam_usb.so` and its tools will look for the configuration file at `/etc/security/pam_usb.conf`.                                                                                                                                                                                                                                                                     
+   
+  If you want to use a different location, you will have to use the `-c` flag.                                                                                                                                                                                                                                                                                                     
+                                                            
+  ```                                                                                                                                                                                                                                                                                                                                                                              
+  # /etc/pam.d/system-auth
+  auth    sufficient      pam_usb.so -c /some/other/path.conf                                                                                                                                                                                                                                                                                                                      
+  auth    required        pam_unix.so nullok_secure                                                                                                                                                                                                                                                                                                                                
+  ```                                                                                                                                                                                                                                                                                                                                                                              
+                                                                                                                                                                                                                                                                                                                                                                                   
+  You will also have to use the `-c` option when calling pam_usb's tools.                                                                                                                                                                                                                                                                                                          
+                                                            
+  ```                                                                                                                                                                                                                                                                                                                                                                              
+  pamusb-agent -c /some/other/path.conf                     
+  ```                                                                                                                                                                                                                                                                                                                                                                              
+   
+  Example configuration                                                                                                                                                                                                                                                                                                                                                            
+  ----------------------------------                        
+
+  1. Insert a removable block device
+                                                                                                                                                                                                                                                                                                                                                                                   
+  2. Add necessary device configuration into `/etc/security/pam_usb.conf` by running:
+                                                                                                                                                                                                                                                                                                                                                                                   
+  ```                                                       
+  sudo pamusb-conf --add-device=<devicename>                                                                                                                                                                                                                                                                                                                                       
+  ```                                                                                                                                                                                                                                                                                                                                                                              
+   
+  where `<devicename>` is a recognizable name for your device. This value is used internally in the configuration file as device `id` value and in output shown to users. (Note: because of it being used as an XML attribute value, it shouldn't contain ampersands etc.)                                                                                                         
+                                                            
+  You can do this for multiple devices obviously.                                                                                                                                                                                                                                                                                                                                  
+                                                            
+  3. Add necessary user configuration into `/etc/security/pam_usb.conf` by running:                                                                                                                                                                                                                                                                                                
+   
+  ```                                                                                                                                                                                                                                                                                                                                                                              
+  sudo pamusb-conf --add-user=<username>                    
+  ```
+
+  where `<username>` is a valid Unix user name.                                                                                                                                                                                                                                                                                                                                    
+   
+  If you added multiple devices you can repeat this command to choose an additional device for this user (from v0.8.5 up).                                                                                                                                                                                                                                                         
+                                                            
+  4. Tweak `/etc/security/pam_usb.conf` manually as desired. Link devices and users, etc.                                                                                                                                                                                                                                                                                          
+                                                            
+  If you use one time pads (default), you need to do the following:                                                                                                                                                                                                                                                                                                                
+                                                            
+  5. Run `/usr/bin/pamusb-check --debug <username>`                                                                                                                                                                                                                                                                                                                                
+                                                            
+  where `<username>` is associated with the removable block device.                                                                                                                                                                                                                                                                                                                
+                                                            
+  By default, this command creates directory `$HOME/.pamusb/` with a protected device-associated `.pad` file. If you format the device, you must                                                                                                                                                                                                                                   
+  delete the `$HOME/.pamusb/<devicename>.pad` file (or run `pamusb-conf --reset-pads=username`). The created `.pad` file can't be used with a new partition UUIDs for the same or any removable block device.
+                                                                                                                                                                                                                                                                                                                                                                                   
+  6. Add proper PAM configuration into `/etc/pam.d/common-auth` as described in [Getting Started](https://github.com/mcdope/pam_usb/wiki/Getting-Started#setting-up-the-pam-module). For testing purposes, it's highly recommended to start with `sufficient` PAM option before possibly moving to `required` or `requisite` option since you can bypass faulty `pam_usb`          
+  configurations.                                                                                                                                                                                                                                                                                                                                                                  
+  7. Test the device/user configuration by running `/usr/bin/pamusb-check <username>`. The removable block device must be attached (mount not required) and the user must have proper configuration in `/etc/security/pam_usb.conf` file.                                                                                                                                          
+                                                     
