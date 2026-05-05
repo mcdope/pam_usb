@@ -41,6 +41,7 @@ typedef struct	pusb_device
 	char		model[128];
 	char		serial[128];
 	char		volume_uuid[128];
+	int			superuser;
 }				t_pusb_device;
 
 typedef struct		pusb_options
@@ -58,6 +59,7 @@ typedef struct		pusb_options
 	char			device_pad_directory[PATH_MAX];
 	t_pusb_device	device;
 	t_pusb_device	device_list[10];
+	int				superuser;
 }					t_pusb_options;
 
 struct		s_opt_list
