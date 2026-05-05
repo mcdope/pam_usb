@@ -39,11 +39,15 @@ else
     logger -p local0.notice -t ${0##*/}[$$] Killed existing gnome-keyring-instance.
 fi
 
-# Read UNLOCK_PASSWORD from $KEYFILE
-. ~/.pamusb/.keyring_unlock_password
+# Read UNLOCK_PASSWORD from $KEYFILE via grep to avoid sourcing arbitrary shell
+UNLOCK_PASSWORD=$(grep -oP '^UNLOCK_PASSWORD=\K.*' ~/.pamusb/.keyring_unlock_password)
+if [ -z "$UNLOCK_PASSWORD" ]; then
+    logger -p local0.error -t ${0##*/}[$$] Could not read UNLOCK_PASSWORD from file.
+    exit 1
+fi
 
-# Perform unlock
-echo -n $UNLOCK_PASSWORD | gnome-keyring-daemon --daemonize --login \
+# Perform unlock — pass via stdin pipe so the password never appears as a process argument
+printf '%s' "$UNLOCK_PASSWORD" | gnome-keyring-daemon --daemonize --login \
     && gnome-keyring-daemon --start  > /dev/null 2>&1; UNLOCKED=$? \
     && logger -p local0.notice -t ${0##*/}[$$] Keyring unlocked. \
     || logger -p local0.error -t ${0##*/}[$$] Keyring unlock failed.

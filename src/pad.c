@@ -43,7 +43,7 @@ static int pusb_pad_build_device_path(
 	struct stat sb;
 
 	snprintf(path_devpad, sizeof(path_devpad), "%s/%s", mnt_point, opts->device_pad_directory);
-	if (stat(path_devpad, &sb) != 0)
+	if (lstat(path_devpad, &sb) != 0)
 	{
 		log_debug("Directory %s does not exist, creating it.\n", path_devpad);
 		if (mkdir(path_devpad, S_IRUSR | S_IWUSR | S_IXUSR) != 0)
@@ -51,6 +51,11 @@ static int pusb_pad_build_device_path(
 			log_debug("Unable to create directory %s: %s\n", path_devpad, strerror(errno));
 			return 0;
 		}
+	}
+	else if (S_ISLNK(sb.st_mode))
+	{
+		log_error("Device pad directory %s is a symlink, refusing to use it.\n", path_devpad);
+		return 0;
 	}
 
 	snprintf(
@@ -91,7 +96,7 @@ static int pusb_pad_build_system_path(
 		user_ent->pw_dir,
 		opts->system_pad_directory
 	);
-	if (stat(dir_path, &sb) != 0)
+	if (lstat(dir_path, &sb) != 0)
 	{
 		log_debug("Directory %s does not exist, creating one.\n", dir_path);
 		if (mkdir(dir_path, S_IRUSR | S_IWUSR | S_IXUSR) != 0)
@@ -106,6 +111,11 @@ static int pusb_pad_build_system_path(
 		}
 
 		chmod(dir_path, S_IRUSR | S_IWUSR | S_IXUSR);
+	}
+	else if (S_ISLNK(sb.st_mode))
+	{
+		log_error("System pad directory %s is a symlink, refusing to use it.\n", dir_path);
+		return 0;
 	}
 	/* change slashes in device name to underscores */
 	snprintf(device_name, sizeof(device_name), "%s", opts->device.name);
@@ -137,17 +147,24 @@ static FILE *pusb_pad_open_device(
 	const char *mode
 )
 {
-	FILE *f;
 	char path[1024*5];
+	int flags = (mode[0] == 'r') ? O_RDONLY : (O_WRONLY | O_CREAT | O_TRUNC);
 
 	if (!pusb_pad_build_device_path(opts, mnt_point, user, path, sizeof(path)))
 	{
 		return NULL;
 	}
-	f = fopen(path, mode);
-	if (!f)
+	int fd = open(path, flags | O_NOFOLLOW, 0600);
+	if (fd < 0)
 	{
 		log_debug("Cannot open device file: %s\n", strerror(errno));
+		return NULL;
+	}
+	FILE *f = fdopen(fd, mode);
+	if (!f)
+	{
+		close(fd);
+		log_debug("Cannot fdopen device file: %s\n", strerror(errno));
 		return NULL;
 	}
 	return f;
@@ -159,17 +176,24 @@ static FILE *pusb_pad_open_system(
 	const char *mode
 )
 {
-	FILE *f;
 	char path[1024*5];
+	int flags = (mode[0] == 'r') ? O_RDONLY : (O_WRONLY | O_CREAT | O_TRUNC);
 
 	if (!pusb_pad_build_system_path(opts, user, path, sizeof(path)))
 	{
 		return NULL;
 	}
-	f = fopen(path, mode);
-	if (!f)
+	int fd = open(path, flags | O_NOFOLLOW, 0600);
+	if (fd < 0)
 	{
 		log_debug("Cannot open system file: %s\n", strerror(errno));
+		return NULL;
+	}
+	FILE *f = fdopen(fd, mode);
+	if (!f)
+	{
+		close(fd);
+		log_debug("Cannot fdopen system file: %s\n", strerror(errno));
 		return NULL;
 	}
 	return f;
@@ -295,19 +319,27 @@ static int pusb_pad_update(
 
 	generateRandom(magic, sizeof(magic));
 
-	if (!(f_device = fopen(path_device_tmp, "w")))
 	{
-		log_error("Unable to create temp device pad: %s\n", strerror(errno));
-		return 0;
+		int fd_dev = open(path_device_tmp, O_WRONLY | O_CREAT | O_TRUNC | O_NOFOLLOW, 0600);
+		if (fd_dev < 0 || !(f_device = fdopen(fd_dev, "w")))
+		{
+			if (fd_dev >= 0) close(fd_dev);
+			log_error("Unable to create temp device pad: %s\n", strerror(errno));
+			return 0;
+		}
 	}
 	pusb_pad_protect(user, fileno(f_device));
 
-	if (!(f_system = fopen(path_system_tmp, "w")))
 	{
-		log_error("Unable to create temp system pad: %s\n", strerror(errno));
-		fclose(f_device);
-		unlink(path_device_tmp);
-		return 0;
+		int fd_sys = open(path_system_tmp, O_WRONLY | O_CREAT | O_TRUNC | O_NOFOLLOW, 0600);
+		if (fd_sys < 0 || !(f_system = fdopen(fd_sys, "w")))
+		{
+			if (fd_sys >= 0) close(fd_sys);
+			log_error("Unable to create temp system pad: %s\n", strerror(errno));
+			fclose(f_device);
+			unlink(path_device_tmp);
+			return 0;
+		}
 	}
 	pusb_pad_protect(user, fileno(f_system));
 
@@ -403,9 +435,9 @@ static int pusb_pad_compare(
 	}
 	log_debug("Loading device pad...\n");
 	bytes_read = fread(magic_device, sizeof(char), sizeof(magic_device), f_device);
-	if (!bytes_read)
+	if (bytes_read != sizeof(magic_device))
 	{
-		log_error("Can't read device pad!\n");
+		log_error("Device pad is incomplete (%zu/%zu bytes).\n", bytes_read, sizeof(magic_device));
 		fclose(f_system);
 		fclose(f_device);
 		return 0;
@@ -413,9 +445,9 @@ static int pusb_pad_compare(
 
 	log_debug("Loading system pad...\n");
 	bytes_read = fread(magic_system, sizeof(char), sizeof(magic_system), f_system);
-	if (!bytes_read)
+	if (bytes_read != sizeof(magic_system))
 	{
-		log_error("Can't read system pad!\n");
+		log_error("System pad is incomplete (%zu/%zu bytes).\n", bytes_read, sizeof(magic_system));
 		fclose(f_system);
 		fclose(f_device);
 		return 0;

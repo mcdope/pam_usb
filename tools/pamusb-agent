@@ -194,13 +194,22 @@ def userDeviceThread(user):
 			else:
 				logger.error('Ignoring empty command for user "%s".' % userName)
 
+		_DANGEROUS_ENV_VARS = {
+			'LD_PRELOAD', 'LD_LIBRARY_PATH', 'LD_AUDIT', 'LD_DEBUG',
+			'GLIBC_TUNABLES', 'PYTHONPATH', 'PERL5LIB', 'RUBYLIB',
+			'IFS', 'CDPATH', 'ENV', 'BASH_ENV',
+		}
+
 		for henv in hotplug.findall('env'):
 			if henv.text is not None:
 				henv_var = re.sub(r'^(.*?)=.*$', '\\1', henv.text)
 				henv_arg = re.sub(r'^.*?=(.*)$', '\\1', henv.text)
 
 				if henv_var != '' and henv_arg != '':
-					henvs[henv_var] = henv_arg
+					if henv_var in _DANGEROUS_ENV_VARS:
+						logger.error('Rejecting dangerous env var "%s" for user "%s".' % (henv_var, userName))
+					else:
+						henvs[henv_var] = henv_arg
 				else:
 					logger.error('Ignoring invalid command environment variable for user "%s".' % userName)
 			else:
@@ -269,9 +278,10 @@ def userDeviceThread(user):
 
 		logger.info('Device "%s" has been inserted. Performing verification...' % deviceName)
 
-		cmdLine = "%s --debug --config=%s --service=pamusb-agent %s" % (options['check'], options['configFile'], userName)
-		logger.info('Executing "%s"' % cmdLine)
-		if not os.system(cmdLine):
+		checkArgs = [options['check'], '--debug', '--config=' + options['configFile'], '--service=pamusb-agent', userName]
+		logger.info('Executing "%s"' % ' '.join(checkArgs))
+		checkResult = subprocess.run(checkArgs, capture_output=True)
+		if checkResult.returncode == 0:
 			logger.info('Authentication succeeded. Unlocking user "%s"...' % userName)
 
 			for l in events['unlock']:
