@@ -217,7 +217,7 @@ int pusb_conf_parse(
 			continue;
 		}
 
-		strcpy(opts->device_list[currentDevice].name, device_list[currentDevice]);
+		snprintf(opts->device_list[currentDevice].name, sizeof(opts->device_list[currentDevice].name), "%s", device_list[currentDevice]);
 		pusb_conf_parse_device(opts, doc, currentDevice, device_list[currentDevice]);
 	}
 
