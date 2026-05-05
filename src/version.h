@@ -18,6 +18,6 @@
 #ifndef PUSB_VERSION_H_
 # define PUSB_VERSION_H_
 
-# define PUSB_VERSION "0.8.6"
+# define PUSB_VERSION "0.8.7"
 
 #endif /* !PUSB_VERSION_H_ */

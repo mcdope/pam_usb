@@ -1,7 +1,7 @@
 %define _topdir         /usr/local/src/pam_usb/fedora
 %define name            pam_usb 
 %define release         1
-%define version         0.8.6
+%define version         0.8.7
 %define buildroot       %{_topdir}/%{name}‑%{version}‑root
 
 BuildRoot: %{buildroot}
@@ -61,6 +61,17 @@ rm -rf %{buildroot}/usr/share/pam-configs
 %doc %attr(0644,root,root) /usr/share/doc/pam_usb/TROUBLESHOOTING
 
 %changelog
+
+* Tue May 05 2026 Tobias Bäumer <tobiasbaeumer@gmail.com> - 0.8.7
+- [Enhancement] Specify a dedicated device for superuser services
+- [Enhancement] Restore PolicyKit support (also for 127)
+- [Enhancement] Remove default installation of pamusb-pinentry
+- [Security] Fixed GHSA-822m-whrh-vrj8
+- [Security] Fixed GHSA-jgv5-w6rm-7wxg
+- [Security] Fixed GHSA-fjpm-p9pj-mp34
+- [Security] Fixed GHSA-j8cq-2gv6-gfwf
+- [Security] Fixed GHSA-jxrj-q67x-wr4c
+
 * Fri May 03 2026 Tobias Bäumer <tobiasbaeumer@gmail.com> - 0.8.6
 - [Enhancement] Documentation updates
 - [Enhancement] Remote VSCode tunnels are now detected in deny_remote check (thx @jaoppb)
