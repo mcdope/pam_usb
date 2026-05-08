@@ -15,6 +15,78 @@
 # this program; if not, write to the Free Software Foundation, Inc., 51 Franklin
 # Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+INSTALL=0
+UNINSTALL=0
+
+while [ "$1" != "" ]; do
+    case $1 in
+        --install)   INSTALL=1 ;;
+        --uninstall) UNINSTALL=1 ;;
+        *) printf 'Usage: %s [--install|--uninstall]\n' "${0##*/}" >&2; exit 1 ;;
+    esac
+    shift
+done
+
+do_install() {
+    if [ "$(id -u)" = "0" ]; then
+        printf 'Do not run --install as root; files belong in your user home.\n' >&2
+        exit 1
+    fi
+
+    if [ -t 0 ]; then
+        printf 'Enter your keyring unlock password: '
+        stty -echo
+        read -r UNLOCK_PASSWORD
+        stty echo
+        printf '\n'
+    else
+        read -r UNLOCK_PASSWORD
+    fi
+
+    mkdir -p "$HOME/.pamusb"
+    printf 'UNLOCK_PASSWORD="%s"\n' "$UNLOCK_PASSWORD" > "$HOME/.pamusb/.keyring_unlock_password"
+    chmod 0600 "$HOME/.pamusb/.keyring_unlock_password"
+
+    mkdir -p "$HOME/.config/autostart"
+
+    cat > "$HOME/.config/autostart/pamusb-keyring-unlock-gnome.desktop" <<'EOF'
+[Desktop Entry]
+Type=Application
+Exec=/usr/bin/pamusb-keyring-unlock-gnome
+Hidden=false
+NoDisplay=false
+X-GNOME-Autostart-enabled=true
+Name=pam_usb keyring unlock
+Comment=Unlock GNOME keyring with pam_usb
+EOF
+
+    cat > "$HOME/.config/autostart/gnome-keyring-secrets.desktop" <<'EOF'
+[Desktop Entry]
+Hidden=true
+EOF
+
+    printf '\nInstallation complete.\n'
+    printf 'WARNING: Your keyring password is stored in cleartext at %s/.pamusb/.keyring_unlock_password\n' "$HOME"
+    printf 'Make sure your home directory is encrypted if you rely on this feature for security.\n'
+}
+
+do_uninstall() {
+    rm -f "$HOME/.pamusb/.keyring_unlock_password"
+    rm -f "$HOME/.config/autostart/pamusb-keyring-unlock-gnome.desktop"
+    rm -f "$HOME/.config/autostart/gnome-keyring-secrets.desktop"
+    printf 'Uninstall complete. Removed password file and autostart entries.\n'
+}
+
+if [ "$INSTALL" = "1" ]; then
+    do_install
+    exit 0
+fi
+
+if [ "$UNINSTALL" = "1" ]; then
+    do_uninstall
+    exit 0
+fi
+
 # Check for valid authentication
 pamusb-check `whoami` > /dev/null 2>&1 || (logger -p local0.error -t ${0##*/}[$$] pamusb-check failed. && exit 1)
 
