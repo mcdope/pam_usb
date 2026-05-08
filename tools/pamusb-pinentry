@@ -19,25 +19,125 @@ import os
 import sys
 import subprocess
 import getpass
+import argparse
+import shutil
 from dotenv import load_dotenv
-load_dotenv(os.path.expanduser("~/.pamusb/.pinentry.env"))
 
-pinentryPassword = os.getenv('PINENTRY_PASSWORD')
-fallbackPinentryApp = os.getenv('PINENTRY_FALLBACK_APP')
+ENVFILE_PATH = os.path.expanduser("~/.pamusb/.pinentry.env")
+PINENTRY_LINK = "/usr/bin/pinentry"
+PINENTRY_ALT_NAME = "pinentry"
+PAMUSB_PINENTRY_PATH = "/usr/bin/pamusb-pinentry"
+PINENTRY_ALT_PRIORITY = 100
 
-isAuthenticated = subprocess.run(["pamusb-check", getpass.getuser()], capture_output=True)
-if (isAuthenticated.returncode == 0):
-    print("OK Pleased to meet you")
-    while True:
-        line = input().split()
-        if line[0] == "GETPIN":
-            print("D %s" % pinentryPassword)
-        elif line[0] == "BYE":
-            exit()
-        print("OK")
-else:
-    if fallbackPinentryApp and os.path.isabs(fallbackPinentryApp) and os.path.isfile(fallbackPinentryApp) and os.access(fallbackPinentryApp, os.X_OK):
-        subprocess.run([fallbackPinentryApp])
+ENVFILE_TEMPLATE = (
+    "# pamusb-pinentry configuration\n"
+    "# Your GPG passphrase for auto-unlock\n"
+    "PINENTRY_PASSWORD=changeme\n"
+    "\n"
+    "# Fallback pinentry application (must be an absolute path)\n"
+    "# PINENTRY_FALLBACK_APP=/usr/bin/pinentry-gnome3\n"
+)
+
+
+def install():
+    envfile_dir = os.path.dirname(ENVFILE_PATH)
+    os.makedirs(envfile_dir, exist_ok=True)
+
+    if not os.path.exists(ENVFILE_PATH):
+        with open(ENVFILE_PATH, 'w') as f:
+            f.write(ENVFILE_TEMPLATE)
+        os.chmod(ENVFILE_PATH, 0o600)
+        print("Created %s" % ENVFILE_PATH)
     else:
-        sys.stderr.write('PINENTRY_FALLBACK_APP is not set or not a valid executable path, cannot fall back.\n')
+        print("%s already exists, skipping creation." % ENVFILE_PATH)
+
+    if shutil.which("update-alternatives") is None:
+        print("update-alternatives not found, skipping alternative registration.")
+        return
+
+    result = subprocess.run(
+        ["update-alternatives", "--install", PINENTRY_LINK, PINENTRY_ALT_NAME,
+         PAMUSB_PINENTRY_PATH, str(PINENTRY_ALT_PRIORITY)],
+        capture_output=True
+    )
+    if result.returncode != 0:
+        sys.stderr.write("Failed to register alternative: %s\n" % result.stderr.decode())
         sys.exit(1)
+
+    result = subprocess.run(
+        ["update-alternatives", "--set", PINENTRY_ALT_NAME, PAMUSB_PINENTRY_PATH],
+        capture_output=True
+    )
+    if result.returncode != 0:
+        sys.stderr.write("Failed to activate alternative: %s\n" % result.stderr.decode())
+        sys.exit(1)
+
+    print("pamusb-pinentry registered and activated as pinentry alternative.")
+
+
+def uninstall():
+    if os.path.exists(ENVFILE_PATH):
+        os.remove(ENVFILE_PATH)
+        print("Removed %s" % ENVFILE_PATH)
+    else:
+        print("%s does not exist, skipping removal." % ENVFILE_PATH)
+
+    if shutil.which("update-alternatives") is None:
+        print("update-alternatives not found, skipping alternative removal.")
+        return
+
+    result = subprocess.run(
+        ["update-alternatives", "--remove", PINENTRY_ALT_NAME, PAMUSB_PINENTRY_PATH],
+        capture_output=True
+    )
+    if result.returncode != 0:
+        sys.stderr.write("Failed to remove alternative: %s\n" % result.stderr.decode())
+        sys.exit(1)
+
+    print("pamusb-pinentry alternative removed.")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="pam_usb pinentry tool"
+    )
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument(
+        "--install", action="store_true",
+        help="Create envfile and register pamusb-pinentry as pinentry alternative"
+    )
+    group.add_argument(
+        "--uninstall", action="store_true",
+        help="Remove envfile and unregister pamusb-pinentry pinentry alternative"
+    )
+    args = parser.parse_args()
+
+    if args.install:
+        install()
+        sys.exit(0)
+
+    if args.uninstall:
+        uninstall()
+        sys.exit(0)
+
+    load_dotenv(ENVFILE_PATH)
+
+    pinentryPassword = os.getenv('PINENTRY_PASSWORD')
+    fallbackPinentryApp = os.getenv('PINENTRY_FALLBACK_APP')
+
+    isAuthenticated = subprocess.run(["pamusb-check", getpass.getuser()], capture_output=True)
+    if (isAuthenticated.returncode == 0):
+        print("OK Pleased to meet you")
+        while True:
+            line = input().split()
+            if line[0] == "GETPIN":
+                print("D %s" % pinentryPassword)
+            elif line[0] == "BYE":
+                exit()
+            print("OK")
+    else:
+        if fallbackPinentryApp and os.path.isabs(fallbackPinentryApp) and os.path.isfile(fallbackPinentryApp) and os.access(fallbackPinentryApp, os.X_OK):
+            subprocess.run([fallbackPinentryApp])
+        else:
+            sys.stderr.write('PINENTRY_FALLBACK_APP is not set or not a valid executable path, cannot fall back.\n')
+            sys.exit(1)

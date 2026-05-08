@@ -2,8 +2,20 @@
 
 .SH NAME
 \fBpamusb-pinentry \fP- pam_usb tool to be used as pinentry application
+.SH SYNOPSIS
+\fBpamusb-pinentry\fP [\fB--install\fP | \fB--uninstall\fP]
 .SH DESCRIPTION
 \fBpamusb-pinentry\fP is a tool to unlock your GPG keyring when used with pam_usb autologin.
+When invoked without options it operates as a pinentry program (communicating via the Assuan protocol on stdin/stdout).
+.SH OPTIONS
+.TP
+\fB--install\fP
+Create the envfile (\fI~/.pamusb/.pinentry.env\fP) with a template configuration (permissions 0600) and, if \fBupdate-alternatives\fP(1) is available, register and activate \fBpamusb-pinentry\fP as the system pinentry alternative.
+Must be run as root for the \fBupdate-alternatives\fP step.
+.TP
+\fB--uninstall\fP
+Remove the envfile (\fI~/.pamusb/.pinentry.env\fP) and, if \fBupdate-alternatives\fP(1) is available, deregister the \fBpamusb-pinentry\fP pinentry alternative.
+Must be run as root for the \fBupdate-alternatives\fP step.
 .SH CONFIGURATION
 See the pam_usb Wiki <https://github.com/mcdope/pam_usb/wiki/Getting-Started#auto-unlock-your-gpg-keys> for details about how to configure this feature.
 .SH BUGS
