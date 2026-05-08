@@ -8,6 +8,10 @@ Security regression coverage:
   M-3: valid executable fallback is invoked
   Happy path: authenticated + password configured → sends "D <password>" response
 
+_user_home() coverage:
+  returns SUDO_USER home when running as root via sudo
+  returns current user home when not running as root
+
 Installer/uninstaller coverage:
   install(): creates envfile + directory, sets 0600 permissions
   install(): skips envfile creation if it already exists
@@ -158,6 +162,34 @@ def test_getpin_returns_password(capsys):
                 print("OK")
 
         assert any(l.startswith("D ") and "supersecret" in l for l in output_lines)
+
+
+# ── _user_home() ──────────────────────────────────────────────────────────────
+
+def test_user_home_uses_sudo_user_when_root(tmp_path):
+    """_user_home() returns SUDO_USER's home dir when euid == 0."""
+    import pwd as _pwd
+    mod = _load_pinentry()
+    fake_home = str(tmp_path / "regularuser")
+    fake_entry = _pwd.struct_passwd(("regularuser", "x", 1000, 1000, "", fake_home, "/bin/bash"))
+
+    with patch.dict(os.environ, {"SUDO_USER": "regularuser"}, clear=False), \
+         patch("os.geteuid", return_value=0), \
+         patch("pwd.getpwnam", return_value=fake_entry):
+        result = mod._user_home()
+
+    assert result == fake_home
+
+
+def test_user_home_uses_expanduser_when_not_root(monkeypatch):
+    """_user_home() falls back to expanduser('~') when not running as root."""
+    mod = _load_pinentry()
+    monkeypatch.delenv("SUDO_USER", raising=False)
+
+    with patch("os.geteuid", return_value=1000):
+        result = mod._user_home()
+
+    assert result == os.path.expanduser("~")
 
 
 # ── install() ─────────────────────────────────────────────────────────────────

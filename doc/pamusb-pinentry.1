@@ -11,11 +11,13 @@ When invoked without options it operates as a pinentry program (communicating vi
 .TP
 \fB--install\fP
 Create the envfile (\fI~/.pamusb/.pinentry.env\fP) with a template configuration (permissions 0600) and, if \fBupdate-alternatives\fP(1) is available, register and activate \fBpamusb-pinentry\fP as the system pinentry alternative.
-Must be run as root for the \fBupdate-alternatives\fP step.
+The envfile is always created in the invoking user's home directory (using \fBSUDO_USER\fP when run via sudo).
+The \fBupdate-alternatives\fP step requires root privileges.
 .TP
 \fB--uninstall\fP
 Remove the envfile (\fI~/.pamusb/.pinentry.env\fP) and, if \fBupdate-alternatives\fP(1) is available, deregister the \fBpamusb-pinentry\fP pinentry alternative.
-Must be run as root for the \fBupdate-alternatives\fP step.
+The envfile path is resolved via \fBSUDO_USER\fP when run via sudo.
+The \fBupdate-alternatives\fP step requires root privileges.
 .SH CONFIGURATION
 See the pam_usb Wiki <https://github.com/mcdope/pam_usb/wiki/Getting-Started#auto-unlock-your-gpg-keys> for details about how to configure this feature.
 .SH BUGS

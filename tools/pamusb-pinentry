@@ -21,9 +21,19 @@ import subprocess
 import getpass
 import argparse
 import shutil
+import pwd
 from dotenv import load_dotenv
 
-ENVFILE_PATH = os.path.expanduser("~/.pamusb/.pinentry.env")
+
+def _user_home():
+    """Return the real user's home directory, even when invoked via sudo."""
+    sudo_user = os.environ.get("SUDO_USER")
+    if sudo_user and os.geteuid() == 0:
+        return pwd.getpwnam(sudo_user).pw_dir
+    return os.path.expanduser("~")
+
+
+ENVFILE_PATH = os.path.join(_user_home(), ".pamusb", ".pinentry.env")
 PINENTRY_LINK = "/usr/bin/pinentry"
 PINENTRY_ALT_NAME = "pinentry"
 PAMUSB_PINENTRY_PATH = "/usr/bin/pamusb-pinentry"
