@@ -23,3 +23,5 @@ tests/unit/c/pad_test
 tests/unit/c/process_test
 tests/unit/c/tmux_test
 tests/unit/c/xpath_test
+tests/unit/c/evdev_test
+tests/unit/c/remote_services_test
