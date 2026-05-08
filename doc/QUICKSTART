@@ -122,11 +122,14 @@ You should think twice if you want to enable this feature. To use it you need to
 
 The tool will only work if that file has permissions only for the owner, however - anyone with root/sudo access will still be able to read it. Keep that in mind before using this feature. Even worse: if you have samba user shares enabled you would share your password via SMB shares - to whoever can access that share. To be clear: this is a comfort feature and is insecure by design. 
 
-If you still want to use it, you will have to do four things:
-* create `.keyring_unlock_password` in `~/.pamusb/`
-* in that file you put `UNLOCK_PASSWORD="your_password"` (including the quotes)
-* set permissions so only yourself (and root) can read the file by running `chmod 0600 ~/.pamusb/.keyring_unlock_password`
-* create an autostart entry in GNOME for `/usr/bin/pamusb-keyring-unlock-gnome`
+If you still want to use it, run:
+
+    pamusb-keyring-unlock-gnome --install
+
+and follow the prompts. This creates the password file with correct permissions and installs
+the GNOME autostart entry. To undo, run:
+
+    pamusb-keyring-unlock-gnome --uninstall
 
 Auto-unlock your GPG keys
 ------------------------------

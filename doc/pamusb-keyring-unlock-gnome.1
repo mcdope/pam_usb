@@ -2,6 +2,19 @@
 
 .SH NAME
 \fBpamusb-keyring-unlock-gnome \fP- pam_usb unlock tool for the gnome-keyring
+.SH SYNOPSIS
+\fBpamusb-keyring-unlock-gnome\fP [\-\-install|\-\-uninstall]
+.SH OPTIONS
+.TP
+\fB\-\-install\fP
+Creates the password file skeleton (\fI~/.pamusb/.keyring_unlock_password\fP, mode 0600),
+installs the GNOME autostart desktop entry, and overrides the default gnome-keyring secrets
+daemon autostart so this script controls when the keyring is unlocked.
+Prompts for the keyring password interactively, or reads it from stdin when stdin is not a
+terminal.
+.TP
+\fB\-\-uninstall\fP
+Removes all files created by \-\-install.
 .SH DESCRIPTION
 \fBpamusb-keyring-unlock-gnome\fP is a tool to unlock your GNOME keyring when used with pam_usb autologin.
 .SH CONFIGURATION
