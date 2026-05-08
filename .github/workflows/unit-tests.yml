@@ -22,11 +22,12 @@ jobs:
             libudisks2-dev \
             libglib2.0-dev \
             libpam0g-dev \
+            libevdev-dev \
             python3-pytest \
             python3-pytest-mock
 
       - name: Build object files
-        run: make src/xpath.o src/conf.o src/mem.o src/log.o src/process.o
+        run: make src/xpath.o src/conf.o src/mem.o src/log.o src/process.o src/remote_services.o src/evdev.o
 
       - name: Run C unit tests
         run: make test-c
