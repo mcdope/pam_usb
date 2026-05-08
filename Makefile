@@ -30,12 +30,12 @@ endif
 
 # compiler/linker options
 CC := gcc
-CFLAGS := $(CFLAGS) -Wall -fPIC `pkg-config --cflags libxml-2.0` `pkg-config --cflags udisks2` #cflags libxml?
+CFLAGS := $(CFLAGS) -Wall -fPIC `pkg-config --cflags libxml-2.0` `pkg-config --cflags udisks2` `pkg-config --cflags libevdev` #cflags libxml?
 ifeq (yes, ${DEBUG})
 	CFLAGS := ${CFLAGS} -ggdb
 endif
 
-LIBS := `pkg-config --libs libxml-2.0` `pkg-config --libs udisks2`
+LIBS := `pkg-config --libs libxml-2.0` `pkg-config --libs udisks2` `pkg-config --libs libevdev`
 
 # common source files
 SRCS := src/conf.c \
@@ -47,7 +47,9 @@ SRCS := src/conf.c \
 	src/process.c \
 	src/tmux.c \
 	src/local.c \
-	src/device.c
+	src/device.c \
+	src/remote_services.c \
+	src/evdev.c
 OBJS := $(SRCS:.c=.o)
 
 # pam_usb
@@ -103,12 +105,14 @@ DOCKER := docker
 .DEFAULT_GOAL := all
 
 # ── Unit test targets ──────────────────────────────────────────────────────────
-TEST_CFLAGS   := $(CFLAGS)
-XPATH_LDFLAGS  := `pkg-config --libs libxml-2.0` -lcmocka
-CONF_LDFLAGS   := `pkg-config --libs libxml-2.0` -lcmocka
-TMUX_LDFLAGS   := -lcmocka
-PAD_LDFLAGS    := `pkg-config --libs libxml-2.0` -lcmocka
-PROC_LDFLAGS   := -lcmocka
+TEST_CFLAGS              := $(CFLAGS)
+XPATH_LDFLAGS            := `pkg-config --libs libxml-2.0` -lcmocka
+CONF_LDFLAGS             := `pkg-config --libs libxml-2.0` -lcmocka
+TMUX_LDFLAGS             := -lcmocka
+PAD_LDFLAGS              := `pkg-config --libs libxml-2.0` -lcmocka
+PROC_LDFLAGS             := -lcmocka
+REMOTE_SERVICES_LDFLAGS  := -lcmocka
+EVDEV_LDFLAGS            := -lcmocka
 
 test-c-xpath: src/xpath.o src/mem.o src/log.o
 	$(CC) $(TEST_CFLAGS) tests/unit/c/xpath_test.c $^ $(XPATH_LDFLAGS) -o tests/unit/c/xpath_test
@@ -130,7 +134,19 @@ test-c-process: src/process.o src/mem.o src/log.o
 	$(CC) $(TEST_CFLAGS) tests/unit/c/process_test.c $^ $(PROC_LDFLAGS) -o tests/unit/c/process_test
 	./tests/unit/c/process_test
 
-test-c: test-c-xpath test-c-conf test-c-tmux test-c-pad test-c-process
+test-c-remote_services: src/mem.o src/log.o
+	$(CC) $(TEST_CFLAGS) tests/unit/c/remote_services_test.c $^ \
+		$(REMOTE_SERVICES_LDFLAGS) -o tests/unit/c/remote_services_test
+	./tests/unit/c/remote_services_test
+
+test-c-evdev: src/mem.o src/log.o
+	$(CC) $(TEST_CFLAGS) tests/unit/c/evdev_test.c \
+		tests/unit/c/fake_libevdev.c $^ \
+		-Wl,--wrap=opendir,--wrap=readdir,--wrap=closedir,--wrap=open,--wrap=close \
+		$(EVDEV_LDFLAGS) -o tests/unit/c/evdev_test
+	./tests/unit/c/evdev_test
+
+test-c: test-c-xpath test-c-conf test-c-tmux test-c-pad test-c-process test-c-remote_services test-c-evdev
 
 test-python:
 	python3 -m pytest tests/unit/python/ -v

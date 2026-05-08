@@ -27,6 +27,7 @@ static void test_conf_init_defaults(void **state)
 	assert_int_equal(1, opts.enable);
 	assert_int_equal(1, opts.one_time_pad);
 	assert_int_equal(1, opts.deny_remote);
+	assert_int_equal(1, opts.remote_desktop_check);
 	assert_true(opts.probe_timeout > 0);
 	assert_true(opts.pad_expiration > 0);
 	assert_true(opts.hostname[0] != '\0');

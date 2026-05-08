@@ -31,6 +31,8 @@
 #include "process.h"
 #include "tmux.h"
 #include "mem.h"
+#include "remote_services.h"
+#include "evdev.h"
 
 int pusb_is_tty_local(char *tty)
 {
@@ -293,6 +295,18 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 	if (xrdpSession != NULL) {
 		log_error("XRDP session detected, denying.\n", xrdpSession);
 		return (0);
+	}
+
+	if (opts->remote_desktop_check) {
+		log_debug("Checking for active remote desktop services...\n");
+		if (pusb_has_active_remote_service(opts) == 1) {
+			log_error("Active remote desktop service with connection detected, denying.\n");
+			return (0);
+		}
+		if (pusb_has_virtual_input_device("/dev/input")) {
+			log_error("Virtual input device detected (possible remote desktop tool), denying.\n");
+			return (0);
+		}
 	}
 
 	while (pid != 0) 

@@ -14,8 +14,8 @@ Version:   %{version}
 Release:   %{release}
 Prefix:    /usr
 Group:     System Environment/Base
-BuildRequires: libudisks2-devel libxml2-devel
-Requires:  pam python3-gobject gawk
+BuildRequires: libudisks2-devel libxml2-devel libevdev-devel
+Requires:  pam python3-gobject gawk libevdev
 
 %description
 Adds auth over usb-stick to pam
