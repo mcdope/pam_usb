@@ -125,7 +125,7 @@ static void test_device_pad_file_symlink_rejected(void **state)
 	snprintf(opts.device.name, sizeof(opts.device.name), "testdev");
 
 	/* Create symlink at the expected pad file path */
-	char symlink_path[512];
+	char symlink_path[1024];
 	snprintf(symlink_path, sizeof(symlink_path), "%s/testuser.%s.pad",
 	         pad_dir, opts.hostname);
 	assert_int_equal(0, symlink("/etc/passwd", symlink_path));
@@ -163,7 +163,7 @@ static void test_truncated_device_pad_denied(void **state)
 	snprintf(dev_pad_dir, sizeof(dev_pad_dir), "%s/.pamusb", mnt_dir);
 	mkdir_p(dev_pad_dir);
 
-	char dev_pad_path[512];
+	char dev_pad_path[1024];
 	snprintf(dev_pad_path, sizeof(dev_pad_path), "%s/%s.%s.pad",
 	         dev_pad_dir, pw->pw_name, opts.hostname);
 
@@ -176,7 +176,7 @@ static void test_truncated_device_pad_denied(void **state)
 	snprintf(sys_pad_dir, sizeof(sys_pad_dir), "%s/.pamusb_h3_unit", pw->pw_dir);
 	mkdir_p(sys_pad_dir);
 
-	char sys_pad_path[512];
+	char sys_pad_path[1024];
 	snprintf(sys_pad_path, sizeof(sys_pad_path), "%s/pamusb_h3test.pad", sys_pad_dir);
 	char buf_1024[1024];
 	memset(buf_1024, 0xAB, sizeof(buf_1024));
@@ -214,7 +214,7 @@ static void test_pad_expired(void **state)
 	snprintf(sys_pad_dir, sizeof(sys_pad_dir), "%s/.pamusb_exp_unit", pw->pw_dir);
 	mkdir_p(sys_pad_dir);
 
-	char sys_pad_path[512];
+	char sys_pad_path[1024];
 	snprintf(sys_pad_path, sizeof(sys_pad_path), "%s/pamusb_exptest.pad", sys_pad_dir);
 	char dummy[8] = {0};
 	write_file(sys_pad_path, dummy, sizeof(dummy));
@@ -249,7 +249,7 @@ static void test_pad_fresh(void **state)
 	snprintf(sys_pad_dir, sizeof(sys_pad_dir), "%s/.pamusb_fresh_unit", pw->pw_dir);
 	mkdir_p(sys_pad_dir);
 
-	char sys_pad_path[512];
+	char sys_pad_path[1024];
 	snprintf(sys_pad_path, sizeof(sys_pad_path), "%s/pamusb_freshtest.pad", sys_pad_dir);
 	char dummy[8] = {0};
 	write_file(sys_pad_path, dummy, sizeof(dummy));
@@ -284,7 +284,7 @@ static void test_pad_missing(void **state)
 	snprintf(sys_pad_dir, sizeof(sys_pad_dir), "%s/.pamusb_miss_unit", pw->pw_dir);
 	mkdir_p(sys_pad_dir);
 
-	char sys_pad_path[512];
+	char sys_pad_path[1024];
 	snprintf(sys_pad_path, sizeof(sys_pad_path), "%s/pamusb_missing_pad.pad", sys_pad_dir);
 	unlink(sys_pad_path); /* make sure it doesn't exist */
 

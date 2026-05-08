@@ -105,7 +105,7 @@ TEST_CFLAGS   := $(CFLAGS)
 XPATH_LDFLAGS  := `pkg-config --libs libxml-2.0` -lcmocka
 CONF_LDFLAGS   := `pkg-config --libs libxml-2.0` -lcmocka
 TMUX_LDFLAGS   := -lcmocka
-PAD_LDFLAGS    := -lcmocka
+PAD_LDFLAGS    := `pkg-config --libs libxml-2.0` -lcmocka
 PROC_LDFLAGS   := -lcmocka
 
 test-c-xpath: src/xpath.o src/mem.o src/log.o
@@ -120,7 +120,7 @@ test-c-tmux: src/process.o src/mem.o src/log.o
 	$(CC) $(TEST_CFLAGS) tests/unit/c/tmux_test.c $^ -Wl,--wrap=popen,--wrap=pclose $(TMUX_LDFLAGS) -o tests/unit/c/tmux_test
 	./tests/unit/c/tmux_test
 
-test-c-pad: src/mem.o src/log.o
+test-c-pad: src/conf.o src/xpath.o src/mem.o src/log.o
 	$(CC) $(TEST_CFLAGS) tests/unit/c/pad_test.c $^ $(PAD_LDFLAGS) -o tests/unit/c/pad_test
 	./tests/unit/c/pad_test
 
