@@ -14,6 +14,6 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Install requirements
-      run: sudo apt install libudisks2-dev libxml2-dev python-is-python3 libpam0g-dev pkg-config gir1.2-glib-2.0 libglib2.0-dev libevdev-dev
+      uses: ./.github/actions/install-build-deps
     - name: make
       run: make
