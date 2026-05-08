@@ -131,7 +131,7 @@ test-c-process: src/process.o src/mem.o src/log.o
 test-c: test-c-xpath test-c-conf test-c-tmux test-c-pad test-c-process
 
 test-python:
-	pytest tests/unit/python/ -v
+	python3 -m pytest tests/unit/python/ -v
 
 test: test-c test-python
 
