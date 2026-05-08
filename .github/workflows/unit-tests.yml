@@ -1,0 +1,35 @@
+name: Unit tests
+
+on:
+  pull_request:
+    branches: [ master ]
+  push:
+    branches: [ master ]
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y \
+            libcmocka-dev \
+            libxml2-dev \
+            libudisks2-dev \
+            libglib2.0-dev \
+            libpam0g-dev \
+            python3-pytest \
+            python3-pytest-mock
+
+      - name: Build object files
+        run: make src/xpath.o src/conf.o src/mem.o src/log.o src/process.o
+
+      - name: Run C unit tests
+        run: make test-c
+
+      - name: Run Python unit tests
+        run: make test-python

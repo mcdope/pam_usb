@@ -100,6 +100,41 @@ ZSTBUILD := cd arch_linux && makepkg -p PKGBUILD_git && cd ..
 MANCOMPILE := gzip -kf
 DOCKER := docker
 
+# ── Unit test targets ──────────────────────────────────────────────────────────
+TEST_CFLAGS   := $(CFLAGS)
+XPATH_LDFLAGS  := `pkg-config --libs libxml-2.0` -lcmocka
+CONF_LDFLAGS   := `pkg-config --libs libxml-2.0` -lcmocka
+TMUX_LDFLAGS   := -lcmocka
+PAD_LDFLAGS    := -lcmocka
+PROC_LDFLAGS   := -lcmocka
+
+test-c-xpath: src/xpath.o src/mem.o src/log.o
+	$(CC) $(TEST_CFLAGS) tests/unit/c/xpath_test.c $^ $(XPATH_LDFLAGS) -o tests/unit/c/xpath_test
+	./tests/unit/c/xpath_test
+
+test-c-conf: src/conf.o src/xpath.o src/mem.o src/log.o
+	$(CC) $(TEST_CFLAGS) tests/unit/c/conf_test.c $^ $(CONF_LDFLAGS) -o tests/unit/c/conf_test
+	./tests/unit/c/conf_test
+
+test-c-tmux: src/process.o src/mem.o src/log.o
+	$(CC) $(TEST_CFLAGS) tests/unit/c/tmux_test.c $^ -Wl,--wrap=popen,--wrap=pclose $(TMUX_LDFLAGS) -o tests/unit/c/tmux_test
+	./tests/unit/c/tmux_test
+
+test-c-pad: src/mem.o src/log.o
+	$(CC) $(TEST_CFLAGS) tests/unit/c/pad_test.c $^ $(PAD_LDFLAGS) -o tests/unit/c/pad_test
+	./tests/unit/c/pad_test
+
+test-c-process: src/process.o src/mem.o src/log.o
+	$(CC) $(TEST_CFLAGS) tests/unit/c/process_test.c $^ $(PROC_LDFLAGS) -o tests/unit/c/process_test
+	./tests/unit/c/process_test
+
+test-c: test-c-xpath test-c-conf test-c-tmux test-c-pad test-c-process
+
+test-python:
+	pytest tests/unit/python/ -v
+
+test: test-c test-python
+
 all: manpages $(PAM_USB) $(PAMUSB_CHECK)
 
 $(PAM_USB): $(OBJS) $(PAM_USB_OBJS)

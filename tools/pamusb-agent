@@ -130,269 +130,281 @@ def runAs(uid, gid):
 		os.setuid(uid)
 	return set_id
 
-import getopt
-
-try:
-	opts, args = getopt.getopt(sys.argv[1:], "hc:dc:", ["help", "config=", "daemon", "check="])
-except getopt.GetoptError:
-	usage()
-
-options = {
-	'configFile': '/etc/security/pam_usb.conf',
-	'daemon': False,
-	'check': '/usr/bin/pamusb-check'
+# Environment variables that must never be forwarded to agent subprocesses.
+_DANGEROUS_ENV_VARS = {
+	'LD_PRELOAD', 'LD_LIBRARY_PATH', 'LD_AUDIT', 'LD_DEBUG',
+	'GLIBC_TUNABLES', 'PYTHONPATH', 'PERL5LIB', 'RUBYLIB',
+	'IFS', 'CDPATH', 'ENV', 'BASH_ENV',
 }
 
-if len(args) != 0:
-	usage()
 
-for o, a in opts:
-	if o in ('-h', '--help'):
+def sanitize_agent_env(hotplug, user_name, logger):
+	"""Build filtered env dict from <agent><env> XML elements, rejecting dangerous vars."""
+	henvs = {}
+	for henv in hotplug.findall('env'):
+		if henv.text is not None:
+			henv_var = re.sub(r'^(.*?)=.*$', '\\1', henv.text)
+			henv_arg = re.sub(r'^.*?=(.*)$', '\\1', henv.text)
+
+			if henv_var != '' and henv_arg != '':
+				if henv_var in _DANGEROUS_ENV_VARS:
+					logger.error('Rejecting dangerous env var "%s" for user "%s".' % (henv_var, user_name))
+				else:
+					henvs[henv_var] = henv_arg
+			else:
+				logger.error('Ignoring invalid command environment variable for user "%s".' % user_name)
+		else:
+			logger.error('Ignoring empty environment variable for user "%s".' % user_name)
+	return henvs
+
+
+def run_auth_check(options, user_name):
+	"""Run pamusb-check for user_name; return (returncode, stdout, stderr)."""
+	check_args = [options['check'], '--debug', '--config=' + options['configFile'],
+	              '--service=pamusb-agent', user_name]
+	result = subprocess.run(check_args, capture_output=True)
+	return result.returncode, result.stdout, result.stderr
+
+
+if __name__ == '__main__':
+	try:
+		opts, args = getopt.getopt(sys.argv[1:], "hc:dc:", ["help", "config=", "daemon", "check="])
+	except getopt.GetoptError:
 		usage()
-	if o in ('-c', '--config'):
-		options['configFile'] = a
-	if o in ('-d', '--daemon'):
-		options['daemon'] = True
-	if o in ('-c', '--check'):
-		options['check'] = a
 
-
-if not os.path.exists(options['check']):
-	print('%s not found.' % options['check'])
-	print("You might specify manually pamusb-check's location using --check.")
-	usage()
-
-logger = Log()
-
-doc = et.parse(options['configFile'])
-users = doc.findall('users/user')
-
-def login1ManagerDBusIface():
-	system_bus = dbus.SystemBus()
-	proxy = system_bus.get_object('org.freedesktop.login1', '/org/freedesktop/login1')
-	login1 = dbus.Interface(proxy, 'org.freedesktop.login1.Manager')
-	return login1
-
-def userDeviceThread(user):
-	userName = user.get('id')
-	uid = pwd.getpwnam(userName)[2]
-	gid = pwd.getpwnam(userName)[3]
-	os.environ = None
-
-	events = {
-		'lock': [],
-		'unlock': []
+	options = {
+		'configFile': '/etc/security/pam_usb.conf',
+		'daemon': False,
+		'check': '/usr/bin/pamusb-check'
 	}
 
-	for hotplug in user.findall('agent'):
-		henvs = {}
-		hcmds = []
+	if len(args) != 0:
+		usage()
 
-		for hcmd in hotplug.findall('cmd'):
-			if hcmd.text is not None:
-				hcmds.append(hcmd.text)
-			else:
-				logger.error('Ignoring empty command for user "%s".' % userName)
+	for o, a in opts:
+		if o in ('-h', '--help'):
+			usage()
+		if o in ('-c', '--config'):
+			options['configFile'] = a
+		if o in ('-d', '--daemon'):
+			options['daemon'] = True
+		if o in ('-c', '--check'):
+			options['check'] = a
 
-		_DANGEROUS_ENV_VARS = {
-			'LD_PRELOAD', 'LD_LIBRARY_PATH', 'LD_AUDIT', 'LD_DEBUG',
-			'GLIBC_TUNABLES', 'PYTHONPATH', 'PERL5LIB', 'RUBYLIB',
-			'IFS', 'CDPATH', 'ENV', 'BASH_ENV',
+
+	if not os.path.exists(options['check']):
+		print('%s not found.' % options['check'])
+		print("You might specify manually pamusb-check's location using --check.")
+		usage()
+
+	logger = Log()
+
+	doc = et.parse(options['configFile'])
+	users = doc.findall('users/user')
+
+	def login1ManagerDBusIface():
+		system_bus = dbus.SystemBus()
+		proxy = system_bus.get_object('org.freedesktop.login1', '/org/freedesktop/login1')
+		login1 = dbus.Interface(proxy, 'org.freedesktop.login1.Manager')
+		return login1
+
+	def userDeviceThread(user):
+		userName = user.get('id')
+		uid = pwd.getpwnam(userName)[2]
+		gid = pwd.getpwnam(userName)[3]
+		os.environ = None
+
+		events = {
+			'lock': [],
+			'unlock': []
 		}
 
-		for henv in hotplug.findall('env'):
-			if henv.text is not None:
-				henv_var = re.sub(r'^(.*?)=.*$', '\\1', henv.text)
-				henv_arg = re.sub(r'^.*?=(.*)$', '\\1', henv.text)
+		for hotplug in user.findall('agent'):
+			hcmds = []
 
-				if henv_var != '' and henv_arg != '':
-					if henv_var in _DANGEROUS_ENV_VARS:
-						logger.error('Rejecting dangerous env var "%s" for user "%s".' % (henv_var, userName))
+			for hcmd in hotplug.findall('cmd'):
+				if hcmd.text is not None:
+					hcmds.append(hcmd.text)
+				else:
+					logger.error('Ignoring empty command for user "%s".' % userName)
+
+			henvs = sanitize_agent_env(hotplug, userName, logger)
+
+			events[hotplug.get('event')].append(
+				{
+					'env': henvs,
+					'cmd': hcmds
+				}
+			)
+
+		devices_for_user = []
+		to_watch = []
+
+		all_devices = doc.findall("devices/device")
+		user_devices = user.findall("device")
+		for device in user_devices:
+			devices_for_user.append(device.text)
+
+		deviceOK = False
+		for device in all_devices:
+			if device.get('id') in devices_for_user:
+				to_watch.append({"name": device.get('id'), "serial": device.findtext('serial')})
+				deviceOK = True
+
+		if not deviceOK or len(to_watch) == 0:
+			logger.error('Device(s) not found in configuration file.')
+			return 1
+
+		resumeTimestamp = datetime.datetime.min
+
+		def authChangeCallback(event, deviceName):
+			nonlocal hpDevs
+
+			for otherDeviceThread in hpDevs:
+				if not otherDeviceThread.getWatchedDeviceName() == deviceName and otherDeviceThread.isDeviceConnected():
+					logger.info('Device "%s" removed or plugged but another one is connected anyway, ignoring' % deviceName)
+					return
+
+			if event == 'removed':
+				nonlocal resumeTimestamp
+				currentTimestamp = datetime.datetime.now()
+				difference = currentTimestamp - resumeTimestamp
+				if difference.total_seconds() < 5.0:
+					logger.info('Device is removed during suspend, ignoring')
+					return
+
+				logger.info('Device "%s" has been removed, locking down user "%s"...' % (deviceName, userName))
+
+				for l in events['lock']:
+					if len(l['cmd']) != 0:
+						for cmd in l['cmd']:
+							logger.info('Running "%s" (as %d:%d)' % (cmd, uid, gid))
+							process = subprocess.run(['sh', '-c', cmd], env=l['env'], preexec_fn=runAs(uid, gid), capture_output=True)
+							logger.info('Process exit code: %d' % (process.returncode))
+							logger.info('Process stdout: %s' % (process.stdout.decode()))
+							logger.info('Process stderr: %s' % (process.stderr.decode()))
+
 					else:
-						henvs[henv_var] = henv_arg
-				else:
-					logger.error('Ignoring invalid command environment variable for user "%s".' % userName)
-			else:
-				logger.error('Ignoring empty environment variable for user "%s".' % userName)
+						logger.info('No commands defined for lock!')
 
-		events[hotplug.get('event')].append(
-			{
-				'env': henvs,
-				'cmd': hcmds
-			}
-		)
-
-	devices_for_user = []
-	to_watch = []
-
-	all_devices = doc.findall("devices/device")
-	user_devices = user.findall("device")
-	for device in user_devices:
-		devices_for_user.append(device.text)
-
-	deviceOK = False
-	for device in all_devices:
-		if device.get('id') in devices_for_user:
-			to_watch.append({"name": device.get('id'), "serial": device.findtext('serial')})
-			deviceOK = True
-
-	if not deviceOK or len(to_watch) == 0:
-		logger.error('Device(s) not found in configuration file.')
-		return 1
-
-	resumeTimestamp = datetime.datetime.min
-
-	def authChangeCallback(event, deviceName):
-		nonlocal hpDevs
-
-		for otherDeviceThread in hpDevs:
-			if not otherDeviceThread.getWatchedDeviceName() == deviceName and otherDeviceThread.isDeviceConnected():
-				logger.info('Device "%s" removed or plugged but another one is connected anyway, ignoring' % deviceName)
+				logger.info('Locked.')
 				return
 
-		if event == 'removed':
+
+			logger.info('Device "%s" has been inserted. Performing verification...' % deviceName)
+
+			returncode, stdout, stderr = run_auth_check(options, userName)
+			logger.info('Auth check for user "%s" complete (rc=%d).' % (userName, returncode))
+			if returncode == 0:
+				logger.info('Authentication succeeded. Unlocking user "%s"...' % userName)
+
+				for l in events['unlock']:
+					if len(l['cmd']) != 0:
+						for cmd in l['cmd']:
+							logger.info('Running "%s" (as %d:%d)' % (cmd, uid, gid))
+							process = subprocess.run(['sh', '-c', cmd], env=l['env'], preexec_fn=runAs(uid, gid), capture_output=True)
+							logger.info('Process exit code: %d' % (process.returncode))
+							logger.info('Process stdout: %s' % (process.stdout.decode()))
+							logger.info('Process stderr: %s' % (process.stderr.decode()))
+
+					else:
+						logger.info('No commands defined for unlock!')
+
+				logger.info('Unlocked.')
+				return
+
+			else:
+				logger.info('Authentication failed for device %s. Keeping user "%s" locked down.' % (deviceName, userName))
+
+		def onSuspendOrResume(start, member=None):
 			nonlocal resumeTimestamp
-			currentTimestamp = datetime.datetime.now()
-			difference = currentTimestamp - resumeTimestamp
-			if difference.total_seconds() < 5.0:
-				logger.info('Device is removed during suspend, ignoring')
-				return
+			nonlocal hpDevs
 
-			logger.info('Device "%s" has been removed, locking down user "%s"...' % (deviceName, userName))
-
-			for l in events['lock']:
-				if len(l['cmd']) != 0:
-					for cmd in l['cmd']:
-						logger.info('Running "%s" (as %d:%d)' % (cmd, uid, gid))
-						process = subprocess.run(['sh', '-c', cmd], env=l['env'], preexec_fn=runAs(uid, gid), capture_output=True)
-						logger.info('Process exit code: %d' % (process.returncode))
-						logger.info('Process stdout: %s' % (process.stdout.decode()))
-						logger.info('Process stderr: %s' % (process.stderr.decode()))
-
+			for hpDev in hpDevs:
+				if start == True:
+					logger.info('Suspending user "%s"' % (userName))
+					resumeTimestamp = datetime.datetime.max
 				else:
-					logger.info('No commands defined for lock!')
+					logger.info('Resuming user "%s"' % (userName))
+					if hpDev.isDeviceConnected() == True:
+						logger.info('Device %s is connected for user "%s", unlocking' % (hpDev.__name, userName))
+						authChangeCallback('added')
 
-			logger.info('Locked.')
-			return
+					resumeTimestamp = datetime.datetime.now()
 
+		login1Interface = login1ManagerDBusIface()
+		for signal in ['PrepareForSleep', 'PrepareForShutdown']:
+			login1Interface.connect_to_signal(signal, onSuspendOrResume, member_keyword='member')
 
-		logger.info('Device "%s" has been inserted. Performing verification...' % deviceName)
+		hpDevs = []
+		threads = []
+		for watch_this in to_watch:
+			logger.info('Watching device "%s" for user "%s"' % (watch_this.get('name'), userName))
 
-		checkArgs = [options['check'], '--debug', '--config=' + options['configFile'], '--service=pamusb-agent', userName]
-		logger.info('Executing "%s"' % ' '.join(checkArgs))
-		checkResult = subprocess.run(checkArgs, capture_output=True)
-		if checkResult.returncode == 0:
-			logger.info('Authentication succeeded. Unlocking user "%s"...' % userName)
+			hpDev = HotPlugDevice(watch_this.get('serial'), watch_this.get('name'))
+			hpDev.addCallback(authChangeCallback)
 
-			for l in events['unlock']:
-				if len(l['cmd']) != 0:
-					for cmd in l['cmd']:
-						logger.info('Running "%s" (as %d:%d)' % (cmd, uid, gid))
-						process = subprocess.run(['sh', '-c', cmd], env=l['env'], preexec_fn=runAs(uid, gid), capture_output=True)
-						logger.info('Process exit code: %d' % (process.returncode))
-						logger.info('Process stdout: %s' % (process.stdout.decode()))
-						logger.info('Process stderr: %s' % (process.stderr.decode()))
+			thread = threading.Thread(target=hpDev.run)
+			thread.start()
 
-				else:
-					logger.info('No commands defined for unlock!')
+			threads.append(thread)
+			hpDevs.append(hpDev)
 
-			logger.info('Unlocked.')
-			return
+	udisks = UDisks.Client.new_sync()
+	udisksObjectManager = udisks.get_object_manager()
 
-		else:
-			logger.info('Authentication failed for device %s. Keeping user "%s" locked down.' % (deviceName, userName))
+	sysUsers = []
+	validUsers = []
 
-	def onSuspendOrResume(start, member=None):
-		nonlocal resumeTimestamp
-		nonlocal hpDevs
+	def processCheck():
+		global filelock
+		filelock=open(os.path.realpath(__file__),'r')
 
-		for hpDev in hpDevs:
-			if start == True:
-				logger.info('Suspending user "%s"' % (userName))
-				resumeTimestamp = datetime.datetime.max
-			else:
-				logger.info('Resuming user "%s"' % (userName))
-				if hpDev.isDeviceConnected() == True:
-					logger.info('Device %s is connected for user "%s", unlocking' % (hpDev.__name, userName))
-					authChangeCallback('added')
+		try:
+			fcntl.flock(filelock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+		except:
+			logger.error('Process is already running.')
+			sys.exit(1)
 
-				resumeTimestamp = datetime.datetime.now()
+		if os.getuid() != 0:
+			logger.error('Process must be run as root.')
+			sys.exit(1)
 
-	login1Interface = login1ManagerDBusIface()
-	for signal in ['PrepareForSleep', 'PrepareForShutdown']:
-		login1Interface.connect_to_signal(signal, onSuspendOrResume, member_keyword='member')
-
-	hpDevs = []
-	threads = []
-	for watch_this in to_watch:
-		logger.info('Watching device "%s" for user "%s"' % (watch_this.get('name'), userName))
-
-		hpDev = HotPlugDevice(watch_this.get('serial'), watch_this.get('name'))
-		hpDev.addCallback(authChangeCallback)
-
-		thread = threading.Thread(target=hpDev.run)
-		thread.start()
-
-		threads.append(thread)
-		hpDevs.append(hpDev)
-
-udisks = UDisks.Client.new_sync()
-udisksObjectManager = udisks.get_object_manager()
-
-sysUsers = []
-validUsers = []
-
-def processCheck():
-	global filelock
-	filelock=open(os.path.realpath(__file__),'r')
+	processCheck()
 
 	try:
-		fcntl.flock(filelock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+		with open('/etc/passwd', 'r') as f:
+			for line in f.readlines():
+				sysUser = re.sub(r'^(.*?):.*', '\\1', line[:-1])
+				sysUsers.append(sysUser)
+			f.close()
 	except:
-		logger.error('Process is already running.')
+		logger.error('Couldn\'t read system user names from "/etc/passwd". Process can\'t continue.')
 		sys.exit(1)
 
-	if os.getuid() != 0:
-		logger.error('Process must be run as root.')
-		sys.exit(1)
+	logger.info('pamusb-agent up and running.')
 
-processCheck()
+	for userObj in users:
+		userId = userObj.get('id')
 
-try:
-	with open('/etc/passwd', 'r') as f:
-		for line in f.readlines():
-			sysUser = re.sub(r'^(.*?):.*', '\\1', line[:-1])
-			sysUsers.append(sysUser)
-		f.close()
-except:
-	logger.error('Couldn\'t read system user names from "/etc/passwd". Process can\'t continue.')
-	sys.exit(1)
+		for sysUser_ in sysUsers:
+			if (userId == sysUser_ and userObj not in validUsers):
+				validUsers.append(userObj)
 
-logger.info('pamusb-agent up and running.')
+	for user in validUsers:
+		threading.Thread(
+			target=userDeviceThread,
+			args=(user,)
+		).start()
 
-for userObj in users:
-	userId = userObj.get('id')
+	if options['daemon'] and os.fork():
+		sys.exit(0)
 
-	for sysUser_ in sysUsers:
-		if (userId == sysUser_ and userObj not in validUsers):
-			validUsers.append(userObj)
+	def sig_handler(sig, frame):
+		logger.info('Stopping agent.')
+		sys.exit(0)
 
-# logger.error('User %s not found in configuration file' % username)
+	sys_signals = ['SIGINT', 'SIGTERM', 'SIGTSTP', 'SIGTTIN', 'SIGTTOU']
 
-for user in validUsers:
-	threading.Thread(
-		target=userDeviceThread,
-		args=(user,)
-	).start()
-
-if options['daemon'] and os.fork():
-	sys.exit(0)
-
-def sig_handler(sig, frame):
-	logger.info('Stopping agent.')
-	sys.exit(0)
-
-sys_signals = ['SIGINT', 'SIGTERM', 'SIGTSTP', 'SIGTTIN', 'SIGTTOU']
-
-for i in sys_signals:
-	signal.signal(getattr(signal, i), sig_handler)
+	for i in sys_signals:
+		signal.signal(getattr(signal, i), sig_handler)
