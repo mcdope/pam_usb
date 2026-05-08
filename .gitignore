@@ -17,3 +17,4 @@ doc/*.1.gz
 .idea
 .vscode
 .build
+**/__pycache__
