@@ -18,3 +18,8 @@ doc/*.1.gz
 .vscode
 .build
 **/__pycache__
+tests/unit/c/conf_test
+tests/unit/c/pad_test
+tests/unit/c/process_test
+tests/unit/c/tmux_test
+tests/unit/c/xpath_test
