@@ -5,4 +5,4 @@ WORKDIR /usr/local/src/pam_usb
 RUN useradd -m builduser
 RUN pacman-key --init && pacman --noconfirm -Sy archlinux-keyring
 RUN pacman --noconfirm -Syu && \
-    pacman --noconfirm -S sudo git pkgconf gcc make patch pam dbus python python-dbus python-lxml python-gobject udisks2 base-devel pacman-contrib
+    pacman --noconfirm -S sudo git pkgconf gcc make patch pam dbus python python-dbus python-lxml python-gobject udisks2 libevdev base-devel pacman-contrib
