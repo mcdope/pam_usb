@@ -15,6 +15,6 @@ Please email me at tobiasbaeumer@gmail.com, since Github issues are public.
 
 ## Note on versions <= 0.8.6
 
-There are multiple published security advisories for these versions. Details will follow.
+There are multiple published security advisories for these versions.
 
-But if you're running anything except 0.8.7 please update immediately!
+If you're running anything except 0.8.7 please update immediately!
