@@ -400,80 +400,81 @@ def usage():
 	print('Usage: %s [--help] [--verbose] [--yes] [--config=path] [--reset-pads=username] [--add-user=name | --add-device=name [[--device=number] [--volume=number]]' % os.path.basename(__file__))
 	sys.exit(1)
 
-try:
-	opts, args = getopt.getopt(
-		sys.argv[1:], 
-		"hvd:nu:c:y",
-		["help", "verbose", "add-device=", "add-user=", "config=", "reset-pads=", "yes", "device=", "volume=", "list-devices", "list-volumes"]
-	)
-except getopt.GetoptError:
-	usage()
-
-if len(args) != 0:
-	usage()
-
-options = {
-	'deviceName': None,
-	'userName': None,
-	'configFile': '/etc/security/pam_usb.conf',
-	'verbose': False,
-	'yes': False,
-	'deviceNumber': None,
-	'volumeNumber': None,
-	'listDevices': False,
-	'listVolumes': False,
-	'resetPads': None
-}
-
-for o, a in opts:
-	if o in ("-h", "--help"):
+if __name__ == '__main__':
+	try:
+		opts, args = getopt.getopt(
+			sys.argv[1:],
+			"hvd:nu:c:y",
+			["help", "verbose", "add-device=", "add-user=", "config=", "reset-pads=", "yes", "device=", "volume=", "list-devices", "list-volumes"]
+		)
+	except getopt.GetoptError:
 		usage()
-	if o in ("-v", "--verbose"):
-		options['verbose'] = True
-	if o in ("-d", "--add-device"):
-		options['deviceName'] = a
-	if o in ("-u", "--add-user"):
-		options['userName'] = a
-	if o in ("-c", "--config"):
-		options['configFile'] = a
-	if o in ("-y", "--yes"):
-		options['yes'] = True
-	if o in ("--device"):
-		options['deviceNumber'] = a
-	if o in ("--volume"):
-		options['volumeNumber'] = a
-	if o in ("--list-devices"):
-		options['listDevices'] = True
-	if o in ("--list-volumes"):
-		options['listVolumes'] = True
-	if o in ("--reset-pads"):
-		options['resetPads'] = a
 
-if options['resetPads'] is not None:
-	resetPads()
+	if len(args) != 0:
+		usage()
 
-if options['listDevices'] is True or options['listVolumes'] is True:
-	udisks = UDisks.Client.new_sync()
-	udisksObjectManager = udisks.get_object_manager()
-	listAvailableDevicesAndVolumes(options)
+	options = {
+		'deviceName': None,
+		'userName': None,
+		'configFile': '/etc/security/pam_usb.conf',
+		'verbose': False,
+		'yes': False,
+		'deviceNumber': None,
+		'volumeNumber': None,
+		'listDevices': False,
+		'listVolumes': False,
+		'resetPads': None
+	}
 
-if options['deviceName'] is not None and options['userName'] is not None:
-	print('You cannot use both --add-user and --add-device')
-	usage()
+	for o, a in opts:
+		if o in ("-h", "--help"):
+			usage()
+		if o in ("-v", "--verbose"):
+			options['verbose'] = True
+		if o in ("-d", "--add-device"):
+			options['deviceName'] = a
+		if o in ("-u", "--add-user"):
+			options['userName'] = a
+		if o in ("-c", "--config"):
+			options['configFile'] = a
+		if o in ("-y", "--yes"):
+			options['yes'] = True
+		if o in ("--device"):
+			options['deviceNumber'] = a
+		if o in ("--volume"):
+			options['volumeNumber'] = a
+		if o in ("--list-devices"):
+			options['listDevices'] = True
+		if o in ("--list-volumes"):
+			options['listVolumes'] = True
+		if o in ("--reset-pads"):
+			options['resetPads'] = a
 
-if options['deviceName'] is None and options['userName'] is None:
-	usage()
+	if options['resetPads'] is not None:
+		resetPads()
 
-if options['deviceName'] is not None:
-	udisks = UDisks.Client.new_sync()
-	udisksObjectManager = udisks.get_object_manager()
-	try:
-		addDevice(options)
-	except KeyboardInterrupt:
-		sys.exit(1)
+	if options['listDevices'] is True or options['listVolumes'] is True:
+		udisks = UDisks.Client.new_sync()
+		udisksObjectManager = udisks.get_object_manager()
+		listAvailableDevicesAndVolumes(options)
 
-if options['userName'] is not None:
-	try:
-		addUser(options)
-	except KeyboardInterrupt:
-		sys.exit(1)
+	if options['deviceName'] is not None and options['userName'] is not None:
+		print('You cannot use both --add-user and --add-device')
+		usage()
+
+	if options['deviceName'] is None and options['userName'] is None:
+		usage()
+
+	if options['deviceName'] is not None:
+		udisks = UDisks.Client.new_sync()
+		udisksObjectManager = udisks.get_object_manager()
+		try:
+			addDevice(options)
+		except KeyboardInterrupt:
+			sys.exit(1)
+
+	if options['userName'] is not None:
+		try:
+			addUser(options)
+		except KeyboardInterrupt:
+			sys.exit(1)
