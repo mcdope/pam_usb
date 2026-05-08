@@ -100,6 +100,8 @@ ZSTBUILD := cd arch_linux && makepkg -p PKGBUILD_git && cd ..
 MANCOMPILE := gzip -kf
 DOCKER := docker
 
+.DEFAULT_GOAL := all
+
 # ── Unit test targets ──────────────────────────────────────────────────────────
 TEST_CFLAGS   := $(CFLAGS)
 XPATH_LDFLAGS  := `pkg-config --libs libxml-2.0` -lcmocka
