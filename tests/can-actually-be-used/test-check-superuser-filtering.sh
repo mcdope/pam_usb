@@ -4,7 +4,7 @@ WHOAMI=$(whoami)
 CONF=/etc/security/pam_usb.conf
 TMP_SU=/tmp/pam_usb_test_su_enabled.conf
 TMP_NO_SU=/tmp/pam_usb_test_su_disabled.conf
-SERVICE_ENTRY='<service id="test-sudo"><option name="superuser">true</option></service>'
+SERVICE_ENTRY='<services><service id="test-sudo"><option name="superuser">true</option></service></services>'
 
 # variant-A: test2 marked superuser + service requires superuser
 sed 's|<device>test2</device>|<device superuser="true">test2</device>|' "$CONF" | \
