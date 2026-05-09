@@ -54,6 +54,7 @@ typedef struct		pusb_options
 	int				one_time_pad;
 	time_t			pad_expiration;
 	int				deny_remote;
+	int				remote_desktop_check;
 	char			hostname[_UTSNAME_NODENAME_LENGTH];
 	char			system_pad_directory[PATH_MAX];
 	char			device_pad_directory[PATH_MAX];

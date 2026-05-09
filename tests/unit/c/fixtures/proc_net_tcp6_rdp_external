@@ -1,0 +1,2 @@
+  sl  local_address                         remote_address                        st tx_queue rx_queue tr tm->when retrnsmt   uid  timeout inode
+   0: 00000000000000000000000000000000:0D3D B80D0120000000000000000001000000:D431 01 00000000:00000000 00:00000000 00000000  1000        0 12348 1 0000000000000000 20 4 24 10 -1

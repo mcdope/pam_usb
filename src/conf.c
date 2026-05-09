@@ -40,6 +40,7 @@ static void pusb_conf_options_get_from(
 	pusb_xpath_get_time_from(doc, from, "option[@name='pad_expiration']", &(opts->pad_expiration));
 	pusb_xpath_get_time_from(doc, from, "option[@name='probe_timeout']", &(opts->probe_timeout));
 	pusb_xpath_get_bool_from(doc, from, "option[@name='deny_remote']", &(opts->deny_remote));
+	pusb_xpath_get_bool_from(doc, from, "option[@name='remote_desktop_check']", &(opts->remote_desktop_check));
 	pusb_xpath_get_bool_from(doc, from, "option[@name='superuser']", &(opts->superuser));
 }
 
@@ -155,6 +156,7 @@ int pusb_conf_init(t_pusb_options *opts)
 	opts->one_time_pad = 1;
 	opts->pad_expiration = 3600;
 	opts->deny_remote = 1;
+	opts->remote_desktop_check = 1;
 	return 1;
 }
 

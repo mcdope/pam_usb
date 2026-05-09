@@ -1,0 +1,24 @@
+name: Install build dependencies
+description: Install pam_usb build dependencies via apt
+inputs:
+  extra-packages:
+    description: Additional packages to install (space-separated)
+    required: false
+    default: ''
+runs:
+  using: composite
+  steps:
+    - name: Install build dependencies
+      shell: bash
+      run: |
+        sudo apt-get update -q
+        sudo apt-get install -y \
+          libudisks2-dev \
+          libxml2-dev \
+          python-is-python3 \
+          libpam0g-dev \
+          pkg-config \
+          gir1.2-glib-2.0 \
+          libglib2.0-dev \
+          libevdev-dev \
+          ${{ inputs.extra-packages }}

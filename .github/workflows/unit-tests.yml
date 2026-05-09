@@ -14,19 +14,12 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Install dependencies
-        run: |
-          sudo apt-get update -q
-          sudo apt-get install -y \
-            libcmocka-dev \
-            libxml2-dev \
-            libudisks2-dev \
-            libglib2.0-dev \
-            libpam0g-dev \
-            python3-pytest \
-            python3-pytest-mock
+        uses: ./.github/actions/install-build-deps
+        with:
+          extra-packages: libcmocka-dev python3-pytest python3-pytest-mock
 
       - name: Build object files
-        run: make src/xpath.o src/conf.o src/mem.o src/log.o src/process.o
+        run: make src/xpath.o src/conf.o src/mem.o src/log.o src/process.o src/rmsvc.o src/evdev.o
 
       - name: Run C unit tests
         run: make test-c
