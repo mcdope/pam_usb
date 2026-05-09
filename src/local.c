@@ -34,6 +34,54 @@
 #include "rmsvc.h"
 #include "evdev.h"
 
+static size_t pusb_bounded_strlen(const char *value, size_t max_len)
+{
+	size_t len = 0;
+
+	while (len < max_len && value[len] != '\0')
+	{
+		len++;
+	}
+
+	return len;
+}
+
+static int pusb_utmpx_field_equals(const char *field, size_t field_len, const char *value)
+{
+	size_t value_len;
+
+	if (field == NULL || value == NULL)
+	{
+		return 0;
+	}
+
+	value_len = pusb_bounded_strlen(value, field_len + 1);
+	if (value_len > field_len)
+	{
+		return 0;
+	}
+
+	if (memcmp(field, value, value_len) != 0)
+	{
+		return 0;
+	}
+
+	return value_len == field_len || field[value_len] == '\0';
+}
+
+static int pusb_utmpx_field_starts_with(const char *field, size_t field_len, const char *prefix)
+{
+	size_t prefix_len;
+
+	if (field == NULL || prefix == NULL)
+	{
+		return 0;
+	}
+
+	prefix_len = pusb_bounded_strlen(prefix, field_len + 1);
+	return prefix_len <= field_len && memcmp(field, prefix, prefix_len) == 0;
+}
+
 int pusb_is_tty_local(char *tty)
 {
 	struct utmpx utsearch;
@@ -181,12 +229,12 @@ char *pusb_get_tty_by_xorg_display(const char *display, const char *user)
 	setutxent();
 	while ((utent = getutxent())) 
 	{
-		if (strncmp(utent->ut_host, display, strlen(display)) == 0
-			&& strncmp(utent->ut_user, user, strlen(user)) == 0
+		if (pusb_utmpx_field_equals(utent->ut_host, sizeof(utent->ut_host), display)
+			&& pusb_utmpx_field_equals(utent->ut_user, sizeof(utent->ut_user), user)
 			&& (
-				strncmp(utent->ut_line, "tty", sizeof(utent->ut_line)) == 0
-				|| strncmp(utent->ut_line, "console", sizeof(utent->ut_line)) == 0
-				|| strncmp(utent->ut_line, "pts", sizeof(utent->ut_line)) == 0
+				pusb_utmpx_field_starts_with(utent->ut_line, sizeof(utent->ut_line), "tty")
+				|| pusb_utmpx_field_starts_with(utent->ut_line, sizeof(utent->ut_line), "console")
+				|| pusb_utmpx_field_starts_with(utent->ut_line, sizeof(utent->ut_line), "pts")
 			)
 		)
 		{
@@ -201,7 +249,7 @@ char *pusb_get_tty_by_xorg_display(const char *display, const char *user)
 
 char *pusb_get_tty_by_loginctl()
 {
-	char loginctl_cmd[BUFSIZ] = "LC_ALL=C; LOGINCTL_SESSION_ID=`loginctl user-status | grep -m 1  \"├─session-\" | grep -o '[0-9]\\+'`; loginctl show-session $LOGINCTL_SESSION_ID -p TTY | awk -F= '{print $2}'";
+	char loginctl_cmd[BUFSIZ] = "LC_ALL=C; LOGINCTL_SESSION_ID=`/usr/bin/loginctl user-status | /usr/bin/grep -m 1  \"├─session-\" | /usr/bin/grep -o '[0-9]\\+'`; /usr/bin/loginctl show-session $LOGINCTL_SESSION_ID -p TTY | /usr/bin/awk -F= '{print $2}'";
 	char buf[BUFSIZ];
 	FILE *fp;
 
@@ -238,7 +286,7 @@ char *pusb_get_tty_by_loginctl()
 
 int pusb_is_loginctl_local()
 {
-	char loginctl_cmd[BUFSIZ] = "LC_ALL=C; LOGINCTL_SESSION_ID=`loginctl user-status | grep -m 1  \"├─session-\" | grep -o '[0-9]\\+'`; loginctl show-session $LOGINCTL_SESSION_ID -p Remote | awk -F= '{print $2}'";
+	char loginctl_cmd[BUFSIZ] = "LC_ALL=C; LOGINCTL_SESSION_ID=`/usr/bin/loginctl user-status | /usr/bin/grep -m 1  \"├─session-\" | /usr/bin/grep -o '[0-9]\\+'`; /usr/bin/loginctl show-session $LOGINCTL_SESSION_ID -p Remote | /usr/bin/awk -F= '{print $2}'";
 	char buf[BUFSIZ];
 	FILE *fp;
 
