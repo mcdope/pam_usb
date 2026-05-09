@@ -19,13 +19,15 @@ Features
 * Support for **One Time Pads** authentication.
 * Support for all kind of removable devices (SD, MMC, etc).
 * Can optionally unlock your GNOME keyring
+* Actively excludes remote authentications (can be disabled, shouldn't though)
 
 Tools
 -----
-* `pamusb-agent`: trigger actions (such as locking the screen) upon device authentication and removal.
-* `pamusb-conf`: configuration helper.
-* `pamusb-check`: integrate pam\_usb's authentication engine within your scripts or applications.
+* `pamusb-agent`: trigger actions (such as locking the screen) upon device authentication and removal
+* `pamusb-conf`: configuration helper
+* `pamusb-check`: integrate pam\_usb's authentication engine within your scripts or applications
 * `pamusb-keyring-unlock-gnome`: utility to unlock the gnome-keyring on login with pam_usb
+* `pamusb-pinentry`: utility to unlock the GPG keyring with pam_usb
 
 Getting Started
 ----------------
