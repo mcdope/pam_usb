@@ -48,7 +48,7 @@ SRCS := src/conf.c \
 	src/tmux.c \
 	src/local.c \
 	src/device.c \
-	src/remote_services.c \
+	src/rmsvc.c \
 	src/evdev.c
 OBJS := $(SRCS:.c=.o)
 
@@ -111,7 +111,7 @@ CONF_LDFLAGS             := `pkg-config --libs libxml-2.0` -lcmocka
 TMUX_LDFLAGS             := -lcmocka
 PAD_LDFLAGS              := `pkg-config --libs libxml-2.0` -lcmocka
 PROC_LDFLAGS             := -lcmocka
-REMOTE_SERVICES_LDFLAGS  := -lcmocka
+RMSVC_LDFLAGS            := -lcmocka
 EVDEV_LDFLAGS            := -lcmocka
 
 test-c-xpath: src/xpath.o src/mem.o src/log.o
@@ -134,10 +134,10 @@ test-c-process: src/process.o src/mem.o src/log.o
 	$(CC) $(TEST_CFLAGS) tests/unit/c/process_test.c $^ $(PROC_LDFLAGS) -o tests/unit/c/process_test
 	./tests/unit/c/process_test
 
-test-c-remote_services: src/mem.o src/log.o
-	$(CC) $(TEST_CFLAGS) tests/unit/c/remote_services_test.c $^ \
-		$(REMOTE_SERVICES_LDFLAGS) -o tests/unit/c/remote_services_test
-	./tests/unit/c/remote_services_test
+test-c-rmsvc: src/mem.o src/log.o
+	$(CC) $(TEST_CFLAGS) tests/unit/c/rmsvc_test.c $^ \
+		$(RMSVC_LDFLAGS) -o tests/unit/c/rmsvc_test
+	./tests/unit/c/rmsvc_test
 
 test-c-evdev: src/mem.o src/log.o
 	$(CC) $(TEST_CFLAGS) tests/unit/c/evdev_test.c \
@@ -146,7 +146,7 @@ test-c-evdev: src/mem.o src/log.o
 		$(EVDEV_LDFLAGS) -o tests/unit/c/evdev_test
 	./tests/unit/c/evdev_test
 
-test-c: test-c-xpath test-c-conf test-c-tmux test-c-pad test-c-process test-c-remote_services test-c-evdev
+test-c: test-c-xpath test-c-conf test-c-tmux test-c-pad test-c-process test-c-rmsvc test-c-evdev
 
 test-python:
 	python3 -m pytest tests/unit/python/ -v

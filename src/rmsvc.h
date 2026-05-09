@@ -15,11 +15,11 @@
  * Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef PUSB_REMOTE_SERVICES_H_
-#define PUSB_REMOTE_SERVICES_H_
+#ifndef PUSB_RMSVC_H_
+#define PUSB_RMSVC_H_
 
 #include "conf.h"
 
 int pusb_has_active_remote_service(t_pusb_options *opts);
 
-#endif /* !PUSB_REMOTE_SERVICES_H_ */
+#endif /* !PUSB_RMSVC_H_ */

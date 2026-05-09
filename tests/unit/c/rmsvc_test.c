@@ -1,5 +1,5 @@
 /*
- * Unit tests for src/remote_services.c
+ * Unit tests for src/rmsvc.c
  * Tests static helpers (via direct include) and public function.
  * No linker wraps needed — static helper functions accept path parameters,
  * allowing tests to inject fixture file paths directly.
@@ -14,7 +14,7 @@
 #include <cmocka.h>
 
 /* Include source directly to access static functions */
-#include "../../../src/remote_services.c"
+#include "../../../src/rmsvc.c"
 
 /* Fixture paths */
 #define FIXTURES "tests/unit/c/fixtures"

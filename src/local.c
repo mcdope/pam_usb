@@ -31,7 +31,7 @@
 #include "process.h"
 #include "tmux.h"
 #include "mem.h"
-#include "remote_services.h"
+#include "rmsvc.h"
 #include "evdev.h"
 
 int pusb_is_tty_local(char *tty)
