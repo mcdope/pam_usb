@@ -22,11 +22,14 @@
 #define TCP_LOOPBACK    FIXTURES "/proc_net_tcp_vnc_loopback"
 #define TCP_LISTEN      FIXTURES "/proc_net_tcp_vnc_listen"
 #define TCP_EMPTY       FIXTURES "/proc_net_tcp_empty"
-#define TCP6_EXTERNAL   FIXTURES "/proc_net_tcp6_vnc_external"
-#define TCP6_LOOPBACK   FIXTURES "/proc_net_tcp6_vnc_loopback"
-#define PROC_TEAMVIEWER FIXTURES "/proc_teamviewer"
-#define PROC_ANYDESK    FIXTURES "/proc_anydesk"
-#define PROC_FIREFOX    FIXTURES "/proc_firefox"
+#define TCP6_EXTERNAL      FIXTURES "/proc_net_tcp6_vnc_external"
+#define TCP6_LOOPBACK      FIXTURES "/proc_net_tcp6_vnc_loopback"
+#define TCP_RDP_EXTERNAL   FIXTURES "/proc_net_tcp_rdp_external"
+#define TCP6_RDP_EXTERNAL  FIXTURES "/proc_net_tcp6_rdp_external"
+#define PROC_TEAMVIEWER    FIXTURES "/proc_teamviewer"
+#define PROC_ANYDESK       FIXTURES "/proc_anydesk"
+#define PROC_ANYDESK_ARGS  FIXTURES "/proc_anydesk_in_args"
+#define PROC_FIREFOX       FIXTURES "/proc_firefox"
 
 /* ── pusb_proc_tcp_is_loopback_v4 ── */
 
@@ -57,14 +60,14 @@ static void test_loopback_v6_loopback_le(void **state)
 {
 	(void)state;
 	/* ::1 in little-endian /proc/net/tcp6 format */
-	assert_int_equal(1, pusb_proc_tcp6_is_loopback("00000000000000000000000001000000"));
+	assert_int_equal(1, pusb_proc_tcp6_is_loopback("00000000000000000000000001000000")); /* DevSkim: ignore */
 }
 
 static void test_loopback_v6_loopback_be(void **state)
 {
 	(void)state;
 	/* ::1 in big-endian /proc/net/tcp6 format */
-	assert_int_equal(1, pusb_proc_tcp6_is_loopback("00000000000000000000000000000001"));
+	assert_int_equal(1, pusb_proc_tcp6_is_loopback("00000000000000000000000000000001")); /* DevSkim: ignore */
 }
 
 static void test_loopback_v6_external(void **state)
@@ -160,6 +163,39 @@ static void test_process_nonexistent_dir(void **state)
 	assert_int_equal(0, pusb_process_name_exists("/nonexistent/proc", "anything"));
 }
 
+static void test_process_anydesk_not_detected_in_argv(void **state)
+{
+	(void)state;
+	/* "anydesk" appears only in argv[1+], not argv[0] — must not trigger */
+	assert_int_equal(0, pusb_process_name_exists(PROC_ANYDESK_ARGS, "anydesk"));
+}
+
+static void test_tcp4_rdp_external_connection(void **state)
+{
+	(void)state;
+	assert_int_equal(1, pusb_proc_tcp4_has_established(TCP_RDP_EXTERNAL, 3389));
+}
+
+static void test_tcp4_rdp_wrong_port(void **state)
+{
+	(void)state;
+	/* File has port 3389 (0x0D3D); checking VNC port 5900 must return 0 */
+	assert_int_equal(0, pusb_proc_tcp4_has_established(TCP_RDP_EXTERNAL, 5900));
+}
+
+static void test_tcp6_rdp_external_connection(void **state)
+{
+	(void)state;
+	assert_int_equal(1, pusb_proc_tcp6_has_established(TCP6_RDP_EXTERNAL, 3389));
+}
+
+static void test_tcp6_rdp_wrong_port(void **state)
+{
+	(void)state;
+	/* File has port 3389; checking VNC port 5900 must return 0 */
+	assert_int_equal(0, pusb_proc_tcp6_has_established(TCP6_RDP_EXTERNAL, 5900));
+}
+
 int main(void)
 {
 	const struct CMUnitTest tests[] = {
@@ -180,8 +216,13 @@ int main(void)
 		cmocka_unit_test(test_tcp6_loopback_not_detected),
 		cmocka_unit_test(test_process_teamviewer_desk_exists),
 		cmocka_unit_test(test_process_anydesk_exists),
+		cmocka_unit_test(test_process_anydesk_not_detected_in_argv),
 		cmocka_unit_test(test_process_unknown_not_detected),
 		cmocka_unit_test(test_process_nonexistent_dir),
+		cmocka_unit_test(test_tcp4_rdp_external_connection),
+		cmocka_unit_test(test_tcp4_rdp_wrong_port),
+		cmocka_unit_test(test_tcp6_rdp_external_connection),
+		cmocka_unit_test(test_tcp6_rdp_wrong_port),
 	};
 	return cmocka_run_group_tests(tests, NULL, NULL);
 }

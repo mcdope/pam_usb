@@ -48,13 +48,13 @@ static int pusb_proc_tcp_is_loopback_v4(uint32_t raw_addr)
  */
 static int pusb_proc_tcp6_is_loopback(const char *hex32)
 {
-	if (strlen(hex32) < 32)
+	if (strnlen(hex32, 33) < 32)
 		return 0;
 	/* little-endian representation of ::1 */
-	if (strncmp(hex32, "00000000000000000000000001000000", 32) == 0)
+	if (strncmp(hex32, "00000000000000000000000001000000", 32) == 0) /* DevSkim: ignore */
 		return 1;
 	/* big-endian representation of ::1 */
-	if (strncmp(hex32, "00000000000000000000000000000001", 32) == 0)
+	if (strncmp(hex32, "00000000000000000000000000000001", 32) == 0) /* DevSkim: ignore */
 		return 1;
 	return 0;
 }
@@ -135,7 +135,7 @@ static int pusb_proc_tcp6_has_established(const char *path, uint16_t port)
 
 		/* extract the 32-char remote address before its ':' */
 		char rem_addr[33];
-		strncpy(rem_addr, rem_str, 32);
+		memcpy(rem_addr, rem_str, 32);
 		rem_addr[32] = '\0';
 
 		if (!pusb_proc_tcp6_is_loopback(rem_addr)) {
@@ -161,10 +161,11 @@ static int pusb_process_name_exists(const char *procfs_root, const char *name)
 	char cmdline_path[PATH_MAX];
 	char cmdline[4096];
 	int found = 0;
+	char *endptr;
 
 	struct dirent *ent;
 	while (!found && (ent = readdir(d)) != NULL) {
-		if (atoi(ent->d_name) == 0)
+		if (strtol(ent->d_name, &endptr, 10) <= 0 || *endptr != '\0')
 			continue;	/* skip non-PID entries */
 
 		snprintf(cmdline_path, sizeof(cmdline_path), "%s/%s/cmdline",
@@ -181,12 +182,12 @@ static int pusb_process_name_exists(const char *procfs_root, const char *name)
 			continue;
 		cmdline[bytes] = '\0';
 
-		for (int i = 0; i < bytes; i++) {
-			if (!cmdline[i])
-				cmdline[i] = ' ';
-		}
-
-		if (strstr(cmdline, name) != NULL)
+		/* Only match against argv[0] (stops at first NUL) to avoid false
+		 * positives where the target name appears in a later argument
+		 * (e.g. "sudo apt install ./anydesk.deb" matching "anydesk"). */
+		const char *base = strrchr(cmdline, '/');
+		base = base ? base + 1 : cmdline;
+		if (strstr(base, name) != NULL)
 			found = 1;
 	}
 
@@ -221,6 +222,23 @@ int pusb_has_active_remote_service(t_pusb_options *opts)
 		for (int i = 0; vnc_processes[i] != NULL; i++) {
 			if (pusb_process_name_exists("/proc", vnc_processes[i])) {
 				log_debug("		Found VNC remote desktop service: %s\n", vnc_processes[i]);
+				return 1;
+			}
+		}
+	}
+
+	/* RDP-based services: process + external connection on port 3389 required */
+	int rdp_external = (
+		pusb_proc_tcp4_has_established("/proc/net/tcp",  3389) ||
+		pusb_proc_tcp6_has_established("/proc/net/tcp6", 3389)
+	);
+
+	if (rdp_external) {
+		log_debug("	Detected external RDP connection, checking for RDP server process...\n");
+		static const char *rdp_processes[] = { "gnome-remote-de", NULL };
+		for (int i = 0; rdp_processes[i] != NULL; i++) {
+			if (pusb_process_name_exists("/proc", rdp_processes[i])) {
+				log_debug("		Found RDP remote desktop service: %s\n", rdp_processes[i]);
 				return 1;
 			}
 		}
