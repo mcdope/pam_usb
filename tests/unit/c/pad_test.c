@@ -13,6 +13,7 @@
 #include <stddef.h>
 #include <setjmp.h>
 #include <string.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -294,6 +295,89 @@ static void test_pad_missing(void **state)
 	rmdir(sys_pad_dir);
 }
 
+/* ── F3 regression: missing system pad must deny (not allow) ── */
+
+static void test_missing_system_pad_denied(void **state)
+{
+	(void)state;
+	struct passwd *pw = getpwuid(getuid());
+	assert_non_null(pw);
+
+	char mnt_dir[] = "/tmp/pamusb_f3sys_XXXXXX";
+	assert_non_null(mkdtemp(mnt_dir));
+
+	t_pusb_options opts = {0};
+	pusb_conf_init(&opts);
+	snprintf(opts.device.name, sizeof(opts.device.name), "pamusb_f3test");
+	/* Use a nonexistent system pad directory so system pad open fails */
+	snprintf(opts.system_pad_directory, sizeof(opts.system_pad_directory),
+	         ".pamusb_f3_unit_NONEXISTENT");
+
+	char sys_pad_dir[1024*5];
+	snprintf(sys_pad_dir, sizeof(sys_pad_dir), "%s/%s", pw->pw_dir,
+	         opts.system_pad_directory);
+	rmdir(sys_pad_dir);
+
+	/* Create a valid device pad so the test isolates the missing-system-pad branch */
+	char dev_pad_dir[512];
+	snprintf(dev_pad_dir, sizeof(dev_pad_dir), "%s/.pamusb", mnt_dir);
+	mkdir_p(dev_pad_dir);
+
+	char dev_pad_path[1024];
+	snprintf(dev_pad_path, sizeof(dev_pad_path), "%s/%s.%s.pad",
+	         dev_pad_dir, pw->pw_name, opts.hostname);
+	uint8_t buf[PUSB_PAD_SIZE];
+	memset(buf, 0xBB, sizeof(buf));
+	write_file(dev_pad_path, buf, sizeof(buf));
+
+	/* missing system pad must deny (return 0) — pre-fix returned 1 */
+	int result = pusb_pad_compare(&opts, mnt_dir, pw->pw_name);
+	assert_int_equal(0, result);
+
+	unlink(dev_pad_path);
+	rmdir(dev_pad_dir);
+	rmdir(mnt_dir);
+}
+
+/* ── F2 regression: generate_random_bytes fills buffer and returns 0 ── */
+
+static void test_generate_random_bytes_fills_buffer(void **state)
+{
+	(void)state;
+	uint8_t buf[PUSB_PAD_SIZE];
+	memset(buf, 0, sizeof(buf));
+
+	int ret = generate_random_bytes(buf, sizeof(buf));
+	assert_int_equal(0, ret);
+
+	/* Buffer must not be all-zero (CSPRNG output with overwhelming probability) */
+	uint8_t acc = 0;
+	for (size_t i = 0; i < sizeof(buf); i++)
+		acc |= buf[i];
+	assert_int_not_equal(0, (int)acc);
+}
+
+/* ── F4 regression: timingsafe_memcmp correctness ── */
+
+static void test_timingsafe_memcmp_equal(void **state)
+{
+	(void)state;
+	uint8_t a[64], b[64];
+	memset(a, 0x5A, sizeof(a));
+	memset(b, 0x5A, sizeof(b));
+	assert_int_equal(0, timingsafe_memcmp(a, b, sizeof(a)));
+}
+
+static void test_timingsafe_memcmp_differ(void **state)
+{
+	(void)state;
+	uint8_t a[64], b[64];
+	memset(a, 0x5A, sizeof(a));
+	memset(b, 0x5A, sizeof(b));
+	b[63] = 0xA5;
+	assert_int_not_equal(0, timingsafe_memcmp(a, b, sizeof(a)));
+}
+
 /* ── main ── */
 
 int main(void)
@@ -311,6 +395,10 @@ int main(void)
 		cmocka_unit_test(test_pad_expired),
 		cmocka_unit_test(test_pad_fresh),
 		cmocka_unit_test(test_pad_missing),
+		cmocka_unit_test(test_missing_system_pad_denied),
+		cmocka_unit_test(test_generate_random_bytes_fills_buffer),
+		cmocka_unit_test(test_timingsafe_memcmp_equal),
+		cmocka_unit_test(test_timingsafe_memcmp_differ),
 	};
 	return cmocka_run_group_tests(tests, NULL, NULL);
 }

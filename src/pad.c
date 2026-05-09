@@ -18,10 +18,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 #include <unistd.h>
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/random.h>
 #include <fcntl.h>
 #include <pwd.h>
 #include <time.h>
@@ -30,6 +32,8 @@
 #include "log.h"
 #include "volume.h"
 #include "pad.h"
+
+#define PUSB_PAD_SIZE 1024
 
 static int pusb_pad_build_device_path(
 	t_pusb_options *opts,
@@ -154,7 +158,7 @@ static FILE *pusb_pad_open_device(
 	{
 		return NULL;
 	}
-	int fd = open(path, flags | O_NOFOLLOW, 0600);
+	int fd = open(path, flags | O_NOFOLLOW | O_CLOEXEC, 0600);
 	if (fd < 0)
 	{
 		log_debug("Cannot open device file: %s\n", strerror(errno));
@@ -183,7 +187,7 @@ static FILE *pusb_pad_open_system(
 	{
 		return NULL;
 	}
-	int fd = open(path, flags | O_NOFOLLOW, 0600);
+	int fd = open(path, flags | O_NOFOLLOW | O_CLOEXEC, 0600);
 	if (fd < 0)
 	{
 		log_debug("Cannot open system file: %s\n", strerror(errno));
@@ -263,6 +267,33 @@ static int pusb_pad_should_update(t_pusb_options *opts, const char *user)
 	return 1;
 }
 
+/*
+ * generate_random_bytes — fill buf with len cryptographically strong random
+ * bytes via getrandom(2). Retries on EINTR. Returns 0 on success, -1 on error.
+ * Since Linux 5.6 the urandom and random pools are identical; getrandom(2)
+ * is the correct modern interface (no fd, no path, never blocks after boot).
+ * Requests > 256 bytes may return a short count when interrupted, hence the
+ * retry loop.
+ */
+static int generate_random_bytes(uint8_t *buf, size_t len)
+{
+	size_t offset = 0;
+
+	while (offset < len)
+	{
+		ssize_t ret = getrandom(buf + offset, len - offset, 0);
+		if (ret < 0)
+		{
+			if (errno == EINTR)
+				continue;
+			log_error("getrandom() failed: %s\n", strerror(errno));
+			return -1;
+		}
+		offset += (size_t)ret;
+	}
+	return 0;
+}
+
 static int pusb_pad_update(
 	t_pusb_options *opts,
 	const char *volume,
@@ -275,9 +306,7 @@ static int pusb_pad_update(
 	char path_system[1024*5];
 	char path_device_tmp[1024*5 + 8];
 	char path_system_tmp[1024*5 + 8];
-	char magic[1024];
-	unsigned int seed;
-	int devrandom;
+	uint8_t magic[PUSB_PAD_SIZE];
 
 	if (!pusb_pad_should_update(opts, user))
 	{
@@ -301,75 +330,73 @@ static int pusb_pad_update(
 	snprintf(path_device_tmp, sizeof(path_device_tmp), "%s.tmp", path_device);
 	snprintf(path_system_tmp, sizeof(path_system_tmp), "%s.tmp", path_system);
 
-	log_debug("Generating %d bytes unique pad...\n", sizeof(magic));
-	/**
-	 * In case you wonder, how I did, if this should use /dev/urandom instead: no, /dev/random is correct in this case
-	 * See https://crypto.stackexchange.com/a/35032
-	 */
-	devrandom = open("/dev/random", O_RDONLY);
-	if (devrandom < 0 || read(devrandom, &seed, sizeof seed) != sizeof seed)
+	log_debug("Generating %d bytes unique pad...\n", PUSB_PAD_SIZE);
+	if (generate_random_bytes(magic, sizeof(magic)) != 0)
 	{
-		log_debug("/dev/random seeding failed...\n");
-		seed = getpid() * time(NULL); /* low-entropy fallback */
-	}
-	if (devrandom >= 0)
-	{
-		close(devrandom);
+		log_error("Failed to generate random pad data.\n");
+		return 0;
 	}
 
-	generateRandom(magic, sizeof(magic));
-
 	{
-		int fd_dev = open(path_device_tmp, O_WRONLY | O_CREAT | O_TRUNC | O_NOFOLLOW, 0600);
+		int fd_dev = open(path_device_tmp, O_WRONLY | O_CREAT | O_TRUNC | O_NOFOLLOW | O_CLOEXEC, 0600);
 		if (fd_dev < 0 || !(f_device = fdopen(fd_dev, "w")))
 		{
 			if (fd_dev >= 0) close(fd_dev);
 			log_error("Unable to create temp device pad: %s\n", strerror(errno));
-			return 0;
+			goto cleanup;
 		}
 	}
 	pusb_pad_protect(user, fileno(f_device));
 
 	{
-		int fd_sys = open(path_system_tmp, O_WRONLY | O_CREAT | O_TRUNC | O_NOFOLLOW, 0600);
+		int fd_sys = open(path_system_tmp, O_WRONLY | O_CREAT | O_TRUNC | O_NOFOLLOW | O_CLOEXEC, 0600);
 		if (fd_sys < 0 || !(f_system = fdopen(fd_sys, "w")))
 		{
 			if (fd_sys >= 0) close(fd_sys);
 			log_error("Unable to create temp system pad: %s\n", strerror(errno));
 			fclose(f_device);
+			f_device = NULL;
 			unlink(path_device_tmp);
-			return 0;
+			goto cleanup;
 		}
 	}
 	pusb_pad_protect(user, fileno(f_system));
 
 	log_debug("Writing pad to the system...\n");
-	if (fwrite(magic, sizeof(char), sizeof(magic), f_system) != sizeof(magic))
+	if (fwrite(magic, sizeof(uint8_t), sizeof(magic), f_system) != sizeof(magic))
 	{
 		log_error("Failed to write system pad: %s\n", strerror(errno));
 		fclose(f_system);
+		f_system = NULL;
 		fclose(f_device);
+		f_device = NULL;
 		unlink(path_system_tmp);
 		unlink(path_device_tmp);
-		return 0;
+		goto cleanup;
 	}
 
 	log_debug("Writing pad to the device...\n");
-	if (fwrite(magic, sizeof(char), sizeof(magic), f_device) != sizeof(magic))
+	if (fwrite(magic, sizeof(uint8_t), sizeof(magic), f_device) != sizeof(magic))
 	{
 		log_error("Failed to write device pad: %s\n", strerror(errno));
 		fclose(f_system);
+		f_system = NULL;
 		fclose(f_device);
+		f_device = NULL;
 		unlink(path_system_tmp);
 		unlink(path_device_tmp);
-		return 0;
+		goto cleanup;
 	}
 
 	log_debug("Synchronizing filesystems...\n");
 	fsync(fileno(f_system));
 	fsync(fileno(f_device));
 	fclose(f_system);
+	f_system = NULL;
 	fclose(f_device);
+	f_device = NULL;
+
+	explicit_bzero(magic, sizeof(magic));
 
 	if (rename(path_system_tmp, path_system) != 0)
 	{
@@ -388,26 +415,25 @@ static int pusb_pad_update(
 
 	log_debug("One time pads updated.\n");
 	return 1;
+
+cleanup:
+	explicit_bzero(magic, sizeof(magic));
+	if (f_system) fclose(f_system);
+	if (f_device) fclose(f_device);
+	return 0;
 }
 
-void generateRandom(char* output, int sizeBytes)
+static int timingsafe_memcmp(const void *a, const void *b, size_t n)
 {
-	// Based on https://www.cyrill-gremaud.ch/howto-generate-secure-random-number-on-nix/
-	int fd, bytes_read;
+	const uint8_t *pa = (const uint8_t *)a;
+	const uint8_t *pb = (const uint8_t *)b;
+	uint8_t diff = 0;
+	size_t i;
 
-	if((fd = open("/dev/random", O_RDONLY)) == -1)
-	{
-		log_error("impossible to read randomness source\n");
-		return;
-	}
+	for (i = 0; i < n; i++)
+		diff |= pa[i] ^ pb[i];
 
-	bytes_read = read(fd, output, sizeBytes);
-	if (bytes_read != sizeBytes)
-	{
-		log_debug("read() failed (%d bytes read)\n", bytes_read);
-	}
-
-	close(fd);
+	return (int)diff;
 }
 
 static int pusb_pad_compare(
@@ -418,51 +444,50 @@ static int pusb_pad_compare(
 {
 	FILE *f_device = NULL;
 	FILE *f_system = NULL;
-	char magic_device[1024];
-	char magic_system[1024];
-	int retval;
+	uint8_t magic_device[PUSB_PAD_SIZE];
+	uint8_t magic_system[PUSB_PAD_SIZE];
+	int retval = 0;
 	size_t bytes_read;
 
 	if (!(f_system = pusb_pad_open_system(opts, user, "r")))
 	{
-		return 1;
+		log_error("Cannot open system pad, denying auth.\n");
+		goto cleanup_nosecret;
 	}
 
 	if (!(f_device = pusb_pad_open_device(opts, volume, user, "r")))
 	{
-		fclose(f_system);
-		return 0;
+		log_error("Cannot open device pad, denying auth.\n");
+		goto cleanup_nosecret;
 	}
+
 	log_debug("Loading device pad...\n");
-	bytes_read = fread(magic_device, sizeof(char), sizeof(magic_device), f_device);
-	if (bytes_read != sizeof(magic_device))
+	bytes_read = fread(magic_device, sizeof(uint8_t), PUSB_PAD_SIZE, f_device);
+	if (bytes_read != PUSB_PAD_SIZE)
 	{
-		log_error("Device pad is incomplete (%zu/%zu bytes).\n", bytes_read, sizeof(magic_device));
-		fclose(f_system);
-		fclose(f_device);
-		return 0;
+		log_error("Device pad is incomplete (%zu/%zu bytes).\n", bytes_read, (size_t)PUSB_PAD_SIZE);
+		goto cleanup;
 	}
 
 	log_debug("Loading system pad...\n");
-	bytes_read = fread(magic_system, sizeof(char), sizeof(magic_system), f_system);
-	if (bytes_read != sizeof(magic_system))
+	bytes_read = fread(magic_system, sizeof(uint8_t), PUSB_PAD_SIZE, f_system);
+	if (bytes_read != PUSB_PAD_SIZE)
 	{
-		log_error("System pad is incomplete (%zu/%zu bytes).\n", bytes_read, sizeof(magic_system));
-		fclose(f_system);
-		fclose(f_device);
-		return 0;
+		log_error("System pad is incomplete (%zu/%zu bytes).\n", bytes_read, (size_t)PUSB_PAD_SIZE);
+		goto cleanup;
 	}
 
-	retval = memcmp(magic_system, magic_device, sizeof(magic_system));
-	fclose(f_system);
-	fclose(f_device);
-
-	if (!retval)
-	{
+	retval = (timingsafe_memcmp(magic_system, magic_device, PUSB_PAD_SIZE) == 0);
+	if (retval)
 		log_debug("Pad match.\n");
-	}
 
-	return (retval == 0);
+cleanup:
+	explicit_bzero(magic_device, sizeof(magic_device));
+	explicit_bzero(magic_system, sizeof(magic_system));
+cleanup_nosecret:
+	if (f_system) fclose(f_system);
+	if (f_device) fclose(f_device);
+	return retval;
 }
 
 int pusb_pad_check(
