@@ -215,7 +215,7 @@ static int pusb_pad_protect(const char *user, int fd)
 	}
 	if (fchown(fd, user_ent->pw_uid, user_ent->pw_gid) == -1)
 	{
-		log_debug("Unable to change owner of the pad: %s\n", strerror(errno));
+		log_debug("Unable to change owner of the pad: %s (expected on filesystems not supporting this, like FAT)\n", strerror(errno));
 		return 0;
 	}
 	if (fchmod(fd, S_IRUSR | S_IWUSR) == -1)
