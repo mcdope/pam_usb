@@ -34,18 +34,6 @@
 #include "rmsvc.h"
 #include "evdev.h"
 
-static size_t pusb_bounded_strlen(const char *value, size_t max_len)
-{
-	size_t len = 0;
-
-	while (len < max_len && value[len] != '\0')
-	{
-		len++;
-	}
-
-	return len;
-}
-
 static int pusb_utmpx_field_equals(const char *field, size_t field_len, const char *value)
 {
 	size_t value_len;
@@ -55,7 +43,7 @@ static int pusb_utmpx_field_equals(const char *field, size_t field_len, const ch
 		return 0;
 	}
 
-	value_len = pusb_bounded_strlen(value, field_len + 1);
+	value_len = strnlen(value, field_len + 1);
 	if (value_len > field_len)
 	{
 		return 0;
@@ -78,7 +66,7 @@ static int pusb_utmpx_field_starts_with(const char *field, size_t field_len, con
 		return 0;
 	}
 
-	prefix_len = pusb_bounded_strlen(prefix, field_len + 1);
+	prefix_len = strlen(prefix);
 	return prefix_len <= field_len && memcmp(field, prefix, prefix_len) == 0;
 }
 
