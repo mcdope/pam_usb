@@ -26,7 +26,10 @@
 #define TCP6_LOOPBACK      FIXTURES "/proc_net_tcp6_vnc_loopback"
 #define TCP_RDP_EXTERNAL   FIXTURES "/proc_net_tcp_rdp_external"
 #define TCP6_RDP_EXTERNAL  FIXTURES "/proc_net_tcp6_rdp_external"
+#define TCP_TV_CONNECTED   FIXTURES "/proc_net_tcp_tv_connected"
+#define TCP6_TV_CONNECTED  FIXTURES "/proc_net_tcp6_tv_connected"
 #define PROC_TEAMVIEWER    FIXTURES "/proc_teamviewer"
+#define PROC_TEAMVIEWERD   FIXTURES "/proc_teamviewerd"
 #define PROC_ANYDESK       FIXTURES "/proc_anydesk"
 #define PROC_ANYDESK_ARGS  FIXTURES "/proc_anydesk_in_args"
 #define PROC_FIREFOX       FIXTURES "/proc_firefox"
@@ -196,6 +199,51 @@ static void test_tcp6_rdp_wrong_port(void **state)
 	assert_int_equal(0, pusb_proc_tcp6_has_established(TCP6_RDP_EXTERNAL, 5900));
 }
 
+/* ── pusb_proc_tcp4_has_established_to ── */
+
+static void test_tcp4_established_to_tv_port(void **state)
+{
+	(void)state;
+	assert_int_equal(1, pusb_proc_tcp4_has_established_to(TCP_TV_CONNECTED, 5938));
+}
+
+static void test_tcp4_established_to_wrong_remote_port(void **state)
+{
+	(void)state;
+	/* File has remote port 5938; checking 5900 must return 0 */
+	assert_int_equal(0, pusb_proc_tcp4_has_established_to(TCP_TV_CONNECTED, 5900));
+}
+
+static void test_tcp4_established_to_loopback_ignored(void **state)
+{
+	(void)state;
+	/* TCP_LOOPBACK has remote 127.x.x.x — must not match even if port fits */
+	assert_int_equal(0, pusb_proc_tcp4_has_established_to(TCP_LOOPBACK, 5900));
+}
+
+/* ── pusb_proc_tcp6_has_established_to ── */
+
+static void test_tcp6_established_to_tv_port(void **state)
+{
+	(void)state;
+	assert_int_equal(1, pusb_proc_tcp6_has_established_to(TCP6_TV_CONNECTED, 5938));
+}
+
+static void test_tcp6_established_to_wrong_remote_port(void **state)
+{
+	(void)state;
+	/* File has remote port 5938; checking 5900 must return 0 */
+	assert_int_equal(0, pusb_proc_tcp6_has_established_to(TCP6_TV_CONNECTED, 5900));
+}
+
+/* ── teamviewerd process detection ── */
+
+static void test_process_teamviewerd_exists(void **state)
+{
+	(void)state;
+	assert_int_equal(1, pusb_process_name_exists(PROC_TEAMVIEWERD, "teamviewerd"));
+}
+
 int main(void)
 {
 	const struct CMUnitTest tests[] = {
@@ -223,6 +271,12 @@ int main(void)
 		cmocka_unit_test(test_tcp4_rdp_wrong_port),
 		cmocka_unit_test(test_tcp6_rdp_external_connection),
 		cmocka_unit_test(test_tcp6_rdp_wrong_port),
+		cmocka_unit_test(test_tcp4_established_to_tv_port),
+		cmocka_unit_test(test_tcp4_established_to_wrong_remote_port),
+		cmocka_unit_test(test_tcp4_established_to_loopback_ignored),
+		cmocka_unit_test(test_tcp6_established_to_tv_port),
+		cmocka_unit_test(test_tcp6_established_to_wrong_remote_port),
+		cmocka_unit_test(test_process_teamviewerd_exists),
 	};
 	return cmocka_run_group_tests(tests, NULL, NULL);
 }

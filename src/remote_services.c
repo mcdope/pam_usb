@@ -149,6 +149,95 @@ static int pusb_proc_tcp6_has_established(const char *path, uint16_t port)
 }
 
 /*
+ * Parses /proc/net/tcp (IPv4) and returns 1 if there is an ESTABLISHED
+ * connection where the REMOTE port matches and the remote address is not loopback.
+ */
+static int pusb_proc_tcp4_has_established_to(const char *path, uint16_t remote_port)
+{
+	FILE *f = fopen(path, "r");
+	if (!f)
+		return 0;
+
+	char line[512];
+	if (!fgets(line, sizeof(line), f)) {	/* skip header */
+		fclose(f);
+		return 0;
+	}
+
+	while (fgets(line, sizeof(line), f)) {
+		unsigned int local_addr, rem_addr;
+		unsigned int local_port, rem_port, state;
+
+		if (sscanf(line, " %*d: %8x:%4x %8x:%4x %2x",
+				   &local_addr, &local_port, &rem_addr, &rem_port, &state) < 5)
+			continue;
+
+		if (state != 0x01)
+			continue;	/* not ESTABLISHED */
+		if ((uint16_t)rem_port != remote_port)
+			continue;
+		if (!pusb_proc_tcp_is_loopback_v4((uint32_t)rem_addr)) {
+			fclose(f);
+			return 1;
+		}
+	}
+
+	fclose(f);
+	return 0;
+}
+
+/*
+ * Parses /proc/net/tcp6 (IPv6) and returns 1 if there is an ESTABLISHED
+ * connection where the REMOTE port matches and the remote address is not ::1.
+ */
+static int pusb_proc_tcp6_has_established_to(const char *path, uint16_t remote_port)
+{
+	FILE *f = fopen(path, "r");
+	if (!f)
+		return 0;
+
+	char line[512];
+	if (!fgets(line, sizeof(line), f)) {	/* skip header */
+		fclose(f);
+		return 0;
+	}
+
+	while (fgets(line, sizeof(line), f)) {
+		char local_str[80], rem_str[80];
+		unsigned int state;
+
+		if (sscanf(line, " %*d: %79s %79s %2x", local_str, rem_str, &state) < 3)
+			continue;
+
+		if (state != 0x01)
+			continue;	/* not ESTABLISHED */
+
+		/* extract remote port: chars after the ':' separator in rem_str */
+		char *colon = strchr(rem_str, ':');
+		if (!colon)
+			continue;
+		unsigned int rport;
+		if (sscanf(colon + 1, "%4x", &rport) < 1)
+			continue;
+		if ((uint16_t)rport != remote_port)
+			continue;
+
+		/* extract the 32-char remote address before its ':' */
+		char rem_addr[33];
+		memcpy(rem_addr, rem_str, 32);
+		rem_addr[32] = '\0';
+
+		if (!pusb_proc_tcp6_is_loopback(rem_addr)) {
+			fclose(f);
+			return 1;
+		}
+	}
+
+	fclose(f);
+	return 0;
+}
+
+/*
  * Returns 1 if a process whose cmdline contains 'name' exists under procfs_root.
  * Scans procfs_root/PID/cmdline for all numeric PID directories.
  */
@@ -202,7 +291,7 @@ int pusb_has_active_remote_service(t_pusb_options *opts)
 	log_debug("	Checking for known remote desktop processes...\n");
 
 	/* Process-only services: their mere presence means a session is active */
-	static const char *process_only[] = { "TeamViewer_Desk", "anydesk", NULL };
+	static const char *process_only[] = { "anydesk", NULL };
 	for (int i = 0; process_only[i] != NULL; i++) {
 		if (pusb_process_name_exists("/proc", process_only[i])) {
 			log_debug("		Found remote service process: %s\n", process_only[i]);
@@ -239,6 +328,23 @@ int pusb_has_active_remote_service(t_pusb_options *opts)
 		for (int i = 0; rdp_processes[i] != NULL; i++) {
 			if (pusb_process_name_exists("/proc", rdp_processes[i])) {
 				log_debug("		Found RDP remote desktop service: %s\n", rdp_processes[i]);
+				return 1;
+			}
+		}
+	}
+
+	/* TeamViewer: deny only when actively connected to TV relay servers (remote port 5938) */
+	int tv_connected = (
+		pusb_proc_tcp4_has_established_to("/proc/net/tcp",  5938) ||
+		pusb_proc_tcp6_has_established_to("/proc/net/tcp6", 5938)
+	);
+
+	if (tv_connected) {
+		log_debug("	Detected active TeamViewer relay connection, checking for TV process...\n");
+		static const char *tv_processes[] = { "TeamViewer_Desk", "teamviewerd", NULL };
+		for (int i = 0; tv_processes[i] != NULL; i++) {
+			if (pusb_process_name_exists("/proc", tv_processes[i])) {
+				log_debug("		Found TeamViewer process: %s\n", tv_processes[i]);
 				return 1;
 			}
 		}
