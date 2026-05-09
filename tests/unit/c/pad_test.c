@@ -339,6 +339,38 @@ static void test_missing_system_pad_denied(void **state)
 	rmdir(mnt_dir);
 }
 
+/* ── First-run: both pads absent → allow (so update can generate them) ── */
+
+static void test_first_run_no_pads_allowed(void **state)
+{
+	(void)state;
+	struct passwd *pw = getpwuid(getuid());
+	assert_non_null(pw);
+
+	char mnt_dir[] = "/tmp/pamusb_firstrun_XXXXXX";
+	assert_non_null(mkdtemp(mnt_dir));
+
+	t_pusb_options opts = {0};
+	pusb_conf_init(&opts);
+	snprintf(opts.device.name, sizeof(opts.device.name), "pamusb_firstrun");
+	snprintf(opts.system_pad_directory, sizeof(opts.system_pad_directory),
+	         ".pamusb_firstrun_unit");
+
+	/* Ensure system pad directory does not exist */
+	char sys_pad_dir[1024*5];
+	snprintf(sys_pad_dir, sizeof(sys_pad_dir), "%s/%s", pw->pw_dir,
+	         opts.system_pad_directory);
+	rmdir(sys_pad_dir);
+
+	/* Device pad directory also absent — no pads anywhere (first run) */
+
+	/* Must return 1 (allow) so pusb_pad_update can generate initial pads */
+	int result = pusb_pad_compare(&opts, mnt_dir, pw->pw_name);
+	assert_int_equal(1, result);
+
+	rmdir(mnt_dir);
+}
+
 /* ── F2 regression: generate_random_bytes fills buffer and returns 0 ── */
 
 static void test_generate_random_bytes_fills_buffer(void **state)
@@ -395,6 +427,7 @@ int main(void)
 		cmocka_unit_test(test_pad_expired),
 		cmocka_unit_test(test_pad_fresh),
 		cmocka_unit_test(test_pad_missing),
+		cmocka_unit_test(test_first_run_no_pads_allowed),
 		cmocka_unit_test(test_missing_system_pad_denied),
 		cmocka_unit_test(test_generate_random_bytes_fills_buffer),
 		cmocka_unit_test(test_timingsafe_memcmp_equal),

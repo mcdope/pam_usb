@@ -451,7 +451,18 @@ static int pusb_pad_compare(
 
 	if (!(f_system = pusb_pad_open_system(opts, user, "r")))
 	{
-		log_error("Cannot open system pad, denying auth.\n");
+		/* System pad absent. Peek at the device pad:
+		 * both absent → first run, allow so update can generate both;
+		 * device present but system gone → deleted by attacker, deny (F3). */
+		FILE *f_dev_check = pusb_pad_open_device(opts, volume, user, "r");
+		if (f_dev_check != NULL)
+		{
+			fclose(f_dev_check);
+			log_error("System pad missing but device pad exists, denying auth.\n");
+			goto cleanup_nosecret;
+		}
+		log_debug("No pads found, allowing first-time generation.\n");
+		retval = 1;
 		goto cleanup_nosecret;
 	}
 
