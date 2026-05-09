@@ -60,11 +60,59 @@ static int pusb_proc_tcp6_is_loopback(const char *hex32)
 }
 
 /*
- * Parses /proc/net/tcp (IPv4) and returns 1 if there is an ESTABLISHED
- * connection where the local port matches and the remote address is not loopback.
+ * Scans /proc/net/tcp (IPv4) for an ESTABLISHED connection with a non-loopback
+ * remote address. If match_remote is 0, matches the local port; if 1, the remote.
  */
+static int pusb_proc_tcp4_scan(const char *path, uint16_t port, int match_remote)
+{
+	FILE *f = fopen(path, "r");
+	if (!f)
+		return 0;
+
+	char line[512];
+	if (!fgets(line, sizeof(line), f)) {	/* skip header */
+		fclose(f);
+		return 0;
+	}
+
+	while (fgets(line, sizeof(line), f)) {
+		unsigned int local_addr, rem_addr;
+		unsigned int local_port, rem_port, state;
+
+		if (sscanf(line, " %*d: %8x:%4x %8x:%4x %2x",
+				   &local_addr, &local_port, &rem_addr, &rem_port, &state) < 5)
+			continue;
+
+		if (state != 0x01)
+			continue;	/* not ESTABLISHED */
+		if ((uint16_t)(match_remote ? rem_port : local_port) != port)
+			continue;
+		if (!pusb_proc_tcp_is_loopback_v4((uint32_t)rem_addr)) {
+			fclose(f);
+			return 1;
+		}
+	}
+
+	fclose(f);
+	return 0;
+}
+
 static int pusb_proc_tcp4_has_established(const char *path, uint16_t port)
 {
+	return pusb_proc_tcp4_scan(path, port, 0);
+}
+
+static int pusb_proc_tcp4_has_established_to(const char *path, uint16_t port)
+{
+	return pusb_proc_tcp4_scan(path, port, 1);
+}
+
+/*
+ * Scans /proc/net/tcp6 (IPv6) for an ESTABLISHED connection with a non-loopback
+ * remote address. If match_remote is 0, matches the local port; if 1, the remote.
+ */
+static int pusb_proc_tcp6_scan(const char *path, uint16_t port, int match_remote)
+{
 	FILE *f = fopen(path, "r");
 	if (!f)
 		return 0;
@@ -76,18 +124,30 @@ static int pusb_proc_tcp4_has_established(const char *path, uint16_t port)
 	}
 
 	while (fgets(line, sizeof(line), f)) {
-		unsigned int local_addr, rem_addr;
-		unsigned int local_port, rem_port, state;
+		char local_str[80], rem_str[80];
+		unsigned int state;
 
-		if (sscanf(line, " %*d: %8x:%4x %8x:%4x %2x",
-				   &local_addr, &local_port, &rem_addr, &rem_port, &state) < 5)
+		if (sscanf(line, " %*d: %79s %79s %2x", local_str, rem_str, &state) < 3)
 			continue;
 
 		if (state != 0x01)
 			continue;	/* not ESTABLISHED */
-		if ((uint16_t)local_port != port)
+
+		/* port lives after ':' in local_str (incoming) or rem_str (outbound) */
+		char *colon = strchr(match_remote ? rem_str : local_str, ':');
+		if (!colon)
 			continue;
-		if (!pusb_proc_tcp_is_loopback_v4((uint32_t)rem_addr)) {
+		unsigned int parsed_port;
+		if (sscanf(colon + 1, "%4x", &parsed_port) < 1)
+			continue;
+		if ((uint16_t)parsed_port != port)
+			continue;
+
+		char rem_addr[33];
+		memcpy(rem_addr, rem_str, 32);
+		rem_addr[32] = '\0';
+
+		if (!pusb_proc_tcp6_is_loopback(rem_addr)) {
 			fclose(f);
 			return 1;
 		}
@@ -97,144 +157,14 @@ static int pusb_proc_tcp4_has_established(const char *path, uint16_t port)
 	return 0;
 }
 
-/*
- * Parses /proc/net/tcp6 (IPv6) and returns 1 if there is an ESTABLISHED
- * connection where the local port matches and the remote address is not ::1.
- */
 static int pusb_proc_tcp6_has_established(const char *path, uint16_t port)
 {
-	FILE *f = fopen(path, "r");
-	if (!f)
-		return 0;
-
-	char line[512];
-	if (!fgets(line, sizeof(line), f)) {	/* skip header */
-		fclose(f);
-		return 0;
-	}
-
-	while (fgets(line, sizeof(line), f)) {
-		char local_str[80], rem_str[80];
-		unsigned int state;
-
-		if (sscanf(line, " %*d: %79s %79s %2x", local_str, rem_str, &state) < 3)
-			continue;
-
-		if (state != 0x01)
-			continue;	/* not ESTABLISHED */
-
-		/* extract local port: chars after the ':' separator in local_str */
-		char *colon = strchr(local_str, ':');
-		if (!colon)
-			continue;
-		unsigned int local_port;
-		if (sscanf(colon + 1, "%4x", &local_port) < 1)
-			continue;
-		if ((uint16_t)local_port != port)
-			continue;
-
-		/* extract the 32-char remote address before its ':' */
-		char rem_addr[33];
-		memcpy(rem_addr, rem_str, 32);
-		rem_addr[32] = '\0';
-
-		if (!pusb_proc_tcp6_is_loopback(rem_addr)) {
-			fclose(f);
-			return 1;
-		}
-	}
-
-	fclose(f);
-	return 0;
+	return pusb_proc_tcp6_scan(path, port, 0);
 }
 
-/*
- * Parses /proc/net/tcp (IPv4) and returns 1 if there is an ESTABLISHED
- * connection where the REMOTE port matches and the remote address is not loopback.
- */
-static int pusb_proc_tcp4_has_established_to(const char *path, uint16_t remote_port)
+static int pusb_proc_tcp6_has_established_to(const char *path, uint16_t port)
 {
-	FILE *f = fopen(path, "r");
-	if (!f)
-		return 0;
-
-	char line[512];
-	if (!fgets(line, sizeof(line), f)) {	/* skip header */
-		fclose(f);
-		return 0;
-	}
-
-	while (fgets(line, sizeof(line), f)) {
-		unsigned int local_addr, rem_addr;
-		unsigned int local_port, rem_port, state;
-
-		if (sscanf(line, " %*d: %8x:%4x %8x:%4x %2x",
-				   &local_addr, &local_port, &rem_addr, &rem_port, &state) < 5)
-			continue;
-
-		if (state != 0x01)
-			continue;	/* not ESTABLISHED */
-		if ((uint16_t)rem_port != remote_port)
-			continue;
-		if (!pusb_proc_tcp_is_loopback_v4((uint32_t)rem_addr)) {
-			fclose(f);
-			return 1;
-		}
-	}
-
-	fclose(f);
-	return 0;
-}
-
-/*
- * Parses /proc/net/tcp6 (IPv6) and returns 1 if there is an ESTABLISHED
- * connection where the REMOTE port matches and the remote address is not ::1.
- */
-static int pusb_proc_tcp6_has_established_to(const char *path, uint16_t remote_port)
-{
-	FILE *f = fopen(path, "r");
-	if (!f)
-		return 0;
-
-	char line[512];
-	if (!fgets(line, sizeof(line), f)) {	/* skip header */
-		fclose(f);
-		return 0;
-	}
-
-	while (fgets(line, sizeof(line), f)) {
-		char local_str[80], rem_str[80];
-		unsigned int state;
-
-		if (sscanf(line, " %*d: %79s %79s %2x", local_str, rem_str, &state) < 3)
-			continue;
-
-		if (state != 0x01)
-			continue;	/* not ESTABLISHED */
-
-		/* extract remote port: chars after the ':' separator in rem_str */
-		char *colon = strchr(rem_str, ':');
-		if (!colon)
-			continue;
-		unsigned int rport;
-		if (sscanf(colon + 1, "%4x", &rport) < 1)
-			continue;
-		if ((uint16_t)rport != remote_port)
-			continue;
-
-		/* extract the 32-char remote address before its ':' */
-		char rem_addr[33];
-		memcpy(rem_addr, rem_str, 32);
-		rem_addr[32] = '\0';
-
-		if (!pusb_proc_tcp6_is_loopback(rem_addr)) {
-			fclose(f);
-			return 1;
-		}
-	}
-
-	fclose(f);
-	return 0;
+	return pusb_proc_tcp6_scan(path, port, 1);
 }
 
 /*
