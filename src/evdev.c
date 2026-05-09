@@ -27,6 +27,8 @@
 
 int pusb_has_virtual_input_device(const char *input_dir)
 {
+	log_debug("	Checking for virtual input devices...\n");
+
 	DIR *d = opendir(input_dir);
 	if (!d) {
 		log_debug("	Could not open %s for evdev scan\n", input_dir);
