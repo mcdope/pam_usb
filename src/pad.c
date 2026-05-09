@@ -334,6 +334,7 @@ static int pusb_pad_update(
 	if (generate_random_bytes(magic, sizeof(magic)) != 0)
 	{
 		log_error("Failed to generate random pad data.\n");
+		explicit_bzero(magic, sizeof(magic));
 		return 0;
 	}
 
@@ -343,7 +344,8 @@ static int pusb_pad_update(
 		{
 			if (fd_dev >= 0) close(fd_dev);
 			log_error("Unable to create temp device pad: %s\n", strerror(errno));
-			goto cleanup;
+			explicit_bzero(magic, sizeof(magic));
+			return 0;
 		}
 	}
 	pusb_pad_protect(user, fileno(f_device));
@@ -355,9 +357,9 @@ static int pusb_pad_update(
 			if (fd_sys >= 0) close(fd_sys);
 			log_error("Unable to create temp system pad: %s\n", strerror(errno));
 			fclose(f_device);
-			f_device = NULL;
 			unlink(path_device_tmp);
-			goto cleanup;
+			explicit_bzero(magic, sizeof(magic));
+			return 0;
 		}
 	}
 	pusb_pad_protect(user, fileno(f_system));
@@ -367,12 +369,11 @@ static int pusb_pad_update(
 	{
 		log_error("Failed to write system pad: %s\n", strerror(errno));
 		fclose(f_system);
-		f_system = NULL;
 		fclose(f_device);
-		f_device = NULL;
 		unlink(path_system_tmp);
 		unlink(path_device_tmp);
-		goto cleanup;
+		explicit_bzero(magic, sizeof(magic));
+		return 0;
 	}
 
 	log_debug("Writing pad to the device...\n");
@@ -380,21 +381,18 @@ static int pusb_pad_update(
 	{
 		log_error("Failed to write device pad: %s\n", strerror(errno));
 		fclose(f_system);
-		f_system = NULL;
 		fclose(f_device);
-		f_device = NULL;
 		unlink(path_system_tmp);
 		unlink(path_device_tmp);
-		goto cleanup;
+		explicit_bzero(magic, sizeof(magic));
+		return 0;
 	}
 
 	log_debug("Synchronizing filesystems...\n");
 	fsync(fileno(f_system));
 	fsync(fileno(f_device));
 	fclose(f_system);
-	f_system = NULL;
 	fclose(f_device);
-	f_device = NULL;
 
 	explicit_bzero(magic, sizeof(magic));
 
@@ -415,19 +413,13 @@ static int pusb_pad_update(
 
 	log_debug("One time pads updated.\n");
 	return 1;
-
-cleanup:
-	explicit_bzero(magic, sizeof(magic));
-	if (f_system) fclose(f_system);
-	if (f_device) fclose(f_device);
-	return 0;
 }
 
 static int timingsafe_memcmp(const void *a, const void *b, size_t n)
 {
 	const uint8_t *pa = (const uint8_t *)a;
 	const uint8_t *pb = (const uint8_t *)b;
-	uint8_t diff = 0;
+	volatile uint8_t diff = 0;
 	size_t i;
 
 	for (i = 0; i < n; i++)
@@ -459,17 +451,17 @@ static int pusb_pad_compare(
 		{
 			fclose(f_dev_check);
 			log_error("System pad missing but device pad exists, denying auth.\n");
-			goto cleanup_nosecret;
+			return 0;
 		}
 		log_debug("No pads found, allowing first-time generation.\n");
-		retval = 1;
-		goto cleanup_nosecret;
+		return 1;
 	}
 
 	if (!(f_device = pusb_pad_open_device(opts, volume, user, "r")))
 	{
 		log_error("Cannot open device pad, denying auth.\n");
-		goto cleanup_nosecret;
+		fclose(f_system);
+		return 0;
 	}
 
 	log_debug("Loading device pad...\n");
@@ -477,7 +469,10 @@ static int pusb_pad_compare(
 	if (bytes_read != PUSB_PAD_SIZE)
 	{
 		log_error("Device pad is incomplete (%zu/%zu bytes).\n", bytes_read, (size_t)PUSB_PAD_SIZE);
-		goto cleanup;
+		explicit_bzero(magic_device, sizeof(magic_device));
+		fclose(f_device);
+		fclose(f_system);
+		return 0;
 	}
 
 	log_debug("Loading system pad...\n");
@@ -485,19 +480,21 @@ static int pusb_pad_compare(
 	if (bytes_read != PUSB_PAD_SIZE)
 	{
 		log_error("System pad is incomplete (%zu/%zu bytes).\n", bytes_read, (size_t)PUSB_PAD_SIZE);
-		goto cleanup;
+		explicit_bzero(magic_device, sizeof(magic_device));
+		explicit_bzero(magic_system, sizeof(magic_system));
+		fclose(f_device);
+		fclose(f_system);
+		return 0;
 	}
 
 	retval = (timingsafe_memcmp(magic_system, magic_device, PUSB_PAD_SIZE) == 0);
 	if (retval)
 		log_debug("Pad match.\n");
 
-cleanup:
 	explicit_bzero(magic_device, sizeof(magic_device));
 	explicit_bzero(magic_system, sizeof(magic_system));
-cleanup_nosecret:
-	if (f_system) fclose(f_system);
-	if (f_device) fclose(f_device);
+	fclose(f_system);
+	fclose(f_device);
 	return retval;
 }
 

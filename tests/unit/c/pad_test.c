@@ -337,6 +337,7 @@ static void test_missing_system_pad_denied(void **state)
 	unlink(dev_pad_path);
 	rmdir(dev_pad_dir);
 	rmdir(mnt_dir);
+	rmdir(sys_pad_dir);
 }
 
 /* ── First-run: both pads absent → allow (so update can generate them) ── */
@@ -368,7 +369,11 @@ static void test_first_run_no_pads_allowed(void **state)
 	int result = pusb_pad_compare(&opts, mnt_dir, pw->pw_name);
 	assert_int_equal(1, result);
 
+	char mnt_pamusb[PATH_MAX];
+	snprintf(mnt_pamusb, sizeof(mnt_pamusb), "%s/.pamusb", mnt_dir);
+	rmdir(mnt_pamusb);
 	rmdir(mnt_dir);
+	rmdir(sys_pad_dir);
 }
 
 /* ── F2 regression: generate_random_bytes fills buffer and returns 0 ── */
