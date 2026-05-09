@@ -25,6 +25,7 @@ depending on the operating system you're using.
     pamusb-agent[25429]: Authentication succeeded. Unlocking user "scox"...
     pamusb-agent[25429]: Unlocked.
 
+For `pamusb-check` you can also use the `--debug` argument, but that is only temporary and wont help you with i.e login manager issues.
 
 Enabling debug
 --------------
@@ -146,3 +147,140 @@ Because you are modifying the permissions of a package-managed file manually, a 
 
 #### Alternative way, without messing with polkit
 Create a copy of your common-auth pam config (or whatever file it is on your distribution) and name it polkit-1. Remove pam_usb from it. 
+
+
+Remote Desktop / Remote Access Detection                                                                                                                                                                                                                                                                                                                      
+--------------                                                                                                                                                                                                                                                                                                                                                                             
+
+pam_usb can block authentication when it detects an active remote desktop session. This page covers how the check works, why it might fire unexpectedly, and how to handle it.
+
+#### How it works
+
+When `deny_remote` and `remote_desktop_check` are both enabled (the defaults), pam_usb checks for remote access via two layers before accepting a USB token:
+
+1. **Remote service detection** — checks for known remote desktop software
+2. **Virtual input device detection** — checks for `BUS_VIRTUAL` evdev devices (commonly created by remote desktop tools)
+
+Both must clear for authentication to proceed.
+
+#### Detected services and their trigger conditions
+
+| Service | What triggers a deny |
+|---|---|
+| **AnyDesk** | Process `anydesk` is running (any connection state) |
+| **VNC** (gnome-remote-desktop, x11vnc, Xvnc) | External ESTABLISHED connection on local TCP port 5900 **and** a matching VNC server process |
+| **RDP** (gnome-remote-desktop) | External ESTABLISHED connection on local TCP port 3389 **and** `gnome-remote-de` process running |
+| **TeamViewer** | Outbound ESTABLISHED connection to remote TCP port 5938 **and** `TeamViewer_Desk` or `teamviewerd` process running |
+
+All checks use `/proc/net/tcp` (IPv4) and `/proc/net/tcp6` (IPv6). Loopback connections (`127.x.x.x`, `::1`) are never counted as external.
+
+"External" means: ESTABLISHED state + non-loopback remote address.
+
+---
+
+#### Common false positives
+
+##### AnyDesk installed but not in a session
+
+AnyDesk is detected by process presence alone — if the daemon is running in the background (which it does by default on many installs), pam_usb will deny even without an active connection.
+
+**Fix:** Disable the AnyDesk background service when not needed:
+
+```sh
+systemctl disable --now anydesk
+```
+
+Or stop it temporarily before authenticating:
+
+```sh
+sudo systemctl stop anydesk
+```
+
+##### Accessibility tools / input remappers
+
+Software that creates virtual input devices (e.g. key remappers, on-screen keyboards, tablet drivers, disability assistance tools) may register a `BUS_VIRTUAL` evdev node. pam_usb treats this as a signal that a remote desktop tool could be injecting input.
+
+Affected tools include (non-exhaustive):
+
+- Screen readers / on-screen keyboards that synthesise input
+- Drawing tablet drivers that register virtual devices (some Wacom, Huion setups)
+- Key remappers (e.g. `keyd`, `xremap`, `input-remapper`)
+- Accessibility software like `xdotool` daemons
+
+**Workaround:** Disable `remote_desktop_check` in `pam_usb.conf` if you rely on such devices and cannot remove them:
+
+```xml
+<option name="remote_desktop_check">false</option>
+```
+
+Or disable the virtual device service before authenticating, then re-enable it.
+
+##### VNC/RDP port in use by an unrelated app
+
+Any process that listens on port 5900 (VNC) or 3389 (RDP) with an external ESTABLISHED connection will trigger the port check. The matching process name must also be present — but if it is, authentication is denied.
+
+If you run a non-standard VNC or RDP server on these ports, pam_usb will catch it. Move the service to a non-standard port or disable `remote_desktop_check`.
+
+##### TeamViewer installed but idle
+
+TeamViewer will **not** trigger a deny unless it has an active outbound connection to a relay server (port 5938). Simply having TeamViewer installed or the daemon running without an active session is fine.
+
+If it is denying unexpectedly, check:
+
+```sh
+grep ' 1742 ' /proc/net/tcp   # hex 1742 = port 5938
+grep ' 1742 ' /proc/net/tcp6
+```
+
+If you see `01` in the state column, TeamViewer has an active relay connection.
+
+#### Diagnosing a deny
+
+Enable debug logging in `pam_usb.conf`:
+
+```xml
+<option name="debug">true</option>
+```
+
+Then attempt authentication and read the output. Relevant log lines:
+
+```
+Checking for active remote desktop services...
+  Checking for known remote desktop processes...
+    Found remote service process: anydesk
+Active remote desktop service with connection detected, denying.
+```
+
+```
+Virtual input device detected (possible remote desktop tool), denying.
+```
+
+```
+XRDP session detected, denying.
+```
+
+The debug output will name the exact check that fired.
+
+
+#### Disabling the check entirely
+
+To skip remote desktop detection while keeping all other pam_usb protection:
+
+```xml
+<option name="remote_desktop_check">false</option>
+```
+
+To disable all remote/local discrimination (not recommended):
+
+```xml
+<option name="deny_remote">false</option>
+```
+
+Both options can be scoped to a specific user or service in the config hierarchy.
+
+#### Configuration reference
+
+| Option | Default | Effect |
+|---|---|---|
+| `deny_remote` | `true` | Master switch — if false, no remote checks run at all |
+| `remote_desktop_check` | `true` | Enables process + port + virtual-device checks described on this page |
