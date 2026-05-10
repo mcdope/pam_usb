@@ -264,7 +264,6 @@ static int pusb_pad_should_update(t_pusb_options *opts, const char *user)
 		log_debug("Pads were generated %u seconds ago, not updating.\n", delta);
 		return 0;
 	}
-	return 1;
 }
 
 /*
@@ -389,6 +388,15 @@ static int pusb_pad_update(
 	}
 
 	log_debug("Synchronizing filesystems...\n");
+	if (fflush(f_system) != 0 || fflush(f_device) != 0)
+	{
+		log_error("Failed to flush pad data: %s\n", strerror(errno));
+		fclose(f_system);
+		fclose(f_device);
+		unlink(path_system_tmp);
+		unlink(path_device_tmp);
+		return 0;
+	}
 	fsync(fileno(f_system));
 	fsync(fileno(f_device));
 	fclose(f_system);
