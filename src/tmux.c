@@ -127,6 +127,12 @@ char *pusb_tmux_get_client_tty(pid_t env_pid)
             pclose(fp);
             return NULL;
         }
+        if (strncmp(tmux_client_tty, "/dev/", 5) != 0)
+        {
+            log_error("tmux detected, but client tty is not under /dev. Denying.\n");
+            pclose(fp);
+            return NULL;
+        }
         tmux_client_tty += 5; // cut "/dev/"
         log_debug("		Got tmux_client_tty: %s\n", tmux_client_tty);
 

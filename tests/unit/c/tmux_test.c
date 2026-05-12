@@ -225,6 +225,16 @@ static void test_get_client_tty_valid(void **state)
 	unsetenv("TMUX");
 }
 
+static void test_get_client_tty_rejects_non_dev_tty(void **state)
+{
+	(void)state;
+	setenv("TMUX", "/tmp/tmux-1000/default,abc,42", 1);
+	g_popen_output = "pts/1: session info\n";
+	char *result = pusb_tmux_get_client_tty(0);
+	assert_null(result);
+	unsetenv("TMUX");
+}
+
 /* ── main ── */
 
 int main(void)
@@ -258,6 +268,7 @@ int main(void)
 		cmocka_unit_test(test_get_client_tty_injection_semicolon),
 		cmocka_unit_test(test_get_client_tty_nonnumeric_id),
 		cmocka_unit_test(test_get_client_tty_valid),
+		cmocka_unit_test(test_get_client_tty_rejects_non_dev_tty),
 	};
 	return cmocka_run_group_tests(tests, NULL, NULL);
 }
