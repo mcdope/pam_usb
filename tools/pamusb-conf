@@ -332,6 +332,7 @@ def addDevice(options):
 
 def resetPads():
 	padFiles = []
+	skippedDevices = []
 
 	try:
 		doc = minidom.parse(options['configFile'])
@@ -351,45 +352,58 @@ def resetPads():
 	if len(alreadyConfiguredUsers) > 0:
 		for user in alreadyConfiguredUsers:
 			if user.getAttribute('id') == options['resetPads']:
-				# Device specific pad for user
-				userDevice = user.getElementsByTagName('device')[0].firstChild.nodeValue
-				if '/' in userDevice or '..' in userDevice:
-					print('Invalid device ID in config (path traversal): %s' % userDevice)
-					sys.exit(1)
-				padFiles.append('/home/%s/.pamusb/%s.pad' % (options['resetPads'], userDevice))
+				for userDeviceNode in user.getElementsByTagName('device'):
+					userDevice = userDeviceNode.firstChild.nodeValue
+					if '/' in userDevice or '..' in userDevice:
+						print('Invalid device ID in config (path traversal): %s' % userDevice)
+						sys.exit(1)
 
-				# User specific pad for device
-				for details in devicesObj:
-					if details.getAttribute('id') == userDevice:
-						deviceUUID = details.getElementsByTagName('volume_uuid')[0].firstChild.nodeValue
-						if not re.match(r'^[0-9a-fA-F\-]+$', deviceUUID):
-							print('Invalid device UUID in config: %s' % deviceUUID)
-							sys.exit(1)
-						try:
-							deviceMountPoint = subprocess.check_output(
-								['findmnt', '-n', '-o', 'TARGET', '--source', '/dev/disk/by-uuid/' + deviceUUID],
-								stderr=subprocess.DEVNULL
-							)
-							padFiles.append('%s/.pamusb/%s.%s.pad' % (deviceMountPoint.decode().strip(), options['resetPads'], socket.gethostname()))
-						except subprocess.CalledProcessError as err:
-							print('Could not get device mountpoint: ', err)
+					systemPad = '/home/%s/.pamusb/%s.pad' % (options['resetPads'], userDevice)
+					devicePad = None
 
-	if len(padFiles) == 0:
+					for details in devicesObj:
+						if details.getAttribute('id') == userDevice:
+							deviceUUID = details.getElementsByTagName('volume_uuid')[0].firstChild.nodeValue
+							if not re.match(r'^[0-9a-fA-F\-]+$', deviceUUID):
+								print('Invalid device UUID in config: %s' % deviceUUID)
+								sys.exit(1)
+							try:
+								deviceMountPoint = subprocess.check_output(
+									['findmnt', '-n', '-o', 'TARGET', '--source', '/dev/disk/by-uuid/' + deviceUUID],
+									stderr=subprocess.DEVNULL
+								)
+								devicePad = '%s/.pamusb/%s.%s.pad' % (
+									deviceMountPoint.decode().strip(),
+									options['resetPads'],
+									socket.gethostname()
+								)
+							except subprocess.CalledProcessError:
+								pass
+
+					if devicePad is None:
+						print('Device %s is not connected, skipping (connect it and re-run to reset its pads).' % userDevice)
+						skippedDevices.append(userDevice)
+					else:
+						padFiles.append(systemPad)
+						padFiles.append(devicePad)
+
+	if len(padFiles) == 0 and not skippedDevices:
 		print('Could not find pad files to reset, wtf?!')
 		sys.exit(1)
 
-	print('Pad files to remove: ', padFiles)
-	print('Removing device specific pad for user %s...' % options['resetPads'])
-	try:
-		os.remove(padFiles[0])
-	except FileNotFoundError as fnf:
-		print('    Notice: pad file not found.')
+	if padFiles:
+		print('Pad files to remove: ', padFiles)
+		for padFile in padFiles:
+			print('Removing pad file: %s...' % padFile)
+			try:
+				os.remove(padFile)
+			except FileNotFoundError:
+				print('    Notice: pad file not found.')
 
-	print('Removing user and hostname specific pad on device with UUID %s...' % deviceUUID)
-	try:
-		os.remove(padFiles[1])
-	except FileNotFoundError as fnf:
-		print('    Notice: pad file not found.')
+	if skippedDevices:
+		print('')
+		print('Warning: the following devices were not connected and their pads were NOT reset: %s' % ', '.join(skippedDevices))
+		print('Connect them and re-run --reset-pads to complete the reset.')
 
 	print('')
 	print('All pad files for the given user were deleted, on next successful authentication they will be regenerated (you can force this by running pamusb-check).')
