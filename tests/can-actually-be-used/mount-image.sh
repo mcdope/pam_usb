@@ -18,3 +18,11 @@ sudo mkfs.vfat "/dev/"$CREATED_DEVICE"1"
 # Create mountpoint and mount fake stick
 mkdir -p /tmp/fakestick
 sudo mount -t vfat "/dev/"$CREATED_DEVICE"1" /tmp/fakestick -o rw,umask=0000
+
+# Prepare alt image (second device) with its own partition + vfat filesystem
+echo "Info: preparing virtual_usb_alt.img for second device..."
+LOOP=$(sudo losetup --find --show virtual_usb_alt.img)
+echo 'type=83' | sudo sfdisk $LOOP
+sudo partprobe $LOOP
+sudo mkfs.vfat "${LOOP}p1"
+sudo losetup -d $LOOP
