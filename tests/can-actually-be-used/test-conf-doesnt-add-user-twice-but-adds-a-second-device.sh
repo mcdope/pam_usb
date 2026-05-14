@@ -9,7 +9,7 @@ sudo modprobe -r g_mass_storage || exit 1
 sleep 10
 
 # "plug" another virtual usb
-sudo modprobe g_mass_storage file=./virtual_usb.img stall=0 removable=y iSerialNumber=1234567891 iProduct=SecondStick || exit 1
+sudo modprobe g_mass_storage file=./virtual_usb_alt.img stall=0 removable=y iSerialNumber=1234567891 iProduct=SecondStick || exit 1
 sleep 10
 CREATED_DEVICE=$(lsblk | grep 16M | awk '{ print $1 }')
 sudo mount -t vfat "/dev/"$CREATED_DEVICE"1" /tmp/fakestick -o rw,umask=0000

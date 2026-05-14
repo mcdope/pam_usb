@@ -12,6 +12,7 @@ rm -rf /home/`whoami`/.pamusb
 ./test-conf-adds-user.sh && \
 ./test-conf-doesnt-add-user-twice-but-adds-a-second-device.sh && \
 ./test-check-verify-created-config.sh && \
+./test-conf-reset-pads.sh && \
 ./test-check-superuser-filtering.sh && \
 rm -rf /tmp/fakestick/.pamusb && \
 ./test-agent-properly-triggers.sh

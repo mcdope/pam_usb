@@ -194,6 +194,84 @@ def test_add_user_no_duplicate_on_second_call(tmp_conf):
 # ── C-2 regression: UUID validation ──────────────────────────────────────────
 
 import re as _re
+import subprocess
+
+
+# ── resetPads — multi-device regressions (#305) ──────────────────────────────
+
+_TWO_DEVICE_XML = (
+    '<?xml version="1.0"?>'
+    "<configuration>"
+    "  <devices>"
+    '    <device id="dev1"><volume_uuid>AAAA-1111</volume_uuid></device>'
+    '    <device id="dev2"><volume_uuid>BBBB-2222</volume_uuid></device>'
+    "  </devices>"
+    "  <users>"
+    '    <user id="testuser">'
+    "      <device>dev1</device>"
+    "      <device>dev2</device>"
+    "    </user>"
+    "  </users>"
+    "</configuration>"
+)
+
+
+def test_reset_pads_processes_all_devices_when_connected(tmp_path):
+    """#305 regression: resetPads removes pads for every device when all are connected."""
+    removed = []
+
+    with patch.object(_mod, "minidom") as mock_mini, \
+         patch.object(_mod, "os") as mock_os, \
+         patch.object(_mod, "subprocess") as mock_sub, \
+         patch.object(_mod, "socket") as mock_sock:
+
+        mock_mini.parse.return_value = minidom.parseString(_TWO_DEVICE_XML)
+        mock_os.remove.side_effect = lambda p: removed.append(p)
+        mock_sub.check_output.side_effect = [b"/mnt/dev1\n", b"/mnt/dev2\n"]
+        mock_sub.CalledProcessError = subprocess.CalledProcessError
+        mock_sub.DEVNULL = subprocess.DEVNULL
+        mock_sock.gethostname.return_value = "testhost"
+
+        _mod.options = {"configFile": "/fake/conf", "resetPads": "testuser"}
+
+        with pytest.raises(SystemExit):
+            _mod.resetPads()
+
+    assert "/home/testuser/.pamusb/dev1.pad" in removed
+    assert "/home/testuser/.pamusb/dev2.pad" in removed
+    assert "/mnt/dev1/.pamusb/testuser.testhost.pad" in removed
+    assert "/mnt/dev2/.pamusb/testuser.testhost.pad" in removed
+    assert len(removed) == 4
+
+
+def test_reset_pads_skips_disconnected_device_atomically(tmp_path):
+    """#305 + connected-device constraint: if dev2 is not mounted, neither of its pads is touched."""
+    removed = []
+
+    with patch.object(_mod, "minidom") as mock_mini, \
+         patch.object(_mod, "os") as mock_os, \
+         patch.object(_mod, "subprocess") as mock_sub, \
+         patch.object(_mod, "socket") as mock_sock:
+
+        mock_mini.parse.return_value = minidom.parseString(_TWO_DEVICE_XML)
+        mock_os.remove.side_effect = lambda p: removed.append(p)
+        mock_sub.check_output.side_effect = [
+            b"/mnt/dev1\n",
+            subprocess.CalledProcessError(1, "findmnt"),
+        ]
+        mock_sub.CalledProcessError = subprocess.CalledProcessError
+        mock_sub.DEVNULL = subprocess.DEVNULL
+        mock_sock.gethostname.return_value = "testhost"
+
+        _mod.options = {"configFile": "/fake/conf", "resetPads": "testuser"}
+
+        with pytest.raises(SystemExit):
+            _mod.resetPads()
+
+    assert "/home/testuser/.pamusb/dev1.pad" in removed
+    assert "/mnt/dev1/.pamusb/testuser.testhost.pad" in removed
+    assert len(removed) == 2
+    assert "/home/testuser/.pamusb/dev2.pad" not in removed
 
 
 def _uuid_is_valid(uuid: str) -> bool:
