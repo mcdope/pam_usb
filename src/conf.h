@@ -65,8 +65,8 @@ typedef struct		pusb_options
 
 struct		s_opt_list
 {
-	char	*name;
-	char	*value;
+	const char	*name;
+	const char	*value;
 };
 
 int pusb_conf_init(t_pusb_options *opts);

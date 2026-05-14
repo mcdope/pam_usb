@@ -23,6 +23,28 @@
 #include "xpath.h"
 #include "log.h"
 
+static int pusb_conf_xpath_id_is_safe(const char *name, const char *value)
+{
+	const unsigned char *cursor;
+
+	if (value == NULL || value[0] == '\0')
+	{
+		log_error("%s is empty.\n", name);
+		return 0;
+	}
+
+	for (cursor = (const unsigned char *)value; *cursor != '\0'; ++cursor)
+	{
+		if (*cursor == '\'' || *cursor < 0x20)
+		{
+			log_error("%s contains an unsafe character for XPath lookup.\n", name);
+			return 0;
+		}
+	}
+
+	return 1;
+}
+
 static void pusb_conf_options_get_from(
 	t_pusb_options *opts,
 	const char *from,
@@ -55,16 +77,10 @@ static int pusb_conf_parse_options(
 	size_t xpath_size;
 	int i;
 
-	// these can come from argv, so make sure nothing messes up snprintf later
-	char xpath_user[32] = { };
-	char xpath_service[32] = { };
-	snprintf(xpath_user, sizeof(xpath_user), "%s", user);
-	snprintf(xpath_service, sizeof(xpath_service), "%s", service);
-
 	struct s_opt_list opt_list[] = {
 		{ CONF_DEVICE_XPATH, opts->device.name },
-		{ CONF_USER_XPATH, xpath_user },
-		{ CONF_SERVICE_XPATH, xpath_service },
+		{ CONF_USER_XPATH, user },
+		{ CONF_SERVICE_XPATH, service },
 		{ NULL, NULL }
 	};
 
@@ -118,6 +134,11 @@ static int pusb_conf_parse_device(
 	char *deviceId
 )
 {
+	if (!pusb_conf_xpath_id_is_safe("Device id", deviceId))
+	{
+		return 0;
+	}
+
 	pusb_conf_device_get_property(opts, doc, "vendor", opts->device_list[deviceIndex].vendor, sizeof(opts->device_list[deviceIndex].vendor), deviceId);
 	pusb_conf_device_get_property(opts, doc, "model", opts->device_list[deviceIndex].model, sizeof(opts->device_list[deviceIndex].model), deviceId);
 
@@ -172,6 +193,11 @@ int pusb_conf_parse(
 	char device_xpath[sizeof(CONF_USER_XPATH) + CONF_USER_MAXLEN + sizeof("device")];
 
 	log_debug("Parsing settings...\n", user, service);
+	if (!pusb_conf_xpath_id_is_safe("Username", user) ||
+	    !pusb_conf_xpath_id_is_safe("Service", service))
+	{
+		return 0;
+	}
 	if (strlen(user) > CONF_USER_MAXLEN)
 	{
 		log_error("Username \"%s\" is too long (max: %d).\n", user, CONF_USER_MAXLEN);
@@ -220,7 +246,17 @@ int pusb_conf_parse(
 		}
 
 		snprintf(opts->device_list[currentDevice].name, sizeof(opts->device_list[currentDevice].name), "%s", device_list[currentDevice]);
-		pusb_conf_parse_device(opts, doc, currentDevice, device_list[currentDevice]);
+		if (!pusb_conf_parse_device(opts, doc, currentDevice, device_list[currentDevice]))
+		{
+			xmlFreeDoc(doc);
+			xmlCleanupParser();
+
+			for (int i = 0; i < 10; i++)
+			{
+				xfree(device_list[i]);
+			}
+			return 0;
+		}
 	}
 
 	/* Mark devices that carry superuser="true" in the user's <device> elements. */
