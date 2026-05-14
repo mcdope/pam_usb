@@ -102,9 +102,13 @@ char *pusb_tmux_get_client_tty(pid_t env_pid)
         return NULL;
     }
 
-    size_t get_tmux_session_details_cmd_len = strlen(tmux_socket_path) + strlen(tmux_client_id) + 64;
+    size_t get_tmux_session_details_cmd_len =
+        strlen("LC_ALL=C; /usr/bin/tmux -S \"\" list-clients -t \"\\$\"")
+        + strlen(tmux_socket_path)
+        + strlen(tmux_client_id)
+        + 1;
     char *get_tmux_session_details_cmd = xmalloc(get_tmux_session_details_cmd_len);
-    snprintf(get_tmux_session_details_cmd, get_tmux_session_details_cmd_len, "LC_ALL=C; tmux -S \"%s\" list-clients -t \"\\$%s\"", tmux_socket_path, tmux_client_id);
+    snprintf(get_tmux_session_details_cmd, get_tmux_session_details_cmd_len, "LC_ALL=C; /usr/bin/tmux -S \"%s\" list-clients -t \"\\$%s\"", tmux_socket_path, tmux_client_id);
     log_debug("		Built get_tmux_session_details_cmd: %s\n", get_tmux_session_details_cmd);
 
     char buf[BUFSIZ];
