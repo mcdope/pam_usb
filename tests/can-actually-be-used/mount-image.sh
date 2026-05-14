@@ -20,9 +20,7 @@ mkdir -p /tmp/fakestick
 sudo mount -t vfat "/dev/"$CREATED_DEVICE"1" /tmp/fakestick -o rw,umask=0000
 
 # Prepare alt image (second device) with its own partition + vfat filesystem
+# sfdisk and mkfs.vfat operate directly on the raw file — no loopback or sudo needed
 echo "Info: preparing virtual_usb_alt.img for second device..."
-LOOP=$(sudo losetup --find --show virtual_usb_alt.img)
-echo 'type=83' | sudo sfdisk $LOOP
-sudo partprobe $LOOP
-sudo mkfs.vfat "${LOOP}p1"
-sudo losetup -d $LOOP
+echo 'type=83' | sfdisk virtual_usb_alt.img
+mkfs.vfat --offset 2048 virtual_usb_alt.img
