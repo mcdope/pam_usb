@@ -154,6 +154,53 @@ static void test_parse_username_too_long(void **state)
 		"abcdefghijklmnopqrstuvwxyz1234567", "login"));
 }
 
+static void test_parse_rejects_xpath_user_injection(void **state)
+{
+	(void)state;
+	t_pusb_options opts;
+	pusb_conf_init(&opts);
+	assert_int_equal(0, pusb_conf_parse(FIXTURE_CONF, &opts,
+		"' or @id='user_mixed", "login"));
+}
+
+static void test_parse_rejects_xpath_service_injection(void **state)
+{
+	(void)state;
+	t_pusb_options opts;
+	pusb_conf_init(&opts);
+	assert_int_equal(0, pusb_conf_parse(FIXTURE_CONF, &opts,
+		"user_mixed", "' or @id='sudo"));
+}
+
+static void test_parse_rejects_xpath_device_id_injection(void **state)
+{
+	(void)state;
+	char tmpfile[] = "/tmp/pamusb_test_device_xpath_XXXXXX";
+	int fd = mkstemp(tmpfile);
+	assert_true(fd >= 0);
+	const char *xml =
+		"<?xml version=\"1.0\"?>"
+		"<configuration>"
+		"  <devices>"
+		"    <device id=\"victim\"><vendor>V</vendor><model>M</model>"
+		"      <serial>S001</serial><volume_uuid>UUID-A</volume_uuid></device>"
+		"  </devices>"
+		"  <users>"
+		"    <user id=\"testuser\"><device>' or @id='victim</device></user>"
+		"  </users>"
+		"  <services>"
+		"    <service id=\"login\"></service>"
+		"  </services>"
+		"</configuration>";
+	write(fd, xml, strlen(xml));
+	close(fd);
+
+	t_pusb_options opts;
+	pusb_conf_init(&opts);
+	assert_int_equal(0, pusb_conf_parse(tmpfile, &opts, "testuser", "login"));
+	unlink(tmpfile);
+}
+
 static void test_parse_user_not_in_conf(void **state)
 {
 	(void)state;
@@ -219,6 +266,9 @@ int main(void)
 		cmocka_unit_test(test_parse_nonexistent_file),
 		cmocka_unit_test(test_parse_invalid_xml),
 		cmocka_unit_test(test_parse_username_too_long),
+		cmocka_unit_test(test_parse_rejects_xpath_user_injection),
+		cmocka_unit_test(test_parse_rejects_xpath_service_injection),
+		cmocka_unit_test(test_parse_rejects_xpath_device_id_injection),
 		cmocka_unit_test(test_parse_user_not_in_conf),
 		cmocka_unit_test(test_superuser_attribute_case_sensitive),
 	};
