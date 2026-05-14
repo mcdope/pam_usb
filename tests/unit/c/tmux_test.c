@@ -8,6 +8,7 @@
  *   C-1: non-numeric TMUX client ID rejected
  *   C-1: pusb_tmux_escape_for_regex handles all 14 ERE metacharacters
  *   C-1: dot in username escaped so it doesn't match a different user
+ *   C-2: tmux command is resolved by absolute path, not PAM-time PATH
  */
 
 #include <stdarg.h>
@@ -25,10 +26,11 @@
 /* ── popen/pclose mock ── */
 
 static const char *g_popen_output = "";
+static char g_last_popen_cmd[BUFSIZ];
 
 FILE *__wrap_popen(const char *cmd, const char *type)
 {
-	(void)cmd;
+	snprintf(g_last_popen_cmd, sizeof(g_last_popen_cmd), "%s", cmd);
 	return fmemopen((void *)g_popen_output, strlen(g_popen_output), type);
 }
 
@@ -225,6 +227,22 @@ static void test_get_client_tty_valid(void **state)
 	unsetenv("TMUX");
 }
 
+static void test_get_client_tty_uses_absolute_tmux_path(void **state)
+{
+	(void)state;
+	setenv("TMUX", "/tmp/tmux-1000/default,abc,42", 1);
+	g_popen_output = "/dev/pts/1: session info\n";
+	memset(g_last_popen_cmd, 0, sizeof(g_last_popen_cmd));
+
+	char *result = pusb_tmux_get_client_tty(0);
+
+	assert_non_null(result);
+	assert_non_null(strstr(g_last_popen_cmd, "LC_ALL=C; /usr/bin/tmux -S "));
+	assert_null(strstr(g_last_popen_cmd, "LC_ALL=C; tmux -S "));
+	free(result);
+	unsetenv("TMUX");
+}
+
 /* ── main ── */
 
 int main(void)
@@ -258,6 +276,7 @@ int main(void)
 		cmocka_unit_test(test_get_client_tty_injection_semicolon),
 		cmocka_unit_test(test_get_client_tty_nonnumeric_id),
 		cmocka_unit_test(test_get_client_tty_valid),
+		cmocka_unit_test(test_get_client_tty_uses_absolute_tmux_path),
 	};
 	return cmocka_run_group_tests(tests, NULL, NULL);
 }
