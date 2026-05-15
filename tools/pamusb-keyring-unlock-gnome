@@ -17,6 +17,9 @@
 
 INSTALL=0
 UNINSTALL=0
+PAMUSB_CHECK=/usr/bin/pamusb-check
+ID=/usr/bin/id
+LOGGER=/usr/bin/logger
 
 while [ "$1" != "" ]; do
     case $1 in
@@ -88,7 +91,11 @@ if [ "$UNINSTALL" = "1" ]; then
 fi
 
 # Check for valid authentication
-pamusb-check `whoami` > /dev/null 2>&1 || (logger -p local0.error -t ${0##*/}[$$] pamusb-check failed. && exit 1)
+USER_NAME=$("$ID" -un)
+if ! "$PAMUSB_CHECK" "$USER_NAME" > /dev/null 2>&1; then
+    "$LOGGER" -p local0.error -t "${0##*/}[$$]" pamusb-check failed.
+    exit 1
+fi
 
 # Check if password file exists
 if [ ! -f ~/.pamusb/.keyring_unlock_password ]; then
