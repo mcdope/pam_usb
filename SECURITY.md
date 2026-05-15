@@ -19,7 +19,7 @@ After receiving your report, I will review it and create a GitHub Security Advis
 
 ## Submitting a Fix
 
-Once a vulnerability has been reported via email and coordinated with the maintainer, submit the fix as a pull request following the standard [CONTRIBUTING](CONTRIBUTING) guidelines with these additions:
+Once a vulnerability has been reported via email and coordinated with the maintainer, submit the fix as a pull request following the standard [CONTRIBUTING](CONTRIBUTING.md) guidelines with these additions:
 
 - Reference the GitHub Security Advisory (GHSA) identifier in the PR description instead of a public issue (e.g., `Refs GHSA-xxxx-xxxx-xxxx`). If no advisory exists yet, reference issue #55 as a placeholder.
 - **Do not** include the full attack scenario in the public PR description until the advisory has been published. A brief note such as "Fixes a vulnerability disclosed privately — details in the security advisory" is sufficient until then.
