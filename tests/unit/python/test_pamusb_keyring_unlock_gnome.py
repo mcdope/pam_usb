@@ -4,6 +4,7 @@ Unit tests for tools/pamusb-keyring-unlock-gnome.
 Security regression coverage:
   K-1: authentication check invokes /usr/bin/pamusb-check, not PATH lookup
   K-1: username lookup invokes /usr/bin/id, not PATH lookup
+  K-2: stored password is read as data without sourcing shell code
 """
 
 from pathlib import Path
@@ -33,3 +34,24 @@ def test_username_lookup_uses_absolute_id():
     assert 'USER_NAME=$("$ID" -un)' in text
     assert "`whoami`" not in text
     assert "$(whoami)" not in text
+
+
+def test_password_file_is_not_sourced_as_shell():
+    text = SCRIPT.read_text()
+
+    assert "KEYFILE=" in text
+    assert "source " not in text
+    assert ". \"$KEYFILE\"" not in text
+    assert "UNLOCK_PASSWORD=$(grep" not in text
+    assert 'UNLOCK_PASSWORD=$("$SED" -n' in text
+    assert 'printf \'UNLOCK_PASSWORD=%s\\n\'' in text
+
+
+def test_keyring_commands_use_absolute_paths():
+    text = SCRIPT.read_text()
+
+    assert "PIDOF=/usr/bin/pidof" in text
+    assert "KILL=/usr/bin/kill" in text
+    assert "GNOME_KEYRING_DAEMON=/usr/bin/gnome-keyring-daemon" in text
+    assert "`pidof gnome-keyring-daemon`" not in text
+    assert '"$GNOME_KEYRING_DAEMON" --daemonize --login' in text
