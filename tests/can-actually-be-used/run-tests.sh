@@ -7,6 +7,7 @@ rm -rf /home/`whoami`/.pamusb
 
 # Run tests
 ./test-keyring-unlock-gnome-installer.sh && \
+./test-pinentry-installer.sh && \
 ./test-conf-detects-device.sh && \
 ./test-conf-adds-device.sh && \
 ./test-conf-adds-user.sh && \
