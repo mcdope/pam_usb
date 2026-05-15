@@ -53,10 +53,11 @@ static int pusb_xpath_strip_string(char *dest, const char *src, size_t size)
 	int first_char = -1;
 	int last_char = -1;
 	int i;
+	size_t len;
 
 	for (i = 0; src[i]; ++i)
 	{
-		if (isspace(src[i]))
+		if (isspace((unsigned char)src[i]))
 		{
 			continue;
 		}
@@ -74,14 +75,16 @@ static int pusb_xpath_strip_string(char *dest, const char *src, size_t size)
 		return 0;
 	}
 
-	if ((last_char - first_char) > (size - 1))
+	len = (size_t)(last_char - first_char + 1);
+	if (size == 0 || len >= size)
 	{
 		log_error("Device name is too long: %s", src);
 		return 0;
 	}
 
 	memset(dest, 0x0, size);
-	strncpy(dest, &(src[first_char]), last_char - first_char + 1);
+	memcpy(dest, &(src[first_char]), len);
+	dest[len] = '\0';
 	return 1;
 }
 
