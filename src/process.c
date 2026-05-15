@@ -67,12 +67,14 @@ void pusb_get_process_parent_id(const pid_t pid, pid_t *ppid)
 		if (fgets(buffer, sizeof(buffer), fp) != NULL)
 		{
 			// See: https://man7.org/linux/man-pages/man5/proc.5.html section /proc/[pid]/stat
-			strtok(buffer, " "); // (1) pid  %d
-			strtok(NULL, " "); // (2) comm  %s
-			strtok(NULL, " "); // (3) state  %c
-			char *s_ppid = strtok(NULL, " "); // (4) ppid  %d
-			if (s_ppid != NULL)
-				*ppid = atoi(s_ppid);
+			char *comm_end = strrchr(buffer, ')');
+			char state;
+			long parsed_ppid;
+			if (comm_end != NULL &&
+				sscanf(comm_end + 1, " %c %ld", &state, &parsed_ppid) == 2)
+			{
+				*ppid = (pid_t)parsed_ppid;
+			}
 		}
 		fclose(fp);
 	}

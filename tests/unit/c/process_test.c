@@ -10,6 +10,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/prctl.h>
 #include <cmocka.h>
 #include "../../../src/process.h"
 #include "../../../src/conf.h"
@@ -50,6 +51,22 @@ static void test_ppid_self(void **state)
 	pid_t ppid = 0;
 	pusb_get_process_parent_id(getpid(), &ppid);
 	assert_true(ppid > 0);
+}
+
+static void test_ppid_self_with_space_in_comm(void **state)
+{
+	(void)state;
+	char original_name[16] = {0};
+	pid_t ppid = 0;
+	pid_t expected_ppid = getppid();
+
+	assert_int_equal(0, prctl(PR_GET_NAME, original_name, 0, 0, 0));
+	assert_int_equal(0, prctl(PR_SET_NAME, "pa musb", 0, 0, 0));
+
+	pusb_get_process_parent_id(getpid(), &ppid);
+
+	assert_int_equal(0, prctl(PR_SET_NAME, original_name, 0, 0, 0));
+	assert_int_equal((int)expected_ppid, (int)ppid);
 }
 
 static void test_ppid_init(void **state)
@@ -108,6 +125,7 @@ int main(void)
 		cmocka_unit_test(test_process_name_pid1),
 		cmocka_unit_test(test_process_name_invalid_pid),
 		cmocka_unit_test(test_ppid_self),
+		cmocka_unit_test(test_ppid_self_with_space_in_comm),
 		cmocka_unit_test(test_ppid_init),
 		cmocka_unit_test(test_ppid_invalid_pid),
 		cmocka_unit_test(test_envvar_path_found),
