@@ -165,6 +165,25 @@ static void test_string_too_long(void **state)
 	xmlFreeDoc(doc);
 }
 
+static void test_string_exact_buffer_size_rejected(void **state)
+{
+	(void)state;
+	xmlDocPtr doc = make_doc("<r><v>abcd</v></r>");
+	char buf[4] = {0};
+	/* size=4 needs one byte for NUL, so 4 content bytes must fail. */
+	assert_int_equal(0, pusb_xpath_get_string(doc, "//r/v", buf, sizeof(buf)));
+	xmlFreeDoc(doc);
+}
+
+static void test_string_zero_size_rejected(void **state)
+{
+	(void)state;
+	xmlDocPtr doc = make_doc("<r><v>a</v></r>");
+	char buf[1] = {0};
+	assert_int_equal(0, pusb_xpath_get_string(doc, "//r/v", buf, 0));
+	xmlFreeDoc(doc);
+}
+
 /* ── pusb_xpath_get_string_list ── */
 
 static void test_string_list_multiple(void **state)
@@ -216,6 +235,8 @@ int main(void)
 		cmocka_unit_test(test_string_value),
 		cmocka_unit_test(test_string_whitespace_stripped),
 		cmocka_unit_test(test_string_too_long),
+		cmocka_unit_test(test_string_exact_buffer_size_rejected),
+		cmocka_unit_test(test_string_zero_size_rejected),
 		cmocka_unit_test(test_string_list_multiple),
 		cmocka_unit_test(test_string_list_single),
 	};

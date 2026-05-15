@@ -10,6 +10,7 @@ Covers:
   - C-2 regression: UUID with shell metacharacters is rejected
   - C-2 regression: UUID with path traversal is rejected
   - C-2 regression: valid UUID is accepted
+  - resetPads uses passwd home directories and an absolute findmnt path
 """
 
 import sys
@@ -222,10 +223,12 @@ def test_reset_pads_processes_all_devices_when_connected(tmp_path):
 
     with patch.object(_mod, "minidom") as mock_mini, \
          patch.object(_mod, "os") as mock_os, \
+         patch.object(_mod, "pwd") as mock_pwd, \
          patch.object(_mod, "subprocess") as mock_sub, \
          patch.object(_mod, "socket") as mock_sock:
 
         mock_mini.parse.return_value = minidom.parseString(_TWO_DEVICE_XML)
+        mock_pwd.getpwnam.return_value.pw_dir = "/srv/home/testuser"
         mock_os.remove.side_effect = lambda p: removed.append(p)
         mock_sub.check_output.side_effect = [b"/mnt/dev1\n", b"/mnt/dev2\n"]
         mock_sub.CalledProcessError = subprocess.CalledProcessError
@@ -237,11 +240,12 @@ def test_reset_pads_processes_all_devices_when_connected(tmp_path):
         with pytest.raises(SystemExit):
             _mod.resetPads()
 
-    assert "/home/testuser/.pamusb/dev1.pad" in removed
-    assert "/home/testuser/.pamusb/dev2.pad" in removed
+    assert "/srv/home/testuser/.pamusb/dev1.pad" in removed
+    assert "/srv/home/testuser/.pamusb/dev2.pad" in removed
     assert "/mnt/dev1/.pamusb/testuser.testhost.pad" in removed
     assert "/mnt/dev2/.pamusb/testuser.testhost.pad" in removed
     assert len(removed) == 4
+    assert mock_sub.check_output.call_args_list[0].args[0][0] == "/usr/bin/findmnt"
 
 
 def test_reset_pads_skips_disconnected_device_atomically(tmp_path):
@@ -250,10 +254,12 @@ def test_reset_pads_skips_disconnected_device_atomically(tmp_path):
 
     with patch.object(_mod, "minidom") as mock_mini, \
          patch.object(_mod, "os") as mock_os, \
+         patch.object(_mod, "pwd") as mock_pwd, \
          patch.object(_mod, "subprocess") as mock_sub, \
          patch.object(_mod, "socket") as mock_sock:
 
         mock_mini.parse.return_value = minidom.parseString(_TWO_DEVICE_XML)
+        mock_pwd.getpwnam.return_value.pw_dir = "/srv/home/testuser"
         mock_os.remove.side_effect = lambda p: removed.append(p)
         mock_sub.check_output.side_effect = [
             b"/mnt/dev1\n",
@@ -268,10 +274,23 @@ def test_reset_pads_skips_disconnected_device_atomically(tmp_path):
         with pytest.raises(SystemExit):
             _mod.resetPads()
 
-    assert "/home/testuser/.pamusb/dev1.pad" in removed
+    assert "/srv/home/testuser/.pamusb/dev1.pad" in removed
     assert "/mnt/dev1/.pamusb/testuser.testhost.pad" in removed
     assert len(removed) == 2
-    assert "/home/testuser/.pamusb/dev2.pad" not in removed
+    assert "/srv/home/testuser/.pamusb/dev2.pad" not in removed
+
+
+def test_reset_pads_rejects_unknown_user():
+    """resetPads should fail before building deletion paths for unknown users."""
+    with patch.object(_mod, "minidom") as mock_mini, \
+         patch.object(_mod, "pwd") as mock_pwd:
+
+        mock_mini.parse.return_value = minidom.parseString(_TWO_DEVICE_XML)
+        mock_pwd.getpwnam.side_effect = KeyError
+        _mod.options = {"configFile": "/fake/conf", "resetPads": "missinguser"}
+
+        with pytest.raises(SystemExit):
+            _mod.resetPads()
 
 
 def _uuid_is_valid(uuid: str) -> bool:
