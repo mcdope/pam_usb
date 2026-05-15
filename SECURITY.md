@@ -11,7 +11,7 @@ At every point in time only the most recent release is supported.
 
 ## Reporting a Vulnerability
 
-Please email me at tobiasbaeumer@gmail.com, since Github issues are public.
+Please email me at tobiasbaeumer@gmail.com, since Github issues are public. PGP is possible, you know where to find my key - but it's not required.
 
 ## What Happens After You Report
 
