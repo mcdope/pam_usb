@@ -17,17 +17,6 @@
 
 INSTALL=0
 UNINSTALL=0
-PAMUSB_CHECK=/usr/bin/pamusb-check
-ID=/usr/bin/id
-LOGGER=/usr/bin/logger
-STAT=/usr/bin/stat
-AWK=/usr/bin/awk
-SED=/usr/bin/sed
-HEAD=/usr/bin/head
-PIDOF=/usr/bin/pidof
-KILL=/usr/bin/kill
-GNOME_KEYRING_DAEMON=/usr/bin/gnome-keyring-daemon
-KEYFILE="$HOME/.pamusb/.keyring_unlock_password"
 
 while [ "$1" != "" ]; do
     case $1 in
@@ -39,7 +28,7 @@ while [ "$1" != "" ]; do
 done
 
 do_install() {
-    if [ "$("$ID" -u)" = "0" ]; then
+    if [ "$(id -u)" = "0" ]; then
         printf 'Do not run --install as root; files belong in your user home.\n' >&2
         exit 1
     fi
@@ -55,8 +44,8 @@ do_install() {
     fi
 
     mkdir -p "$HOME/.pamusb"
-    printf 'UNLOCK_PASSWORD=%s\n' "$UNLOCK_PASSWORD" > "$KEYFILE"
-    chmod 0600 "$KEYFILE"
+    printf 'UNLOCK_PASSWORD="%s"\n' "$UNLOCK_PASSWORD" > "$HOME/.pamusb/.keyring_unlock_password"
+    chmod 0600 "$HOME/.pamusb/.keyring_unlock_password"
 
     mkdir -p "$HOME/.config/autostart"
 
@@ -82,7 +71,7 @@ EOF
 }
 
 do_uninstall() {
-    rm -f "$KEYFILE"
+    rm -f "$HOME/.pamusb/.keyring_unlock_password"
     rm -f "$HOME/.config/autostart/pamusb-keyring-unlock-gnome.desktop"
     rm -f "$HOME/.config/autostart/gnome-keyring-secrets.desktop"
     printf 'Uninstall complete. Removed password file and autostart entries.\n'
@@ -99,47 +88,40 @@ if [ "$UNINSTALL" = "1" ]; then
 fi
 
 # Check for valid authentication
-USER_NAME=$("$ID" -un)
-if ! "$PAMUSB_CHECK" "$USER_NAME" > /dev/null 2>&1; then
-    "$LOGGER" -p local0.error -t "${0##*/}[$$]" pamusb-check failed.
-    exit 1
-fi
+pamusb-check `whoami` > /dev/null 2>&1 || (logger -p local0.error -t ${0##*/}[$$] pamusb-check failed. && exit 1)
 
 # Check if password file exists
-if [ ! -f "$KEYFILE" ]; then
-    "$LOGGER" -p local0.notice -t "${0##*/}[$$]" No password file found, exiting.
+if [ ! -f ~/.pamusb/.keyring_unlock_password ]; then
+    logger -p local0.notice -t ${0##*/}[$$] No password file found, exiting.
     exit 0
 fi
 
 # Ensure file has 0600 (if FS supports it)
-PERMISSIONS=$("$STAT" -c "%a %n" "$KEYFILE" | "$AWK" '{print $1}')
+PERMISSIONS=`stat -c "%a %n" ~/.pamusb/.keyring_unlock_password | awk '{print $1}'`
 if [ ! "$PERMISSIONS" = "600" ]; then
-    "$LOGGER" -p local0.error -t "${0##*/}[$$]" Bad permissions on ~/.pamusb/.keyring_unlock_password. Please change them to 0600.
+    logger -p local0.error -t ${0##*/}[$$] Bad permissions on ~/.pamusb/.keyring_unlock_password. Please change them to 0600.
     exit 1
 fi
 
 # Kill existing keyring instance
-KEYRING_PIDS=$("$PIDOF" gnome-keyring-daemon)
-if [ -n "$KEYRING_PIDS" ] && "$KILL" $KEYRING_PIDS; then
-    "$LOGGER" -p local0.notice -t "${0##*/}[$$]" Killed existing gnome-keyring-instance.
+kill `pidof gnome-keyring-daemon`
+if [ ! "$?" = "0" ]; then
+    logger -p local0.notice -t ${0##*/}[$$] Couldn\'t kill existing gnome-keyring-instance - was it launched already?
 else
-    "$LOGGER" -p local0.notice -t "${0##*/}[$$]" Couldn\'t kill existing gnome-keyring-instance - was it launched already?
+    logger -p local0.notice -t ${0##*/}[$$] Killed existing gnome-keyring-instance.
 fi
 
-# Read UNLOCK_PASSWORD without sourcing the file as shell code.
-UNLOCK_PASSWORD=$("$SED" -n 's/^UNLOCK_PASSWORD=//p' "$KEYFILE" | "$HEAD" -n 1)
-case "$UNLOCK_PASSWORD" in
-    \"*\") UNLOCK_PASSWORD=${UNLOCK_PASSWORD#\"}; UNLOCK_PASSWORD=${UNLOCK_PASSWORD%\"} ;;
-esac
+# Read UNLOCK_PASSWORD from $KEYFILE via grep to avoid sourcing arbitrary shell
+UNLOCK_PASSWORD=$(grep -oP '^UNLOCK_PASSWORD=\K.*' ~/.pamusb/.keyring_unlock_password)
 if [ -z "$UNLOCK_PASSWORD" ]; then
-    "$LOGGER" -p local0.error -t "${0##*/}[$$]" Could not read UNLOCK_PASSWORD from file.
+    logger -p local0.error -t ${0##*/}[$$] Could not read UNLOCK_PASSWORD from file.
     exit 1
 fi
 
 # Perform unlock — pass via stdin pipe so the password never appears as a process argument
-printf '%s' "$UNLOCK_PASSWORD" | "$GNOME_KEYRING_DAEMON" --daemonize --login \
-    && "$GNOME_KEYRING_DAEMON" --start  > /dev/null 2>&1; UNLOCKED=$? \
-    && "$LOGGER" -p local0.notice -t "${0##*/}[$$]" Keyring unlocked. \
-    || "$LOGGER" -p local0.error -t "${0##*/}[$$]" Keyring unlock failed.
+printf '%s' "$UNLOCK_PASSWORD" | gnome-keyring-daemon --daemonize --login \
+    && gnome-keyring-daemon --start  > /dev/null 2>&1; UNLOCKED=$? \
+    && logger -p local0.notice -t ${0##*/}[$$] Keyring unlocked. \
+    || logger -p local0.error -t ${0##*/}[$$] Keyring unlock failed.
 
 exit $UNLOCKED
