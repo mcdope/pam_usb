@@ -102,20 +102,6 @@ static void test_utmpx_field_starts_with_rejects_long_prefix(void **state)
 	assert_int_equal(0, pusb_utmpx_field_starts_with(field, sizeof(field), "pts/"));
 }
 
-static void test_should_check_tmux_rejects_missing_pid(void **state)
-{
-	(void)state;
-
-	assert_int_equal(0, pusb_should_check_tmux(0));
-}
-
-static void test_should_check_tmux_accepts_recorded_pid(void **state)
-{
-	(void)state;
-
-	assert_int_equal(1, pusb_should_check_tmux(1234));
-}
-
 int main(void)
 {
 	const struct CMUnitTest tests[] = {
@@ -129,8 +115,6 @@ int main(void)
 		cmocka_unit_test(test_utmpx_field_starts_with_pts_slave),
 		cmocka_unit_test(test_utmpx_field_starts_with_full_width_field),
 		cmocka_unit_test(test_utmpx_field_starts_with_rejects_long_prefix),
-		cmocka_unit_test(test_should_check_tmux_rejects_missing_pid),
-		cmocka_unit_test(test_should_check_tmux_accepts_recorded_pid),
 	};
 	return cmocka_run_group_tests(tests, NULL, NULL);
 }

@@ -70,11 +70,6 @@ static int pusb_utmpx_field_starts_with(const char *field, size_t field_len, con
 	return prefix_len <= field_len && memcmp(field, prefix, prefix_len) == 0;
 }
 
-static int pusb_should_check_tmux(pid_t tmux_pid)
-{
-	return tmux_pid != 0;
-}
-
 int pusb_is_tty_local(char *tty)
 {
 	struct utmpx utsearch;
@@ -375,7 +370,7 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 	const char *session_tty;
 	const char *display_env = getenv("DISPLAY");
 
-	if (local_request == 0 && pusb_should_check_tmux(tmux_pid))
+	if (local_request == 0 && tmux_pid != 0)
 	{
 		log_debug("	Checking for remote clients attached to tmux before getting client tty...\n");
 		if (pusb_tmux_has_remote_clients(user) != 0)
