@@ -142,3 +142,13 @@ def test_dangerous_env_vars_set_is_at_module_level():
     assert "LD_PRELOAD" in _mod._DANGEROUS_ENV_VARS
     assert "PYTHONPATH" in _mod._DANGEROUS_ENV_VARS
     assert "IFS" in _mod._DANGEROUS_ENV_VARS
+
+
+def test_agent_commands_use_absolute_shell():
+    """Agent command execution must not resolve the shell through PATH."""
+    with open(_TOOL_PATH, "r", encoding="utf-8") as f:
+        source = f.read()
+
+    assert _mod.SHELL_PATH == "/bin/sh"
+    assert "['sh', '-c', cmd]" not in source
+    assert "[SHELL_PATH, '-c', cmd]" in source

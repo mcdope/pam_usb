@@ -39,6 +39,8 @@ from gi.repository import GLib, UDisks
 
 import xml.etree.ElementTree as et
 
+SHELL_PATH = '/bin/sh'
+
 class HotPlugDevice:
 	def __init__(self, serial, name):
 		self.__udi = None
@@ -279,7 +281,7 @@ if __name__ == '__main__':
 					if len(l['cmd']) != 0:
 						for cmd in l['cmd']:
 							logger.info('Running "%s" (as %d:%d)' % (cmd, uid, gid))
-							process = subprocess.run(['sh', '-c', cmd], env=l['env'], preexec_fn=runAs(uid, gid), capture_output=True)
+							process = subprocess.run([SHELL_PATH, '-c', cmd], env=l['env'], preexec_fn=runAs(uid, gid), capture_output=True)
 							logger.info('Process exit code: %d' % (process.returncode))
 							logger.info('Process stdout: %s' % (process.stdout.decode()))
 							logger.info('Process stderr: %s' % (process.stderr.decode()))
@@ -302,7 +304,7 @@ if __name__ == '__main__':
 					if len(l['cmd']) != 0:
 						for cmd in l['cmd']:
 							logger.info('Running "%s" (as %d:%d)' % (cmd, uid, gid))
-							process = subprocess.run(['sh', '-c', cmd], env=l['env'], preexec_fn=runAs(uid, gid), capture_output=True)
+							process = subprocess.run([SHELL_PATH, '-c', cmd], env=l['env'], preexec_fn=runAs(uid, gid), capture_output=True)
 							logger.info('Process exit code: %d' % (process.returncode))
 							logger.info('Process stdout: %s' % (process.stdout.decode()))
 							logger.info('Process stderr: %s' % (process.stderr.decode()))
