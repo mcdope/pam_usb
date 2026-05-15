@@ -6,6 +6,7 @@ Security regression coverage:
   M-3: PINENTRY_FALLBACK_APP validation — nonexistent path rejected
   M-3: PINENTRY_FALLBACK_APP validation — non-executable file rejected
   M-3: valid executable fallback is invoked
+  M-4: pamusb-check is invoked by absolute path, not PATH lookup
   Happy path: authenticated + password configured → sends "D <password>" response
 
 _user_home() coverage:
@@ -125,6 +126,20 @@ def test_fallback_valid_executable_invoked(tmp_path, monkeypatch):
     script.chmod(0o755)
     code = _run_pinentry_fallback(tmp_path, str(script), monkeypatch)
     assert code is None
+
+
+def test_pamusb_check_uses_absolute_path():
+    """Authentication check must not be resolved through attacker-controlled PATH."""
+    mod = _load_pinentry()
+
+    with patch("subprocess.run", return_value=subprocess.CompletedProcess(
+            [], returncode=0, stdout=b"", stderr=b"")) as run_mock:
+        mod._run_pamusb_check("alice")
+
+    run_mock.assert_called_once_with(
+        ["/usr/bin/pamusb-check", "alice"],
+        capture_output=True
+    )
 
 
 # ── Happy path: pinentry protocol ─────────────────────────────────────────────

@@ -37,6 +37,7 @@ ENVFILE_PATH = os.path.join(_user_home(), ".pamusb", ".pinentry.env")
 PINENTRY_LINK = "/usr/bin/pinentry"
 PINENTRY_ALT_NAME = "pinentry"
 PAMUSB_PINENTRY_PATH = "/usr/bin/pamusb-pinentry"
+PAMUSB_CHECK_PATH = "/usr/bin/pamusb-check"
 PINENTRY_ALT_PRIORITY = 100
 
 ENVFILE_TEMPLATE = (
@@ -107,6 +108,10 @@ def uninstall():
     print("pamusb-pinentry alternative removed.")
 
 
+def _run_pamusb_check(user):
+    return subprocess.run([PAMUSB_CHECK_PATH, user], capture_output=True)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="pam_usb pinentry tool"
@@ -135,7 +140,7 @@ if __name__ == "__main__":
     pinentryPassword = os.getenv('PINENTRY_PASSWORD')
     fallbackPinentryApp = os.getenv('PINENTRY_FALLBACK_APP')
 
-    isAuthenticated = subprocess.run(["pamusb-check", getpass.getuser()], capture_output=True)
+    isAuthenticated = _run_pamusb_check(getpass.getuser())
     if (isAuthenticated.returncode == 0):
         print("OK Pleased to meet you")
         while True:
