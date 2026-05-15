@@ -47,6 +47,22 @@ def test_password_file_is_not_sourced_as_shell():
     assert 'printf \'UNLOCK_PASSWORD=%s\\n\'' in text
 
 
+def test_quoted_password_compat_requires_closing_quote():
+    text = SCRIPT.read_text()
+
+    assert r"""    '"'*'"') UNLOCK_PASSWORD=${UNLOCK_PASSWORD#\"}; UNLOCK_PASSWORD=${UNLOCK_PASSWORD%\"} ;;""" in text
+    assert r'    \"*\") UNLOCK_PASSWORD=${UNLOCK_PASSWORD#\"}; UNLOCK_PASSWORD=${UNLOCK_PASSWORD%\"} ;;' not in text
+
+
+def test_auth_check_exits_script_not_subshell():
+    text = SCRIPT.read_text()
+
+    assert "|| (" not in text
+    assert "||(" not in text.replace(" ", "")
+    assert 'if ! "$PAMUSB_CHECK" "$USER_NAME"' in text
+    assert "exit 1" in text
+
+
 def test_keyring_commands_use_absolute_paths():
     text = SCRIPT.read_text()
 

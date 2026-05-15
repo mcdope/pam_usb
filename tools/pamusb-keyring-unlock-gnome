@@ -129,7 +129,7 @@ fi
 # Read UNLOCK_PASSWORD without sourcing the file as shell code.
 UNLOCK_PASSWORD=$("$SED" -n 's/^UNLOCK_PASSWORD=//p' "$KEYFILE" | "$HEAD" -n 1)
 case "$UNLOCK_PASSWORD" in
-    \"*\") UNLOCK_PASSWORD=${UNLOCK_PASSWORD#\"}; UNLOCK_PASSWORD=${UNLOCK_PASSWORD%\"} ;;
+    '"'*'"') UNLOCK_PASSWORD=${UNLOCK_PASSWORD#\"}; UNLOCK_PASSWORD=${UNLOCK_PASSWORD%\"} ;;
 esac
 if [ -z "$UNLOCK_PASSWORD" ]; then
     "$LOGGER" -p local0.error -t "${0##*/}[$$]" Could not read UNLOCK_PASSWORD from file.
