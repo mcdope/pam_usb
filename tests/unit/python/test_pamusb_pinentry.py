@@ -17,12 +17,14 @@ Installer/uninstaller coverage:
   install(): creates envfile + directory, sets 0600 permissions
   install(): skips envfile creation if it already exists
   install(): skips update-alternatives when not available
+  install(): uses absolute update-alternatives path, not PATH lookup
   install(): registers and activates alternative via update-alternatives
   install(): exits 1 when update-alternatives --install fails
   install(): exits 1 when update-alternatives --set fails
   uninstall(): removes envfile when it exists
   uninstall(): skips removal when envfile is absent
   uninstall(): skips update-alternatives when not available
+  uninstall(): uses absolute update-alternatives path, not PATH lookup
   uninstall(): removes alternative via update-alternatives
   uninstall(): exits 1 when update-alternatives --remove fails
 """
@@ -217,13 +219,19 @@ def _fail_run(*args, **kwargs):
     return subprocess.CompletedProcess(args[0], returncode=1, stdout=b"", stderr=b"error msg")
 
 
+def _executable_file(path):
+    path.write_text("#!/bin/sh\nexit 0\n")
+    path.chmod(0o755)
+    return str(path)
+
+
 def test_install_creates_envfile(tmp_path):
     """install() creates the envfile and directory, sets 0600 permissions."""
     mod = _load_pinentry()
     envfile = tmp_path / ".pamusb" / ".pinentry.env"
 
     with patch.object(mod, "ENVFILE_PATH", str(envfile)), \
-         patch("shutil.which", return_value=None), \
+         patch.object(mod, "UPDATE_ALTERNATIVES_PATH", str(tmp_path / "missing-update-alternatives")), \
          patch("subprocess.run", side_effect=_ok_run):
         mod.install()
 
@@ -240,7 +248,7 @@ def test_install_skips_existing_envfile(tmp_path, capsys):
     envfile.chmod(0o644)
 
     with patch.object(mod, "ENVFILE_PATH", str(envfile)), \
-         patch("shutil.which", return_value=None), \
+         patch.object(mod, "UPDATE_ALTERNATIVES_PATH", str(tmp_path / "missing-update-alternatives")), \
          patch("subprocess.run", side_effect=_ok_run):
         mod.install()
 
@@ -255,7 +263,7 @@ def test_install_skips_update_alternatives_when_unavailable(tmp_path, capsys):
     run_calls = []
 
     with patch.object(mod, "ENVFILE_PATH", str(envfile)), \
-         patch("shutil.which", return_value=None), \
+         patch.object(mod, "UPDATE_ALTERNATIVES_PATH", str(tmp_path / "missing-update-alternatives")), \
          patch("subprocess.run", side_effect=lambda *a, **kw: run_calls.append(a)):
         mod.install()
 
@@ -267,6 +275,7 @@ def test_install_registers_and_activates_alternative(tmp_path):
     """install() calls update-alternatives --install then --set."""
     mod = _load_pinentry()
     envfile = tmp_path / ".pamusb" / ".pinentry.env"
+    update_alternatives = _executable_file(tmp_path / "trusted-update-alternatives")
     run_calls = []
 
     def recording_run(args, **kwargs):
@@ -274,18 +283,45 @@ def test_install_registers_and_activates_alternative(tmp_path):
         return subprocess.CompletedProcess(args, returncode=0, stdout=b"", stderr=b"")
 
     with patch.object(mod, "ENVFILE_PATH", str(envfile)), \
-         patch("shutil.which", return_value="/usr/bin/update-alternatives"), \
+         patch.object(mod, "UPDATE_ALTERNATIVES_PATH", update_alternatives), \
          patch("subprocess.run", side_effect=recording_run):
         mod.install()
 
     assert any("--install" in c for c in run_calls)
     assert any("--set" in c for c in run_calls)
+    assert all(c[0] == update_alternatives for c in run_calls)
+
+
+def test_install_ignores_path_shadowed_update_alternatives(tmp_path, monkeypatch):
+    """install() must use the configured absolute path, not a PATH-shadowed binary."""
+    mod = _load_pinentry()
+    envfile = tmp_path / ".pamusb" / ".pinentry.env"
+    trusted = _executable_file(tmp_path / "trusted-update-alternatives")
+    shadow_dir = tmp_path / "shadow"
+    shadow_dir.mkdir()
+    shadow = _executable_file(shadow_dir / "update-alternatives")
+    monkeypatch.setenv("PATH", str(shadow_dir))
+    run_calls = []
+
+    def recording_run(args, **kwargs):
+        run_calls.append(list(args))
+        return subprocess.CompletedProcess(args, returncode=0, stdout=b"", stderr=b"")
+
+    with patch.object(mod, "ENVFILE_PATH", str(envfile)), \
+         patch.object(mod, "UPDATE_ALTERNATIVES_PATH", trusted), \
+         patch("subprocess.run", side_effect=recording_run):
+        mod.install()
+
+    assert run_calls
+    assert all(c[0] == trusted for c in run_calls)
+    assert all(c[0] != shadow for c in run_calls)
 
 
 def test_install_exits_on_update_alternatives_install_failure(tmp_path):
     """install() exits with code 1 when update-alternatives --install fails."""
     mod = _load_pinentry()
     envfile = tmp_path / ".pamusb" / ".pinentry.env"
+    update_alternatives = _executable_file(tmp_path / "trusted-update-alternatives")
 
     def failing_on_install(args, **kwargs):
         if "--install" in args:
@@ -293,7 +329,7 @@ def test_install_exits_on_update_alternatives_install_failure(tmp_path):
         return subprocess.CompletedProcess(args, returncode=0, stdout=b"", stderr=b"")
 
     with patch.object(mod, "ENVFILE_PATH", str(envfile)), \
-         patch("shutil.which", return_value="/usr/bin/update-alternatives"), \
+         patch.object(mod, "UPDATE_ALTERNATIVES_PATH", update_alternatives), \
          patch("subprocess.run", side_effect=failing_on_install):
         with pytest.raises(SystemExit) as exc:
             mod.install()
@@ -304,6 +340,7 @@ def test_install_exits_on_update_alternatives_set_failure(tmp_path):
     """install() exits with code 1 when update-alternatives --set fails."""
     mod = _load_pinentry()
     envfile = tmp_path / ".pamusb" / ".pinentry.env"
+    update_alternatives = _executable_file(tmp_path / "trusted-update-alternatives")
 
     def failing_on_set(args, **kwargs):
         if "--set" in args:
@@ -311,7 +348,7 @@ def test_install_exits_on_update_alternatives_set_failure(tmp_path):
         return subprocess.CompletedProcess(args, returncode=0, stdout=b"", stderr=b"")
 
     with patch.object(mod, "ENVFILE_PATH", str(envfile)), \
-         patch("shutil.which", return_value="/usr/bin/update-alternatives"), \
+         patch.object(mod, "UPDATE_ALTERNATIVES_PATH", update_alternatives), \
          patch("subprocess.run", side_effect=failing_on_set):
         with pytest.raises(SystemExit) as exc:
             mod.install()
@@ -328,7 +365,7 @@ def test_uninstall_removes_envfile(tmp_path):
     envfile.write_text("data\n")
 
     with patch.object(mod, "ENVFILE_PATH", str(envfile)), \
-         patch("shutil.which", return_value=None):
+         patch.object(mod, "UPDATE_ALTERNATIVES_PATH", str(tmp_path / "missing-update-alternatives")):
         mod.uninstall()
 
     assert not envfile.exists()
@@ -340,7 +377,7 @@ def test_uninstall_skips_missing_envfile(tmp_path, capsys):
     envfile = tmp_path / ".pamusb" / ".pinentry.env"
 
     with patch.object(mod, "ENVFILE_PATH", str(envfile)), \
-         patch("shutil.which", return_value=None):
+         patch.object(mod, "UPDATE_ALTERNATIVES_PATH", str(tmp_path / "missing-update-alternatives")):
         mod.uninstall()
 
     assert "does not exist" in capsys.readouterr().out
@@ -353,7 +390,7 @@ def test_uninstall_skips_update_alternatives_when_unavailable(tmp_path, capsys):
     run_calls = []
 
     with patch.object(mod, "ENVFILE_PATH", str(envfile)), \
-         patch("shutil.which", return_value=None), \
+         patch.object(mod, "UPDATE_ALTERNATIVES_PATH", str(tmp_path / "missing-update-alternatives")), \
          patch("subprocess.run", side_effect=lambda *a, **kw: run_calls.append(a)):
         mod.uninstall()
 
@@ -365,6 +402,7 @@ def test_uninstall_removes_alternative(tmp_path):
     """uninstall() calls update-alternatives --remove."""
     mod = _load_pinentry()
     envfile = tmp_path / ".pamusb" / ".pinentry.env"
+    update_alternatives = _executable_file(tmp_path / "trusted-update-alternatives")
     run_calls = []
 
     def recording_run(args, **kwargs):
@@ -372,20 +410,47 @@ def test_uninstall_removes_alternative(tmp_path):
         return subprocess.CompletedProcess(args, returncode=0, stdout=b"", stderr=b"")
 
     with patch.object(mod, "ENVFILE_PATH", str(envfile)), \
-         patch("shutil.which", return_value="/usr/bin/update-alternatives"), \
+         patch.object(mod, "UPDATE_ALTERNATIVES_PATH", update_alternatives), \
          patch("subprocess.run", side_effect=recording_run):
         mod.uninstall()
 
     assert any("--remove" in c for c in run_calls)
+    assert all(c[0] == update_alternatives for c in run_calls)
+
+
+def test_uninstall_ignores_path_shadowed_update_alternatives(tmp_path, monkeypatch):
+    """uninstall() must use the configured absolute path, not a PATH-shadowed binary."""
+    mod = _load_pinentry()
+    envfile = tmp_path / ".pamusb" / ".pinentry.env"
+    trusted = _executable_file(tmp_path / "trusted-update-alternatives")
+    shadow_dir = tmp_path / "shadow"
+    shadow_dir.mkdir()
+    shadow = _executable_file(shadow_dir / "update-alternatives")
+    monkeypatch.setenv("PATH", str(shadow_dir))
+    run_calls = []
+
+    def recording_run(args, **kwargs):
+        run_calls.append(list(args))
+        return subprocess.CompletedProcess(args, returncode=0, stdout=b"", stderr=b"")
+
+    with patch.object(mod, "ENVFILE_PATH", str(envfile)), \
+         patch.object(mod, "UPDATE_ALTERNATIVES_PATH", trusted), \
+         patch("subprocess.run", side_effect=recording_run):
+        mod.uninstall()
+
+    assert run_calls
+    assert all(c[0] == trusted for c in run_calls)
+    assert all(c[0] != shadow for c in run_calls)
 
 
 def test_uninstall_exits_on_update_alternatives_failure(tmp_path):
     """uninstall() exits with code 1 when update-alternatives --remove fails."""
     mod = _load_pinentry()
     envfile = tmp_path / ".pamusb" / ".pinentry.env"
+    update_alternatives = _executable_file(tmp_path / "trusted-update-alternatives")
 
     with patch.object(mod, "ENVFILE_PATH", str(envfile)), \
-         patch("shutil.which", return_value="/usr/bin/update-alternatives"), \
+         patch.object(mod, "UPDATE_ALTERNATIVES_PATH", update_alternatives), \
          patch("subprocess.run", side_effect=_fail_run):
         with pytest.raises(SystemExit) as exc:
             mod.uninstall()

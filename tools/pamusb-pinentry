@@ -20,7 +20,6 @@ import sys
 import subprocess
 import getpass
 import argparse
-import shutil
 import pwd
 from dotenv import load_dotenv
 
@@ -38,6 +37,7 @@ PINENTRY_LINK = "/usr/bin/pinentry"
 PINENTRY_ALT_NAME = "pinentry"
 PAMUSB_PINENTRY_PATH = "/usr/bin/pamusb-pinentry"
 PAMUSB_CHECK_PATH = "/usr/bin/pamusb-check"
+UPDATE_ALTERNATIVES_PATH = "/usr/bin/update-alternatives"
 PINENTRY_ALT_PRIORITY = 100
 
 ENVFILE_TEMPLATE = (
@@ -48,6 +48,10 @@ ENVFILE_TEMPLATE = (
     "# Fallback pinentry application (must be an absolute path)\n"
     "# PINENTRY_FALLBACK_APP=/usr/bin/pinentry-gnome3\n"
 )
+
+
+def _is_executable(path):
+    return os.path.isfile(path) and os.access(path, os.X_OK)
 
 
 def install():
@@ -62,12 +66,12 @@ def install():
     else:
         print("%s already exists, skipping creation." % ENVFILE_PATH)
 
-    if shutil.which("update-alternatives") is None:
+    if not _is_executable(UPDATE_ALTERNATIVES_PATH):
         print("update-alternatives not found, skipping alternative registration.")
         return
 
     result = subprocess.run(
-        ["update-alternatives", "--install", PINENTRY_LINK, PINENTRY_ALT_NAME,
+        [UPDATE_ALTERNATIVES_PATH, "--install", PINENTRY_LINK, PINENTRY_ALT_NAME,
          PAMUSB_PINENTRY_PATH, str(PINENTRY_ALT_PRIORITY)],
         capture_output=True
     )
@@ -76,7 +80,7 @@ def install():
         sys.exit(1)
 
     result = subprocess.run(
-        ["update-alternatives", "--set", PINENTRY_ALT_NAME, PAMUSB_PINENTRY_PATH],
+        [UPDATE_ALTERNATIVES_PATH, "--set", PINENTRY_ALT_NAME, PAMUSB_PINENTRY_PATH],
         capture_output=True
     )
     if result.returncode != 0:
@@ -93,12 +97,12 @@ def uninstall():
     else:
         print("%s does not exist, skipping removal." % ENVFILE_PATH)
 
-    if shutil.which("update-alternatives") is None:
+    if not _is_executable(UPDATE_ALTERNATIVES_PATH):
         print("update-alternatives not found, skipping alternative removal.")
         return
 
     result = subprocess.run(
-        ["update-alternatives", "--remove", PINENTRY_ALT_NAME, PAMUSB_PINENTRY_PATH],
+        [UPDATE_ALTERNATIVES_PATH, "--remove", PINENTRY_ALT_NAME, PAMUSB_PINENTRY_PATH],
         capture_output=True
     )
     if result.returncode != 0:
