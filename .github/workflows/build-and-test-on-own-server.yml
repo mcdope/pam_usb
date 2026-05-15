@@ -37,7 +37,7 @@ jobs:
         TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
         TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
       # NOTE: deps are installed directly on the remote host via SSH; keep in sync with .github/actions/install-build-deps/action.yml
-      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "sudo apt --yes install fdisk libudisks2-dev libxml2-dev python-is-python3 libpam0g-dev devscripts debhelper dkms pkg-config gir1.2-glib-2.0 libglib2.0-dev libevdev-dev"
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "sudo apt --yes install fdisk libudisks2-dev libxml2-dev python-is-python3 python3-dotenv libpam0g-dev devscripts debhelper dkms pkg-config gir1.2-glib-2.0 libglib2.0-dev libevdev-dev"
     - name: git clone
       env:
         TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
