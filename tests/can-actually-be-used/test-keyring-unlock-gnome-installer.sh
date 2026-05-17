@@ -14,7 +14,7 @@ printf 'testpassword\n' | HOME=$FAKE_HOME $TOOL --install
 [ -f "$FAKE_HOME/.pamusb/.keyring_unlock_password" ]
 PERMS=$(stat -c "%a" "$FAKE_HOME/.pamusb/.keyring_unlock_password")
 [ "$PERMS" = "600" ]
-grep -q 'UNLOCK_PASSWORD="testpassword"' "$FAKE_HOME/.pamusb/.keyring_unlock_password"
+grep -qx 'UNLOCK_PASSWORD=testpassword' "$FAKE_HOME/.pamusb/.keyring_unlock_password"
 
 # verify autostart desktop file created with autostart enabled
 [ -f "$FAKE_HOME/.config/autostart/pamusb-keyring-unlock-gnome.desktop" ]
