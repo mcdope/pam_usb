@@ -43,13 +43,14 @@ static void test_superuser_device_present_for_superuser_service(void **state)
 	assert_int_equal(1, pusb_conf_parse(FIXTURE_CONF, &opts, "user_mixed", "sudo"));
 
 	int found_stick2 = 0;
-	for (int i = 0; i < 10; i++) {
+	for (int i = 0; i < opts.device_count; i++) {
 		if (strcmp(opts.device_list[i].name, "stick2") == 0) {
 			found_stick2 = 1;
 			assert_int_equal(1, opts.device_list[i].superuser);
 		}
 	}
 	assert_int_equal(1, found_stick2);
+	pusb_conf_free(&opts);
 }
 
 static void test_nonsuperuser_device_removed_for_superuser_service(void **state)
@@ -59,13 +60,14 @@ static void test_nonsuperuser_device_removed_for_superuser_service(void **state)
 	pusb_conf_init(&opts);
 	assert_int_equal(1, pusb_conf_parse(FIXTURE_CONF, &opts, "user_mixed", "sudo"));
 
-	for (int i = 0; i < 10; i++) {
+	for (int i = 0; i < opts.device_count; i++) {
 		if (opts.device_list[i].name[0] != '\0') {
 			if (strcmp(opts.device_list[i].name, "stick1") == 0) {
 				fail_msg("stick1 (non-superuser) survived superuser filter for sudo service");
 			}
 		}
 	}
+	pusb_conf_free(&opts);
 }
 
 static void test_plain_user_no_superuser_device_gets_empty_list(void **state)
@@ -76,9 +78,10 @@ static void test_plain_user_no_superuser_device_gets_empty_list(void **state)
 	/* user_plain has only stick1, which is not superuser */
 	assert_int_equal(1, pusb_conf_parse(FIXTURE_CONF, &opts, "user_plain", "sudo"));
 
-	for (int i = 0; i < 10; i++) {
+	for (int i = 0; i < opts.device_count; i++) {
 		assert_true(opts.device_list[i].name[0] == '\0');
 	}
+	pusb_conf_free(&opts);
 }
 
 static void test_backward_compat_no_superuser_service(void **state)
@@ -90,12 +93,13 @@ static void test_backward_compat_no_superuser_service(void **state)
 	assert_int_equal(1, pusb_conf_parse(FIXTURE_CONF, &opts, "user_mixed", "login"));
 
 	int found_stick1 = 0, found_stick2 = 0;
-	for (int i = 0; i < 10; i++) {
+	for (int i = 0; i < opts.device_count; i++) {
 		if (strcmp(opts.device_list[i].name, "stick1") == 0) found_stick1 = 1;
 		if (strcmp(opts.device_list[i].name, "stick2") == 0) found_stick2 = 1;
 	}
 	assert_int_equal(1, found_stick1);
 	assert_int_equal(1, found_stick2);
+	pusb_conf_free(&opts);
 }
 
 /* ── Generic vendor/model preservation ── */
@@ -108,7 +112,7 @@ static void test_generic_vendor_model_preserved(void **state)
 	assert_int_equal(1, pusb_conf_parse(FIXTURE_CONF, &opts, "user_generic", "login"));
 
 	int found = 0;
-	for (int i = 0; i < 10; i++) {
+	for (int i = 0; i < opts.device_count; i++) {
 		if (strcmp(opts.device_list[i].name, "stick3") == 0) {
 			found = 1;
 			assert_string_equal("Generic", opts.device_list[i].vendor);
@@ -116,6 +120,7 @@ static void test_generic_vendor_model_preserved(void **state)
 		}
 	}
 	assert_int_equal(1, found);
+	pusb_conf_free(&opts);
 }
 
 /* ── Error paths ── */
@@ -241,10 +246,38 @@ static void test_superuser_attribute_case_sensitive(void **state)
 
 	/* service requires superuser; devA has superuser="TRUE" (case mismatch) so it's
 	   NOT flagged as superuser and must be filtered out */
-	for (int i = 0; i < 10; i++) {
+	for (int i = 0; i < opts.device_count; i++) {
 		assert_true(opts.device_list[i].name[0] == '\0');
 	}
+	pusb_conf_free(&opts);
 	unlink(tmpfile);
+}
+
+/* ── dynamic device count ── */
+
+static void test_conf_parses_more_than_ten_devices(void **state)
+{
+	(void)state;
+	t_pusb_options opts;
+	pusb_conf_init(&opts);
+	assert_int_equal(1, pusb_conf_parse(FIXTURE_CONF, &opts, "user_many", "login"));
+	assert_int_equal(15, opts.device_count);
+
+	int found[15] = {0};
+	char name[128];
+	for (int i = 0; i < opts.device_count; i++) {
+		if (opts.device_list[i].name[0] == '\0') continue;
+		for (int n = 1; n <= 15; n++) {
+			snprintf(name, sizeof(name), "stick%d", n);
+			if (strcmp(opts.device_list[i].name, name) == 0) {
+				found[n - 1] = 1;
+				break;
+			}
+		}
+	}
+	for (int n = 0; n < 15; n++)
+		assert_int_equal(1, found[n]);
+	pusb_conf_free(&opts);
 }
 
 /* ── main ── */
@@ -271,6 +304,7 @@ int main(void)
 		cmocka_unit_test(test_parse_rejects_xpath_device_id_injection),
 		cmocka_unit_test(test_parse_user_not_in_conf),
 		cmocka_unit_test(test_superuser_attribute_case_sensitive),
+		cmocka_unit_test(test_conf_parses_more_than_ten_devices),
 	};
 	return cmocka_run_group_tests(tests, NULL, NULL);
 }

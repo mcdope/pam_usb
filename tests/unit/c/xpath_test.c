@@ -211,6 +211,32 @@ static void test_string_list_single(void **state)
 	xmlFreeDoc(doc);
 }
 
+/* ── pusb_xpath_count_nodes ── */
+
+static void test_count_nodes_returns_correct_count(void **state)
+{
+	(void)state;
+	xmlDocPtr doc = make_doc("<r><v>a</v><v>b</v><v>c</v></r>");
+	assert_int_equal(3, pusb_xpath_count_nodes(doc, "//r/v"));
+	xmlFreeDoc(doc);
+}
+
+static void test_count_nodes_returns_zero_for_missing(void **state)
+{
+	(void)state;
+	xmlDocPtr doc = make_doc("<r><v>a</v></r>");
+	assert_int_equal(0, pusb_xpath_count_nodes(doc, "//r/missing"));
+	xmlFreeDoc(doc);
+}
+
+static void test_count_nodes_single_node(void **state)
+{
+	(void)state;
+	xmlDocPtr doc = make_doc("<r><v>only</v></r>");
+	assert_int_equal(1, pusb_xpath_count_nodes(doc, "//r/v"));
+	xmlFreeDoc(doc);
+}
+
 /* ── main ── */
 
 int main(void)
@@ -239,6 +265,9 @@ int main(void)
 		cmocka_unit_test(test_string_zero_size_rejected),
 		cmocka_unit_test(test_string_list_multiple),
 		cmocka_unit_test(test_string_list_single),
+		cmocka_unit_test(test_count_nodes_returns_correct_count),
+		cmocka_unit_test(test_count_nodes_returns_zero_for_missing),
+		cmocka_unit_test(test_count_nodes_single_node),
 	};
 	return cmocka_run_group_tests(tests, NULL, NULL);
 }
