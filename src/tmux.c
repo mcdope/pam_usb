@@ -146,7 +146,14 @@ char *pusb_tmux_get_client_tty(pid_t env_pid)
             xfree(tmux_details);
             return NULL;
         }
-        tmux_client_tty += 5; // cut "/dev/"
+        if (strncmp(tmux_client_tty, "/dev/", 5) != 0)
+        {
+            log_error("tmux detected, but client tty has unexpected format: %s. Denying.\n", tmux_client_tty);
+            pclose(fp);
+            xfree(tmux_details);
+            return NULL;
+        }
+        tmux_client_tty += 5; /* strip /dev/ prefix */
         log_debug("		Got tmux_client_tty: %s\n", tmux_client_tty);
 
         if (pclose(fp))
