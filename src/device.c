@@ -15,6 +15,7 @@
  * Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
@@ -76,11 +77,11 @@ static int pusb_device_connected(t_pusb_options *opts, UDisksClient *udisks)
 
 				g_object_unref(drive);
 				if (retval) {
-					strncpy(opts->device.name, opts->device_list[currentDevice].name, sizeof(opts->device.name) - 1);
-					strncpy(opts->device.vendor, opts->device_list[currentDevice].vendor, sizeof(opts->device.vendor) - 1);
-					strncpy(opts->device.model, opts->device_list[currentDevice].model, sizeof(opts->device.model) - 1);
-					strncpy(opts->device.serial, opts->device_list[currentDevice].serial, sizeof(opts->device.serial) - 1);
-					strncpy(opts->device.volume_uuid, opts->device_list[currentDevice].volume_uuid, sizeof(opts->device.volume_uuid) - 1);
+					snprintf(opts->device.name,        sizeof(opts->device.name),        "%s", opts->device_list[currentDevice].name);
+					snprintf(opts->device.vendor,      sizeof(opts->device.vendor),      "%s", opts->device_list[currentDevice].vendor);
+					snprintf(opts->device.model,       sizeof(opts->device.model),       "%s", opts->device_list[currentDevice].model);
+					snprintf(opts->device.serial,      sizeof(opts->device.serial),      "%s", opts->device_list[currentDevice].serial);
+					snprintf(opts->device.volume_uuid, sizeof(opts->device.volume_uuid), "%s", opts->device_list[currentDevice].volume_uuid);
 					currentDevice = opts->device_count;
 					break;
 				}

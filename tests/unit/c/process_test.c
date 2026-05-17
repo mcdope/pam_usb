@@ -132,6 +132,24 @@ static void test_envvar_invalid_pid(void **state)
 	assert_null(val);
 }
 
+static void test_envvar_called_twice_no_state_bleed(void **state)
+{
+	(void)state;
+	/* M-1 regression: old strtok() left global tokeniser state; a second call could
+	 * return garbage picked up from the first call's buffer instead of re-scanning. */
+	char *path = pusb_get_process_envvar(getpid(), "PATH");
+	char *home = pusb_get_process_envvar(getpid(), "HOME");
+
+	assert_non_null(path);
+	assert_true(strchr(path, '/') != NULL);
+
+	assert_non_null(home);
+	assert_true(home[0] == '/');
+
+	free(path);
+	free(home);
+}
+
 /* ── main ── */
 
 int main(void)
@@ -155,6 +173,7 @@ int main(void)
 		cmocka_unit_test(test_envvar_path_found),
 		cmocka_unit_test(test_envvar_nonexistent),
 		cmocka_unit_test(test_envvar_invalid_pid),
+		cmocka_unit_test(test_envvar_called_twice_no_state_bleed),
 	};
 	return cmocka_run_group_tests(tests, NULL, NULL);
 }

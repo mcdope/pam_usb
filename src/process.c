@@ -106,16 +106,17 @@ char *pusb_get_process_envvar(pid_t pid, char *var)
 
 		if (size > 0)
 		{
-			char* variable_content = strtok(buffer, "#");
+			char *saveptr = NULL;
+			char *variable_content = strtok_r(buffer, "#", &saveptr);
 			while (variable_content != NULL)
 			{
 				if (strncmp(var, variable_content, strlen(var)) == 0 && variable_content[strlen(var)] == '=')
 				{
-					output = strdup(variable_content + strlen(var) + 1); // Allocate memory and copy the content
+					output = strdup(variable_content + strlen(var) + 1);
 					break;
 				}
 
-				variable_content = strtok(NULL, "#");
+				variable_content = strtok_r(NULL, "#", &saveptr);
 			}
 		}
 	}

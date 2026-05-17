@@ -256,12 +256,12 @@ static int pusb_pad_should_update(t_pusb_options *opts, const char *user)
 
 	if (delta > opts->pad_expiration)
 	{
-		log_debug("Pads expired %u seconds ago, updating...\n", delta - opts->pad_expiration);
+		log_debug("Pads expired %ld seconds ago, updating...\n", (long)(delta - opts->pad_expiration));
 		return 1;
 	}
 	else
 	{
-		log_debug("Pads were generated %u seconds ago, not updating.\n", delta);
+		log_debug("Pads were generated %ld seconds ago, not updating.\n", (long)delta);
 		return 0;
 	}
 }
@@ -347,7 +347,15 @@ static int pusb_pad_update(
 			return 0;
 		}
 	}
-	pusb_pad_protect(user, fileno(f_device));
+	if (!pusb_pad_protect(user, fileno(f_device))) {
+		if (errno != EPERM && errno != EROFS && errno != ENOTSUP) {
+			log_error("Failed to protect device pad (unexpected error).\n");
+			fclose(f_device);
+			unlink(path_device_tmp);
+			explicit_bzero(magic, sizeof(magic));
+			return 0;
+		}
+	}
 
 	{
 		int fd_sys = open(path_system_tmp, O_WRONLY | O_CREAT | O_TRUNC | O_NOFOLLOW | O_CLOEXEC, 0600);
@@ -361,7 +369,17 @@ static int pusb_pad_update(
 			return 0;
 		}
 	}
-	pusb_pad_protect(user, fileno(f_system));
+	if (!pusb_pad_protect(user, fileno(f_system))) {
+		if (errno != EPERM && errno != EROFS && errno != ENOTSUP) {
+			log_error("Failed to protect system pad (unexpected error).\n");
+			fclose(f_system);
+			fclose(f_device);
+			unlink(path_system_tmp);
+			unlink(path_device_tmp);
+			explicit_bzero(magic, sizeof(magic));
+			return 0;
+		}
+	}
 
 	log_debug("Writing pad to the system...\n");
 	if (fwrite(magic, sizeof(uint8_t), sizeof(magic), f_system) != sizeof(magic))
@@ -395,10 +413,19 @@ static int pusb_pad_update(
 		fclose(f_device);
 		unlink(path_system_tmp);
 		unlink(path_device_tmp);
+		explicit_bzero(magic, sizeof(magic));
 		return 0;
 	}
-	fsync(fileno(f_system));
-	fsync(fileno(f_device));
+	if (fsync(fileno(f_system)) != 0 || fsync(fileno(f_device)) != 0)
+	{
+		log_error("Failed to sync pad data to disk: %s\n", strerror(errno));
+		fclose(f_system);
+		fclose(f_device);
+		unlink(path_system_tmp);
+		unlink(path_device_tmp);
+		explicit_bzero(magic, sizeof(magic));
+		return 0;
+	}
 	fclose(f_system);
 	fclose(f_device);
 
