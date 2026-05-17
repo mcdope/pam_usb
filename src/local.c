@@ -119,19 +119,19 @@ char *pusb_get_tty_from_display_server(const char *display)
 		return NULL;
 	}
 
-	char *cmdline_path = (char *)xmalloc(32);
+	char *cmdline_path = (char *)xmalloc(PATH_MAX);
 	char *cmdline = (char *)xmalloc(4096);
-	char *fd_path = (char *)xmalloc(32);
-	char *link_path = (char *)xmalloc(32);
-	char *fd_target = (char *)xmalloc(32);
+	char *fd_path = (char *)xmalloc(PATH_MAX);
+	char *link_path = (char *)xmalloc(PATH_MAX);
+	char *fd_target = (char *)xmalloc(PATH_MAX);
 
 	struct dirent *dent_proc;
 	while ((dent_proc = readdir(d_proc)) != NULL)
 	{
 		if (dent_proc->d_type == DT_DIR && atoi(dent_proc->d_name) != 0 && strcmp(dent_proc->d_name, ".") != 0 && strcmp(dent_proc->d_name, "..") != 0)
 		{
-			memset(cmdline_path, 0, 32);
-			snprintf(cmdline_path, 32, "/proc/%s/cmdline", dent_proc->d_name);
+			memset(cmdline_path, 0, PATH_MAX);
+			snprintf(cmdline_path, PATH_MAX, "/proc/%s/cmdline", dent_proc->d_name);
 
 			memset(cmdline, 0, 4096);
 			int cmdline_file = open(cmdline_path, O_RDONLY | O_CLOEXEC);
@@ -150,8 +150,8 @@ char *pusb_get_tty_from_display_server(const char *display)
 				|| strstr(cmdline, "gnome-session-binary") != NULL
 				|| strstr(cmdline, "gdm-wayland-session") != NULL) //@todo: find & add other wayland hosts
 			{
-				memset(fd_path, 0, 32);
-				snprintf(fd_path, 32, "/proc/%s/fd", dent_proc->d_name);
+				memset(fd_path, 0, PATH_MAX);
+				snprintf(fd_path, PATH_MAX, "/proc/%s/fd", dent_proc->d_name);
 
 				DIR *d_fd = opendir(fd_path);
 				if (d_fd == NULL) {
@@ -172,11 +172,11 @@ char *pusb_get_tty_from_display_server(const char *display)
 				{
 					if (dent_fd->d_type == DT_LNK && strcmp(dent_fd->d_name, ".") != 0 && strcmp(dent_fd->d_name, "..") != 0)
 					{
-						memset(link_path, 0, 32);
-						memset(fd_target, 0, 32);
+						memset(link_path, 0, PATH_MAX);
+						memset(fd_target, 0, PATH_MAX);
 
-						snprintf(link_path, 32, "/proc/%s/fd/%s", dent_proc->d_name, dent_fd->d_name);
-						ssize_t rlen = readlink(link_path, fd_target, 31);
+						snprintf(link_path, PATH_MAX, "/proc/%s/fd/%s", dent_proc->d_name, dent_fd->d_name);
+						ssize_t rlen = readlink(link_path, fd_target, PATH_MAX - 1);
 						if (rlen != -1)
 						{
 							fd_target[rlen] = '\0';
@@ -370,7 +370,7 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 	const char *session_tty;
 	const char *display_env = getenv("DISPLAY");
 
-	if (local_request == 0 && strstr(name, "tmux") != NULL && tmux_pid != 0) 
+	if (local_request == 0 && tmux_pid != 0)
 	{
 		log_debug("	Checking for remote clients attached to tmux before getting client tty...\n");
 		if (pusb_tmux_has_remote_clients(user) != 0)
