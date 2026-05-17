@@ -131,6 +131,16 @@ int pusb_xpath_get_string(
 	return 1;
 }
 
+int pusb_xpath_count_nodes(xmlDocPtr doc, const char *path)
+{
+	xmlXPathObject *result = pusb_xpath_match(doc, path);
+	if (!result)
+		return 0;
+	int count = result->nodesetval->nodeNr;
+	xmlXPathFreeObject(result);
+	return count;
+}
+
 int pusb_xpath_get_string_list(
 	xmlDocPtr doc,
 	const char *path,

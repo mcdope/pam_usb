@@ -75,6 +75,7 @@ int pam_sm_authenticate(
 	if (!opts.enable)
 	{
 		log_debug("Not enabled, exiting...\n");
+		pusb_conf_free(&opts);
 		return PAM_IGNORE;
 	}
 
@@ -84,11 +85,13 @@ int pam_sm_authenticate(
 		if (retval != PAM_SUCCESS)
 		{
 			log_error("Unable to retrieve PAM_RHOST.\n");
+			pusb_conf_free(&opts);
 			return PAM_AUTH_ERR;
 		}
 		else if (rhost != NULL && *rhost != '\0')
 		{
 			log_debug("RHOST is set (%s), must be a remote request - disabling myself for this request!\n", rhost);
+			pusb_conf_free(&opts);
 			return PAM_IGNORE;
 		}
 	}
@@ -98,14 +101,17 @@ int pam_sm_authenticate(
 	if (pusb_local_login(&opts, user, service) != 1)
 	{
 		log_error("Access denied.\n");
+		pusb_conf_free(&opts);
 		return PAM_AUTH_ERR;
 	}
 	if (pusb_device_check(&opts, user))
 	{
 		log_info("Access granted.\n");
+		pusb_conf_free(&opts);
 		return PAM_SUCCESS;
 	}
 	log_error("Access denied.\n");
+	pusb_conf_free(&opts);
 	return PAM_AUTH_ERR;
 }
 
@@ -169,6 +175,7 @@ int pam_sm_acct_mgmt(
 	if (!opts.enable)
 	{
 		log_debug("Not enabled, exiting...\n");
+		pusb_conf_free(&opts);
 		return PAM_IGNORE;
 	}
 
@@ -178,11 +185,13 @@ int pam_sm_acct_mgmt(
 		if (retval != PAM_SUCCESS)
 		{
 			log_error("Unable to retrieve PAM_RHOST.\n");
+			pusb_conf_free(&opts);
 			return PAM_AUTH_ERR;
 		}
 		else if (rhost != NULL && *rhost != '\0')
 		{
 			log_debug("RHOST is set (%s), must be a remote request - disabling myself for this request!\n", rhost);
+			pusb_conf_free(&opts);
 			return PAM_IGNORE;
 		}
 	}
@@ -193,14 +202,17 @@ int pam_sm_acct_mgmt(
 	if (pusb_local_login(&opts, user, service) != 1)
 	{
 		log_error("Access denied.\n");
+		pusb_conf_free(&opts);
 		return PAM_AUTH_ERR;
 	}
 	if (pusb_device_check(&opts, user))
 	{
 		log_info("Access granted.\n");
+		pusb_conf_free(&opts);
 		return PAM_SUCCESS;
 	}
 	log_error("Access denied.\n");
+	pusb_conf_free(&opts);
 	return PAM_AUTH_ERR;
 }
 

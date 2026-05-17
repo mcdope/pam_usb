@@ -35,7 +35,7 @@ static int pusb_device_connected(t_pusb_options *opts, UDisksClient *udisks)
 	UDisksObject *object = NULL;
 	UDisksDrive *drive = NULL;
 
-	for (int currentDevice = 0; currentDevice < 10; currentDevice++)
+	for (int currentDevice = 0; currentDevice < opts->device_count; currentDevice++)
 	{
 		if (strcmp(opts->device_list[currentDevice].name, "") == 0)
 		{
@@ -81,7 +81,7 @@ static int pusb_device_connected(t_pusb_options *opts, UDisksClient *udisks)
 					strncpy(opts->device.model, opts->device_list[currentDevice].model, sizeof(opts->device.model) - 1);
 					strncpy(opts->device.serial, opts->device_list[currentDevice].serial, sizeof(opts->device.serial) - 1);
 					strncpy(opts->device.volume_uuid, opts->device_list[currentDevice].volume_uuid, sizeof(opts->device.volume_uuid) - 1);
-					currentDevice = 10;
+					currentDevice = opts->device_count;
 					break;
 				}
 			}

@@ -1,0 +1,49 @@
+name: PR Compliance Check
+
+on:
+  pull_request:
+    types: [opened, edited, reopened]
+    branches: [master]
+
+jobs:
+  check-pr-compliance:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+
+    steps:
+      - name: Enforce contribution guidelines
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const body = context.payload.pull_request.body || '';
+            const number = context.payload.pull_request.number;
+            const { owner, repo } = context.repo;
+            const guidelinesUrl =
+              `https://github.com/${owner}/${repo}/blob/master/CONTRIBUTING.md`;
+
+            // Owner and org members are exempt — they know the rules.
+            const association = context.payload.pull_request.author_association;
+            if (association === 'OWNER' || association === 'MEMBER') {
+              console.log(`Skipping compliance check for ${association.toLowerCase()}.`);
+              return;
+            }
+
+            let reason = null;
+
+            if (body.includes('bot-verified: true')) {
+              reason = 'This PR appears to have been submitted by a fully autonomous agent without human oversight (`bot-verified: true` was found in the PR description).';
+            } else if (/co-authored-by:/i.test(body) && !body.includes('I have read the rules')) {
+              reason = 'AI-assisted PRs must include the phrase `I have read the rules` at the very bottom of the PR description (see the **Human Verification** requirement in the contributing guidelines).';
+            }
+
+            if (reason) {
+              await github.rest.issues.createComment({
+                owner, repo, issue_number: number,
+                body: `👋 This PR has been automatically closed.\n\n${reason}\n\nPlease read the [contributing guidelines](${guidelinesUrl}) before resubmitting.`,
+              });
+              await github.rest.pulls.update({
+                owner, repo, pull_number: number, state: 'closed',
+              });
+              core.setFailed('PR closed: contribution guideline violation.');
+            }
