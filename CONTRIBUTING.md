@@ -59,10 +59,10 @@ Please fork the repository, implement your changes in a branch, and then submit 
 
 *If you are using AI tools (e.g., Claude, Codex, Cursor, Aider) to write code for your PR, you **must** adhere to the following additional rules:*
 
-* **No Autonomous Bots:** Fully automated agents that scrape issues and open PRs without human oversight are strictly forbidden. A human **must** review, understand, and take responsibility for every line of code submitted. Drive-by bot PRs will be marked as spam and closed immediately.
+* **No Autonomous Bots:** Fully automated agents that scrape issues and open PRs without human oversight are strictly forbidden. A human **must** review, understand, and take responsibility for every line of code submitted. Drive-by bot PRs will be marked as spam and closed immediately. GitHub account activity is reviewed as part of PR evaluation — accounts that show signs of automation or that were created specifically to submit PRs will not be accepted.
 * **Commit Attribution:** AI-assisted commits **must** include a `Co-authored-by` trailer at the very end of the commit message (e.g., `Co-authored-by: NameOfAI <email@example.com>`). Ensure there is a blank line separating the main message body from the trailer so Git and platforms like GitHub parse it correctly.
 * **PR Descriptions (Tagging):** Add a note in the PR description indicating that an AI coding agent assisted with the PR (e.g., `🤖 This PR was generated with the assistance of [AI Name]`).
-* **Proof of Execution:** See also "Testing & Verification"—AI contributions **must** include unit tests **and** either a screenshot of a manual, successful execution of the functional tests, OR a link to your own CI job where all tests succeeded.
+* **Proof of Execution:** AI contributions **must** provide verifiable proof that **all** tests passed — unit tests (`make test`) **and** the full functional suite (`tests/can-actually-be-used/run-tests.sh`). Acceptable proof: a screenshot of a successful manual run, or a link to your own GitHub Actions CI job where all tests succeeded. Running only `make test` without the functional suite is **not** sufficient.
 * **Zero Tolerance:** If an AI-generated PR fails to fulfill **ANY** of the guidelines in this file, I will close it immediately. Human contributions (which are manually verified by me) are granted slightly more leniency when it comes to minor rule violations.
 *   **Human Verification:** To prove a human is actually overseeing the submission and has read these guidelines, you **must** include the exact phrase `I have read the rules` at the very bottom of your PR description. 
 <!-- pam_usb-contrib-check action (v2): AI-generated PRs with a valid Co-authored-by
@@ -79,3 +79,26 @@ Set up a VM. If you want to work on code for Linux, you need Linux for testing�
 The Wiki is editable by anyone—feel free to just jump in and work on it.
 
 If you want to work on the manpages, note that these are managed in the code repository. Please see "How to Contribute Code Changes" above.
+
+## 💰 Security Bounty
+
+A bounty is available for qualifying security contributions. See
+[issue #55](https://github.com/mcdope/pam_usb/issues/55) for the current bounty offer.
+
+Your PR is **not bounty-eligible** if any of the following apply:
+
+* You failed to verify your own work and required the maintainer to do it for you.
+* You violated **any** point outlined in this document.
+* Your GitHub activity indicates a fully automated account, or the account was created
+  specifically to submit this PR.
+* The contribution is considered **trivial or low-impact**:
+  * Minor changes touching only a handful of lines.
+  * Security fixes for vulnerabilities scoring below **Critical** on the CVSS scale.
+    *Exception: **High**-severity findings are eligible if they specifically apply to
+    the `deny_remote` feature.*
+
+For any bounty claim you must provide a CVSS estimate; the maintainer will verify it
+before payout.
+
+Genuine, verified effort that actively improves the codebase is rewarded. PRs that
+require the maintainer to act as a human linter will not be considered for the bounty.
