@@ -182,7 +182,9 @@ static int open_pad_file_in_dir(const char *fullpath, int flags)
 		return -1;
 
 	int fd = openat(dirfd, filename, flags | O_NOFOLLOW | O_CLOEXEC, 0600);
+	int saved_errno = errno;
 	close(dirfd);
+	errno = saved_errno;
 	return fd;
 }
 
