@@ -151,6 +151,16 @@ static int pusb_conf_parse_device(
 	return 1;
 }
 
+void pusb_conf_free(t_pusb_options *opts)
+{
+	if (opts->device_list)
+	{
+		xfree(opts->device_list);
+		opts->device_list = NULL;
+		opts->device_count = 0;
+	}
+}
+
 int pusb_conf_init(t_pusb_options *opts)
 {
 	struct utsname	u;
@@ -189,7 +199,6 @@ int pusb_conf_parse(
 )
 {
 	xmlDoc *doc = NULL;
-	int retval;
 	char device_xpath[sizeof(CONF_USER_XPATH) + CONF_USER_MAXLEN + sizeof("device")];
 
 	log_debug("Parsing settings...\n", user, service);
@@ -210,35 +219,45 @@ int pusb_conf_parse(
 	}
 	snprintf(device_xpath, sizeof(device_xpath), CONF_USER_XPATH, user, "device");
 
-	char *device_list[10] = {
-		xmalloc(128), xmalloc(128), xmalloc(128), xmalloc(128), xmalloc(128),
-		xmalloc(128), xmalloc(128), xmalloc(128), xmalloc(128), xmalloc(128)
-	};
-	for (int currentDevice = 0; currentDevice < 10; currentDevice++)
-	{
-		memset(device_list[currentDevice], 0x0, 128);
-	}
-	retval = pusb_xpath_get_string_list(
-		doc,
-		device_xpath,
-		device_list,
-		sizeof(opts->device.name),
-		10
-	);
-	if (!retval)
+	int n_devices = pusb_xpath_count_nodes(doc, device_xpath);
+	if (n_devices == 0)
 	{
 		log_error("No authentication device(s) configured for user \"%s\".\n", user);
 		xmlFreeDoc(doc);
 		xmlCleanupParser();
-
-		for (int currentDevice = 0; currentDevice < 10; currentDevice++)
-		{
-			xfree(device_list[currentDevice]);
-		}
 		return 0;
 	}
 
-	for (int currentDevice = 0; currentDevice < 10; currentDevice++)
+	char **device_list = xmalloc(n_devices * sizeof(char *));
+	if (!device_list)
+	{
+		log_error("Memory allocation failed\n");
+		xmlFreeDoc(doc);
+		xmlCleanupParser();
+		return 0;
+	}
+	for (int i = 0; i < n_devices; i++)
+	{
+		device_list[i] = xmalloc(128);
+		memset(device_list[i], 0x0, 128);
+	}
+
+	opts->device_list = xmalloc(n_devices * sizeof(t_pusb_device));
+	if (!opts->device_list)
+	{
+		log_error("Memory allocation failed\n");
+		xmlFreeDoc(doc);
+		xmlCleanupParser();
+		for (int i = 0; i < n_devices; i++) xfree(device_list[i]);
+		xfree(device_list);
+		return 0;
+	}
+	memset(opts->device_list, 0x0, n_devices * sizeof(t_pusb_device));
+	opts->device_count = n_devices;
+
+	pusb_xpath_get_string_list(doc, device_xpath, device_list, sizeof(opts->device.name), n_devices);
+
+	for (int currentDevice = 0; currentDevice < n_devices; currentDevice++)
 	{
 		if (device_list[currentDevice] == NULL || strlen(device_list[currentDevice]) == 0)
 		{
@@ -250,11 +269,11 @@ int pusb_conf_parse(
 		{
 			xmlFreeDoc(doc);
 			xmlCleanupParser();
-
-			for (int i = 0; i < 10; i++)
-			{
-				xfree(device_list[i]);
-			}
+			for (int i = 0; i < n_devices; i++) xfree(device_list[i]);
+			xfree(device_list);
+			xfree(opts->device_list);
+			opts->device_list = NULL;
+			opts->device_count = 0;
 			return 0;
 		}
 	}
@@ -269,24 +288,41 @@ int pusb_conf_parse(
 			log_error("Memory allocation failed\n");
 			xmlFreeDoc(doc);
 			xmlCleanupParser();
-			for (int i = 0; i < 10; i++) xfree(device_list[i]);
+			for (int i = 0; i < n_devices; i++) xfree(device_list[i]);
+			xfree(device_list);
+			xfree(opts->device_list);
+			opts->device_list = NULL;
+			opts->device_count = 0;
 			return 0;
 		}
 		snprintf(su_xpath, su_len, CONF_USER_XPATH, user, "device[@superuser='true']");
 
-		char *su_names[10];
-		for (int i = 0; i < 10; i++)
+		char **su_names = xmalloc(n_devices * sizeof(char *));
+		if (!su_names)
+		{
+			log_error("Memory allocation failed\n");
+			xfree(su_xpath);
+			xmlFreeDoc(doc);
+			xmlCleanupParser();
+			for (int i = 0; i < n_devices; i++) xfree(device_list[i]);
+			xfree(device_list);
+			xfree(opts->device_list);
+			opts->device_list = NULL;
+			opts->device_count = 0;
+			return 0;
+		}
+		for (int i = 0; i < n_devices; i++)
 		{
 			su_names[i] = xmalloc(128);
 			memset(su_names[i], 0, 128);
 		}
 
-		if (pusb_xpath_get_string_list(doc, su_xpath, su_names, sizeof(opts->device.name), 10))
+		if (pusb_xpath_get_string_list(doc, su_xpath, su_names, sizeof(opts->device.name), n_devices))
 		{
-			for (int i = 0; i < 10; i++)
+			for (int i = 0; i < n_devices; i++)
 			{
 				if (opts->device_list[i].name[0] == '\0') continue;
-				for (int j = 0; j < 10; j++)
+				for (int j = 0; j < n_devices; j++)
 				{
 					if (su_names[j][0] == '\0') continue;
 					if (strcmp(opts->device_list[i].name, su_names[j]) == 0)
@@ -298,7 +334,8 @@ int pusb_conf_parse(
 			}
 		}
 
-		for (int i = 0; i < 10; i++) xfree(su_names[i]);
+		for (int i = 0; i < n_devices; i++) xfree(su_names[i]);
+		xfree(su_names);
 		xfree(su_xpath);
 	}
 
@@ -306,11 +343,11 @@ int pusb_conf_parse(
 	{
 		xmlFreeDoc(doc);
 		xmlCleanupParser();
-
-		for (int currentDevice = 0; currentDevice < 10; currentDevice++)
-		{
-			xfree(device_list[currentDevice]);
-		}
+		for (int i = 0; i < n_devices; i++) xfree(device_list[i]);
+		xfree(device_list);
+		xfree(opts->device_list);
+		opts->device_list = NULL;
+		opts->device_count = 0;
 		return (0);
 	}
 
@@ -318,7 +355,7 @@ int pusb_conf_parse(
 	if (opts->superuser)
 	{
 		log_debug("Service \"%s\" requires superuser device. Filtering device list.\n", service);
-		for (int i = 0; i < 10; i++)
+		for (int i = 0; i < n_devices; i++)
 		{
 			if (opts->device_list[i].name[0] == '\0') continue;
 			if (!opts->device_list[i].superuser)
@@ -333,9 +370,7 @@ int pusb_conf_parse(
 	xmlFreeDoc(doc);
 	xmlCleanupParser();
 
-	for (int currentDevice = 0; currentDevice < 10; currentDevice++)
-	{
-		xfree(device_list[currentDevice]);
-	}
+	for (int i = 0; i < n_devices; i++) xfree(device_list[i]);
+	xfree(device_list);
 	return (1);
 }

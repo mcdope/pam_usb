@@ -186,7 +186,10 @@ int main(int argc, char **argv)
 	if (dump)
 	{
 		pusb_check_conf_dump(&opts, user, service);
+		pusb_conf_free(&opts);
 		return (1);
 	}
-	return (!pusb_check_perform_authentication(&opts, user, service));
+	int auth_result = pusb_check_perform_authentication(&opts, user, service);
+	pusb_conf_free(&opts);
+	return (!auth_result);
 }

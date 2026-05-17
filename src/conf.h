@@ -59,7 +59,8 @@ typedef struct		pusb_options
 	char			system_pad_directory[PATH_MAX];
 	char			device_pad_directory[PATH_MAX];
 	t_pusb_device	device;
-	t_pusb_device	device_list[10];
+	t_pusb_device	*device_list;
+	int				device_count;
 	int				superuser;
 }					t_pusb_options;
 
@@ -71,5 +72,6 @@ struct		s_opt_list
 
 int pusb_conf_init(t_pusb_options *opts);
 int pusb_conf_parse(const char *file, t_pusb_options *opts, const char *user, const char *service);
+void pusb_conf_free(t_pusb_options *opts);
 
 #endif /* !PUSB_CONF_H_ */
