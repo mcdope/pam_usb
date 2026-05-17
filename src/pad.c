@@ -166,7 +166,7 @@ static int pusb_pad_build_system_path(
 
 static int open_pad_file_in_dir(const char *fullpath, int flags)
 {
-	char dirbuf[1024 * 5];
+	char dirbuf[1024 * 5 + 8];
 	int n = snprintf(dirbuf, sizeof(dirbuf), "%s", fullpath);
 	if (n < 0 || (size_t)n >= sizeof(dirbuf))
 		return -1;
