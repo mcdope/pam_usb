@@ -77,11 +77,17 @@ static int pusb_device_connected(t_pusb_options *opts, UDisksClient *udisks)
 
 				g_object_unref(drive);
 				if (retval) {
-					snprintf(opts->device.name,        sizeof(opts->device.name),        "%s", opts->device_list[currentDevice].name);
-					snprintf(opts->device.vendor,      sizeof(opts->device.vendor),      "%s", opts->device_list[currentDevice].vendor);
-					snprintf(opts->device.model,       sizeof(opts->device.model),       "%s", opts->device_list[currentDevice].model);
-					snprintf(opts->device.serial,      sizeof(opts->device.serial),      "%s", opts->device_list[currentDevice].serial);
-					snprintf(opts->device.volume_uuid, sizeof(opts->device.volume_uuid), "%s", opts->device_list[currentDevice].volume_uuid);
+					int trunc = 0;
+					trunc |= snprintf(opts->device.name,        sizeof(opts->device.name),        "%s", opts->device_list[currentDevice].name)        >= (int)sizeof(opts->device.name);
+					trunc |= snprintf(opts->device.vendor,      sizeof(opts->device.vendor),      "%s", opts->device_list[currentDevice].vendor)      >= (int)sizeof(opts->device.vendor);
+					trunc |= snprintf(opts->device.model,       sizeof(opts->device.model),       "%s", opts->device_list[currentDevice].model)       >= (int)sizeof(opts->device.model);
+					trunc |= snprintf(opts->device.serial,      sizeof(opts->device.serial),      "%s", opts->device_list[currentDevice].serial)      >= (int)sizeof(opts->device.serial);
+					trunc |= snprintf(opts->device.volume_uuid, sizeof(opts->device.volume_uuid), "%s", opts->device_list[currentDevice].volume_uuid) >= (int)sizeof(opts->device.volume_uuid);
+					if (trunc)
+					{
+						log_error("Device field truncated (should not happen).\n");
+						retval = 0;
+					}
 					currentDevice = opts->device_count;
 					break;
 				}
