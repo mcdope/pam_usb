@@ -100,10 +100,17 @@ int pusb_is_tty_local(char *tty)
 	 * Note: despite the property name this also works for IPv4, v4 addr would be in ut_addr_v6[0] solely while for v6 it will have just a part of the ip. Anyway: if first element is set -> remote
 	 **/
 	if (utent->ut_addr_v6[0] != 0) {
-		struct in_addr ipnetw;
-		ipnetw.s_addr = utent->ut_addr_v6[0];
-		char ipbuf[INET_ADDRSTRLEN];
-		const char *ipaddr = inet_ntop(AF_INET, &ipnetw, ipbuf, sizeof(ipbuf));
+		char ipbuf[INET6_ADDRSTRLEN];
+		const char *ipaddr;
+		if (utent->ut_addr_v6[1] || utent->ut_addr_v6[2] || utent->ut_addr_v6[3]) {
+			/* IPv6: all four 32-bit words are used */
+			ipaddr = inet_ntop(AF_INET6, utent->ut_addr_v6, ipbuf, sizeof(ipbuf));
+		} else {
+			/* IPv4: only ut_addr_v6[0] is populated */
+			struct in_addr ipnetw;
+			ipnetw.s_addr = utent->ut_addr_v6[0];
+			ipaddr = inet_ntop(AF_INET, &ipnetw, ipbuf, sizeof(ipbuf));
+		}
 		if (ipaddr == NULL) ipaddr = "(unknown)";
 
 		log_error("Remote authentication request, host: %s, ip: %s\n", utent->ut_host, ipaddr);

@@ -380,7 +380,7 @@ static int pusb_pad_update(
 	}
 
 	{
-		int fd_dev = open(path_device_tmp, O_WRONLY | O_CREAT | O_TRUNC | O_NOFOLLOW | O_CLOEXEC, 0600);
+		int fd_dev = open_pad_file_in_dir(path_device_tmp, O_WRONLY | O_CREAT | O_TRUNC);
 		if (fd_dev < 0 || !(f_device = fdopen(fd_dev, "w")))
 		{
 			if (fd_dev >= 0) close(fd_dev);
@@ -400,7 +400,7 @@ static int pusb_pad_update(
 	}
 
 	{
-		int fd_sys = open(path_system_tmp, O_WRONLY | O_CREAT | O_TRUNC | O_NOFOLLOW | O_CLOEXEC, 0600);
+		int fd_sys = open_pad_file_in_dir(path_system_tmp, O_WRONLY | O_CREAT | O_TRUNC);
 		if (fd_sys < 0 || !(f_system = fdopen(fd_sys, "w")))
 		{
 			if (fd_sys >= 0) close(fd_sys);
