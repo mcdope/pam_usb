@@ -19,10 +19,9 @@ sed "s|</devices>|${FAKE_DEVICE_BLOCK}</devices>|" "$CONF" | \
 
 [ $? -eq 0 ] || { echo "FAILED: could not build temp config"; exit 1; }
 
-# Pre-condition: user must now have more than 10 device refs in the temp config.
-# <device> (closed tag, no attributes) matches only user refs, not device definitions.
-REF_COUNT=$(grep -c "<device>" "$TMP_MANY" || true)
-[ "$REF_COUNT" -gt 10 ] || { echo "FAILED: pre-condition: expected >10 device refs, got ${REF_COUNT}"; rm -f "$TMP_MANY"; exit 1; }
+# Pre-condition: verify that both fake device defs and user refs were injected.
+grep -q "<device>fake236_1</device>" "$TMP_MANY" || { echo "FAILED: pre-condition: fake device refs not found in temp config"; rm -f "$TMP_MANY"; exit 1; }
+grep -q "fake236_9" "$TMP_MANY" || { echo "FAILED: pre-condition: not all fake device defs found in temp config"; rm -f "$TMP_MANY"; exit 1; }
 
 echo -e "Test:\t\t\tpamusb-check grants access when user has more than 10 devices configured"
 # test2 (iSerialNumber=1234567891) is connected; it is entry 2 of 11 in the temp config.
