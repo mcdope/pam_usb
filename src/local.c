@@ -113,7 +113,8 @@ int pusb_is_tty_local(char *tty)
 		}
 		if (ipaddr == NULL) ipaddr = "(unknown)";
 
-		log_error("Remote authentication request, host: %s, ip: %s\n", utent->ut_host, ipaddr);
+		log_error("Remote authentication request, host: %.*s, ip: %s\n",
+		          (int)sizeof(utent->ut_host), utent->ut_host, ipaddr);
 		return (-1);
 	}
 

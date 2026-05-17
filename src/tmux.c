@@ -161,9 +161,7 @@ char *pusb_tmux_get_client_tty(pid_t env_pid)
             log_debug("		Closing pipe for 'tmux list-clients' failed, this is quite a wtf...\n");
         }
 
-        size_t tty_len = strlen(tmux_client_tty);
-        result = xmalloc(tty_len + 1);
-        memcpy(result, tmux_client_tty, tty_len + 1);
+        result = xstrdup(tmux_client_tty);
     }
     else
     {

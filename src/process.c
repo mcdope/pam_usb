@@ -112,7 +112,7 @@ char *pusb_get_process_envvar(pid_t pid, char *var)
 			{
 				if (strncmp(var, variable_content, strlen(var)) == 0 && variable_content[strlen(var)] == '=')
 				{
-					output = strdup(variable_content + strlen(var) + 1);
+					output = xstrdup(variable_content + strlen(var) + 1);
 					break;
 				}
 
