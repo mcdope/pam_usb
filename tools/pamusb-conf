@@ -22,11 +22,14 @@ import gi
 import subprocess
 import socket
 import getopt
+import pwd
 
 gi.require_version('UDisks', '2.0')
 
 from gi.repository import UDisks
 from xml.dom import minidom
+
+FINDMNT_PATH = '/usr/bin/findmnt'
 
 class Device:
 	def __init__(self, udi):
@@ -333,6 +336,7 @@ def addDevice(options):
 def resetPads():
 	padFiles = []
 	skippedDevices = []
+	userHome = None
 
 	try:
 		doc = minidom.parse(options['configFile'])
@@ -347,6 +351,11 @@ def resetPads():
 	if len(devicesObj) == 0:
 		print('No devices found.')
 		sys.exit(1)
+	try:
+		userHome = pwd.getpwnam(options['resetPads']).pw_dir
+	except KeyError:
+		print('Unable to retrieve information for user "%s".' % options['resetPads'])
+		sys.exit(1)
 
 	alreadyConfiguredUsers = doc.getElementsByTagName('user')
 	if len(alreadyConfiguredUsers) > 0:
@@ -358,7 +367,7 @@ def resetPads():
 						print('Invalid device ID in config (path traversal): %s' % userDevice)
 						sys.exit(1)
 
-					systemPad = '/home/%s/.pamusb/%s.pad' % (options['resetPads'], userDevice)
+					systemPad = '%s/.pamusb/%s.pad' % (userHome.rstrip('/'), userDevice)
 					devicePad = None
 
 					for details in devicesObj:
@@ -369,7 +378,7 @@ def resetPads():
 								sys.exit(1)
 							try:
 								deviceMountPoint = subprocess.check_output(
-									['findmnt', '-n', '-o', 'TARGET', '--source', '/dev/disk/by-uuid/' + deviceUUID],
+									[FINDMNT_PATH, '-n', '-o', 'TARGET', '--source', '/dev/disk/by-uuid/' + deviceUUID],
 									stderr=subprocess.DEVNULL
 								)
 								devicePad = '%s/.pamusb/%s.%s.pad' % (

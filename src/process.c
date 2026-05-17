@@ -27,6 +27,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <sys/types.h>
+#include <errno.h>
 #include "process.h"
 #include "mem.h"
 
@@ -66,13 +67,7 @@ void pusb_get_process_parent_id(const pid_t pid, pid_t *ppid)
 	{
 		if (fgets(buffer, sizeof(buffer), fp) != NULL)
 		{
-			// See: https://man7.org/linux/man-pages/man5/proc.5.html section /proc/[pid]/stat
-			strtok(buffer, " "); // (1) pid  %d
-			strtok(NULL, " "); // (2) comm  %s
-			strtok(NULL, " "); // (3) state  %c
-			char *s_ppid = strtok(NULL, " "); // (4) ppid  %d
-			if (s_ppid != NULL)
-				*ppid = atoi(s_ppid);
+			pusb_parse_process_stat_parent_id(buffer, ppid);
 		}
 		fclose(fp);
 	}
@@ -126,4 +121,47 @@ char *pusb_get_process_envvar(pid_t pid, char *var)
 	}
 
 	return output;
+}
+
+int pusb_parse_process_stat_parent_id(const char *stat_line, pid_t *ppid)
+{
+	char *endptr;
+	long parsed;
+	const char *comm_end;
+	const char *cursor;
+
+	if (stat_line == NULL || ppid == NULL)
+		return 0;
+
+	/*
+	 * /proc/[pid]/stat field 2 (comm) is wrapped in parentheses and may
+	 * contain spaces. Tokenizing the whole line on spaces can therefore read
+	 * the wrong field for ppid. The fixed fields resume after the last ')':
+	 * state is field 3 and ppid is field 4.
+	 */
+	comm_end = strrchr(stat_line, ')');
+	if (comm_end == NULL)
+		return 0;
+
+	cursor = comm_end + 1;
+	while (*cursor == ' ')
+		cursor++;
+	if (*cursor == '\0')
+		return 0;
+
+	/* Skip state field. */
+	while (*cursor != '\0' && *cursor != ' ')
+		cursor++;
+	while (*cursor == ' ')
+		cursor++;
+	if (*cursor == '\0')
+		return 0;
+
+	errno = 0;
+	parsed = strtol(cursor, &endptr, 10);
+	if (cursor == endptr || errno != 0 || parsed < 0)
+		return 0;
+
+	*ppid = (pid_t)parsed;
+	return 1;
 }

@@ -68,6 +68,44 @@ static void test_ppid_invalid_pid(void **state)
 	pusb_get_process_parent_id(-1, &ppid);
 }
 
+/* ── /proc/[pid]/stat parsing ── */
+
+static void test_parse_stat_ppid_with_plain_comm(void **state)
+{
+	(void)state;
+	pid_t ppid = 0;
+	assert_int_equal(1, pusb_parse_process_stat_parent_id(
+		"1234 (sshd) S 1 2 3 4 5 6 7 8 9\n", &ppid));
+	assert_int_equal(1, (int)ppid);
+}
+
+static void test_parse_stat_ppid_with_spaced_comm(void **state)
+{
+	(void)state;
+	pid_t ppid = 0;
+	assert_int_equal(1, pusb_parse_process_stat_parent_id(
+		"1234 (remote helper) S 567 2 3 4 5 6 7 8 9\n", &ppid));
+	assert_int_equal(567, (int)ppid);
+}
+
+static void test_parse_stat_ppid_uses_last_closing_paren(void **state)
+{
+	(void)state;
+	pid_t ppid = 0;
+	assert_int_equal(1, pusb_parse_process_stat_parent_id(
+		"1234 (helper) name) S 890 2 3 4 5 6 7 8 9\n", &ppid));
+	assert_int_equal(890, (int)ppid);
+}
+
+static void test_parse_stat_ppid_rejects_malformed_line(void **state)
+{
+	(void)state;
+	pid_t ppid = 42;
+	assert_int_equal(0, pusb_parse_process_stat_parent_id(
+		"1234 helper S 1 2 3\n", &ppid));
+	assert_int_equal(42, (int)ppid);
+}
+
 /* ── pusb_get_process_envvar ── */
 
 static void test_envvar_path_found(void **state)
@@ -110,6 +148,10 @@ int main(void)
 		cmocka_unit_test(test_ppid_self),
 		cmocka_unit_test(test_ppid_init),
 		cmocka_unit_test(test_ppid_invalid_pid),
+		cmocka_unit_test(test_parse_stat_ppid_with_plain_comm),
+		cmocka_unit_test(test_parse_stat_ppid_with_spaced_comm),
+		cmocka_unit_test(test_parse_stat_ppid_uses_last_closing_paren),
+		cmocka_unit_test(test_parse_stat_ppid_rejects_malformed_line),
 		cmocka_unit_test(test_envvar_path_found),
 		cmocka_unit_test(test_envvar_nonexistent),
 		cmocka_unit_test(test_envvar_invalid_pid),

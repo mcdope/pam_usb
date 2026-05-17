@@ -31,4 +31,6 @@ void pusb_get_process_parent_id(const pid_t pid, pid_t * ppid);
 
 char *pusb_get_process_envvar(pid_t pid, char *var);
 
+int pusb_parse_process_stat_parent_id(const char *stat_line, pid_t *ppid);
+
 #endif /* !PUSB_PROCESS_H_ */
