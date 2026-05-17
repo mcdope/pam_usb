@@ -66,39 +66,50 @@ static void pusb_tmux_escape_for_regex(const char *src, char *dst, size_t dstlen
 
 char *pusb_tmux_get_client_tty(pid_t env_pid)
 {
-    char *tmux_details = getenv("TMUX");
-    if (tmux_details == NULL)
+    char *tmux_details_raw = getenv("TMUX");
+    int from_env = (tmux_details_raw != NULL);
+    if (!from_env)
     {
         log_debug("		No TMUX env var, checking parent process in case this is a sudo request\n");
-        tmux_details = pusb_get_process_envvar(env_pid, "TMUX");
-
-        if (tmux_details == NULL)
+        tmux_details_raw = pusb_get_process_envvar(env_pid, "TMUX");
+        if (tmux_details_raw == NULL)
         {
             return NULL;
         }
     }
 
+    /* Always work on a private copy: strtok_r would otherwise corrupt the live
+     * environment block (if from getenv) or leak the pusb_get_process_envvar
+     * allocation (if from the process environ scan). */
+    char *tmux_details = xstrdup(tmux_details_raw);
+    if (!from_env)
+        xfree(tmux_details_raw);
+
     char *tmux_client_id = strrchr(tmux_details, ',');
     if (tmux_client_id == NULL)
     {
         log_debug("		Malformed TMUX env var (no comma), cannot get client id\n");
+        xfree(tmux_details);
         return NULL;
     }
     tmux_client_id++; // ... to strip leading comma
     log_debug("		Got tmux_client_id: %s\n", tmux_client_id);
 
-    char *tmux_socket_path = strtok(tmux_details, ",");
+    char *saveptr = NULL;
+    char *tmux_socket_path = strtok_r(tmux_details, ",", &saveptr);
     log_debug("		Got tmux_socket_path: %s\n", tmux_socket_path);
 
     if (!pusb_tmux_is_safe_socket_path(tmux_socket_path))
     {
         log_error("TMUX socket path contains invalid characters, denying.\n");
+        xfree(tmux_details);
         return NULL;
     }
 
     if (!pusb_tmux_is_numeric_id(tmux_client_id))
     {
         log_error("TMUX client ID is not numeric, denying.\n");
+        xfree(tmux_details);
         return NULL;
     }
 
@@ -117,21 +128,32 @@ char *pusb_tmux_get_client_tty(pid_t env_pid)
     {
         log_error("tmux detected, but couldn't get session details. Denying since remote check impossible without it!\n");
         xfree(get_tmux_session_details_cmd);
+        xfree(tmux_details);
         return NULL;
     }
     xfree(get_tmux_session_details_cmd);
 
     char *tmux_client_tty = NULL;
+    char *result = NULL;
     if (fgets(buf, BUFSIZ, fp) != NULL)
     {
-        tmux_client_tty = strtok(buf, ":");
+        char *strtok_buf_save = NULL;
+        tmux_client_tty = strtok_r(buf, ":", &strtok_buf_save);
         if (tmux_client_tty == NULL)
         {
             log_error("tmux detected, but couldn't parse client tty. Denying.\n");
             pclose(fp);
+            xfree(tmux_details);
             return NULL;
         }
-        tmux_client_tty += 5; // cut "/dev/"
+        if (strncmp(tmux_client_tty, "/dev/", 5) != 0)
+        {
+            log_error("tmux detected, but client tty has unexpected format: %s. Denying.\n", tmux_client_tty);
+            pclose(fp);
+            xfree(tmux_details);
+            return NULL;
+        }
+        tmux_client_tty += 5; /* strip /dev/ prefix */
         log_debug("		Got tmux_client_tty: %s\n", tmux_client_tty);
 
         if (pclose(fp))
@@ -139,17 +161,16 @@ char *pusb_tmux_get_client_tty(pid_t env_pid)
             log_debug("		Closing pipe for 'tmux list-clients' failed, this is quite a wtf...\n");
         }
 
-        size_t tty_len = strlen(tmux_client_tty);
-        char *result = xmalloc(tty_len + 1);
-        memcpy(result, tmux_client_tty, tty_len + 1);
-        return result;
+        result = xstrdup(tmux_client_tty);
     }
     else
     {
         log_error("tmux detected, but couldn't get client details. Denying since remote check impossible without it!\n");
         pclose(fp);
-        return NULL;
     }
+
+    xfree(tmux_details);
+    return result;
 }
 
 /**

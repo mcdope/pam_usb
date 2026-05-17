@@ -46,7 +46,12 @@ static int pusb_pad_build_device_path(
 	char path_devpad[1024*5];
 	struct stat sb;
 
-	snprintf(path_devpad, sizeof(path_devpad), "%s/%s", mnt_point, opts->device_pad_directory);
+	int pn1 = snprintf(path_devpad, sizeof(path_devpad), "%s/%s", mnt_point, opts->device_pad_directory);
+	if (pn1 < 0 || (size_t)pn1 >= sizeof(path_devpad))
+	{
+		log_error("Device pad directory path too long.\n");
+		return 0;
+	}
 	if (lstat(path_devpad, &sb) != 0)
 	{
 		log_debug("Directory %s does not exist, creating it.\n", path_devpad);
@@ -62,7 +67,7 @@ static int pusb_pad_build_device_path(
 		return 0;
 	}
 
-	snprintf(
+	int pn2 = snprintf(
 		path_out,
 		path_size,
 		"%s/%s/%s.%s.pad",
@@ -71,6 +76,11 @@ static int pusb_pad_build_device_path(
 		user,
 		opts->hostname
 	);
+	if (pn2 < 0 || (size_t)pn2 >= path_size)
+	{
+		log_error("Device pad file path too long.\n");
+		return 0;
+	}
 	return 1;
 }
 
@@ -93,13 +103,18 @@ static int pusb_pad_build_system_path(
 		return 0;
 	}
 
-	snprintf(
+	int sn1 = snprintf(
 		dir_path,
 		sizeof(dir_path),
 		"%s/%s",
 		user_ent->pw_dir,
 		opts->system_pad_directory
 	);
+	if (sn1 < 0 || (size_t)sn1 >= sizeof(dir_path))
+	{
+		log_error("System pad directory path too long.\n");
+		return 0;
+	}
 	if (lstat(dir_path, &sb) != 0)
 	{
 		log_debug("Directory %s does not exist, creating one.\n", dir_path);
@@ -133,7 +148,7 @@ static int pusb_pad_build_system_path(
 		device_name_ptr++;
 	}
 
-	snprintf(
+	int sn2 = snprintf(
 		path_out,
 		path_size,
 		"%s/%s/%s.pad",
@@ -141,7 +156,36 @@ static int pusb_pad_build_system_path(
 		opts->system_pad_directory,
 		device_name
 	);
+	if (sn2 < 0 || (size_t)sn2 >= path_size)
+	{
+		log_error("System pad file path too long.\n");
+		return 0;
+	}
 	return 1;
+}
+
+static int open_pad_file_in_dir(const char *fullpath, int flags)
+{
+	char dirbuf[1024 * 5 + 8];
+	int n = snprintf(dirbuf, sizeof(dirbuf), "%s", fullpath);
+	if (n < 0 || (size_t)n >= sizeof(dirbuf))
+		return -1;
+
+	char *sep = strrchr(dirbuf, '/');
+	if (sep == NULL || sep == dirbuf)
+		return -1;
+	*sep = '\0';
+	const char *filename = sep + 1;
+
+	int dirfd = open(dirbuf, O_DIRECTORY | O_NOFOLLOW | O_RDONLY | O_CLOEXEC);
+	if (dirfd == -1)
+		return -1;
+
+	int fd = openat(dirfd, filename, flags | O_NOFOLLOW | O_CLOEXEC, 0600);
+	int saved_errno = errno;
+	close(dirfd);
+	errno = saved_errno;
+	return fd;
 }
 
 static FILE *pusb_pad_open_device(
@@ -158,7 +202,7 @@ static FILE *pusb_pad_open_device(
 	{
 		return NULL;
 	}
-	int fd = open(path, flags | O_NOFOLLOW | O_CLOEXEC, 0600);
+	int fd = open_pad_file_in_dir(path, flags);
 	if (fd < 0)
 	{
 		log_debug("Cannot open device file: %s\n", strerror(errno));
@@ -187,7 +231,7 @@ static FILE *pusb_pad_open_system(
 	{
 		return NULL;
 	}
-	int fd = open(path, flags | O_NOFOLLOW | O_CLOEXEC, 0600);
+	int fd = open_pad_file_in_dir(path, flags);
 	if (fd < 0)
 	{
 		log_debug("Cannot open system file: %s\n", strerror(errno));
@@ -205,22 +249,29 @@ static FILE *pusb_pad_open_system(
 
 static int pusb_pad_protect(const char *user, int fd)
 {
+	int saved_errno;
 	struct passwd *user_ent = NULL;
 
 	log_debug("Protecting pad file...\n");
 	if (!(user_ent = getpwnam(user)))
 	{
-		log_error("Unable to retrieve information for user \"%s\": %s\n", user, strerror(errno));
+		saved_errno = errno;
+		log_error("Unable to retrieve information for user \"%s\": %s\n", user, strerror(saved_errno));
+		errno = saved_errno;
 		return 0;
 	}
 	if (fchown(fd, user_ent->pw_uid, user_ent->pw_gid) == -1)
 	{
-		log_debug("Unable to change owner of the pad: %s (expected on filesystems not supporting this, like FAT)\n", strerror(errno));
+		saved_errno = errno;
+		log_debug("Unable to change owner of the pad: %s (expected on filesystems not supporting this, like FAT)\n", strerror(saved_errno));
+		errno = saved_errno;
 		return 0;
 	}
 	if (fchmod(fd, S_IRUSR | S_IWUSR) == -1)
 	{
-		log_debug("Unable to change mode of the pad: %s\n", strerror(errno));
+		saved_errno = errno;
+		log_debug("Unable to change mode of the pad: %s\n", strerror(saved_errno));
+		errno = saved_errno;
 		return 0;
 	}
 	return 1;
@@ -256,12 +307,12 @@ static int pusb_pad_should_update(t_pusb_options *opts, const char *user)
 
 	if (delta > opts->pad_expiration)
 	{
-		log_debug("Pads expired %u seconds ago, updating...\n", delta - opts->pad_expiration);
+		log_debug("Pads expired %ld seconds ago, updating...\n", (long)(delta - opts->pad_expiration));
 		return 1;
 	}
 	else
 	{
-		log_debug("Pads were generated %u seconds ago, not updating.\n", delta);
+		log_debug("Pads were generated %ld seconds ago, not updating.\n", (long)delta);
 		return 0;
 	}
 }
@@ -338,7 +389,7 @@ static int pusb_pad_update(
 	}
 
 	{
-		int fd_dev = open(path_device_tmp, O_WRONLY | O_CREAT | O_TRUNC | O_NOFOLLOW | O_CLOEXEC, 0600);
+		int fd_dev = open_pad_file_in_dir(path_device_tmp, O_WRONLY | O_CREAT | O_TRUNC);
 		if (fd_dev < 0 || !(f_device = fdopen(fd_dev, "w")))
 		{
 			if (fd_dev >= 0) close(fd_dev);
@@ -347,10 +398,18 @@ static int pusb_pad_update(
 			return 0;
 		}
 	}
-	pusb_pad_protect(user, fileno(f_device));
+	if (!pusb_pad_protect(user, fileno(f_device))) {
+		if (errno != EPERM && errno != EROFS && errno != ENOTSUP) {
+			log_error("Failed to protect device pad (unexpected error).\n");
+			fclose(f_device);
+			unlink(path_device_tmp);
+			explicit_bzero(magic, sizeof(magic));
+			return 0;
+		}
+	}
 
 	{
-		int fd_sys = open(path_system_tmp, O_WRONLY | O_CREAT | O_TRUNC | O_NOFOLLOW | O_CLOEXEC, 0600);
+		int fd_sys = open_pad_file_in_dir(path_system_tmp, O_WRONLY | O_CREAT | O_TRUNC);
 		if (fd_sys < 0 || !(f_system = fdopen(fd_sys, "w")))
 		{
 			if (fd_sys >= 0) close(fd_sys);
@@ -361,7 +420,17 @@ static int pusb_pad_update(
 			return 0;
 		}
 	}
-	pusb_pad_protect(user, fileno(f_system));
+	if (!pusb_pad_protect(user, fileno(f_system))) {
+		if (errno != EPERM && errno != EROFS && errno != ENOTSUP) {
+			log_error("Failed to protect system pad (unexpected error).\n");
+			fclose(f_system);
+			fclose(f_device);
+			unlink(path_system_tmp);
+			unlink(path_device_tmp);
+			explicit_bzero(magic, sizeof(magic));
+			return 0;
+		}
+	}
 
 	log_debug("Writing pad to the system...\n");
 	if (fwrite(magic, sizeof(uint8_t), sizeof(magic), f_system) != sizeof(magic))
@@ -395,10 +464,19 @@ static int pusb_pad_update(
 		fclose(f_device);
 		unlink(path_system_tmp);
 		unlink(path_device_tmp);
+		explicit_bzero(magic, sizeof(magic));
 		return 0;
 	}
-	fsync(fileno(f_system));
-	fsync(fileno(f_device));
+	if (fsync(fileno(f_system)) != 0 || fsync(fileno(f_device)) != 0)
+	{
+		log_error("Failed to sync pad data to disk: %s\n", strerror(errno));
+		fclose(f_system);
+		fclose(f_device);
+		unlink(path_system_tmp);
+		unlink(path_device_tmp);
+		explicit_bzero(magic, sizeof(magic));
+		return 0;
+	}
 	fclose(f_system);
 	fclose(f_device);
 

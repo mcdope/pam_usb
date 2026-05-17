@@ -243,6 +243,42 @@ static void test_get_client_tty_uses_absolute_tmux_path(void **state)
 	unsetenv("TMUX");
 }
 
+static void test_get_client_tty_rejects_missing_dev_prefix(void **state)
+{
+	(void)state;
+	/* Security regression: without /dev/ prefix the old code did += 5 on
+	 * an out-of-bounds pointer; the guard must deny instead. */
+	setenv("TMUX", "/tmp/tmux-1000/default,abc,42", 1);
+	g_popen_output = "pts/1: session info\n";  /* no /dev/ prefix */
+	char *result = pusb_tmux_get_client_tty(0);
+	assert_null(result);
+	unsetenv("TMUX");
+}
+
+static void test_get_client_tty_does_not_corrupt_tmux_env(void **state)
+{
+	(void)state;
+	/* M-1 regression: the old code called strtok() directly on the getenv("TMUX")
+	 * pointer, inserting NUL bytes into the live environment block and permanently
+	 * corrupting the variable for the rest of the process lifetime. */
+	const char *original = "/tmp/tmux-1000/default,abc,42";
+	setenv("TMUX", original, 1);
+
+	g_popen_output = "/dev/pts/1: session info\n";
+	char *result = pusb_tmux_get_client_tty(0);
+
+	assert_non_null(result);
+	assert_string_equal("pts/1", result);
+	free(result);
+
+	/* Environment variable must be byte-for-byte intact after the call */
+	const char *after = getenv("TMUX");
+	assert_non_null(after);
+	assert_string_equal(original, after);
+
+	unsetenv("TMUX");
+}
+
 /* ── main ── */
 
 int main(void)
@@ -276,7 +312,9 @@ int main(void)
 		cmocka_unit_test(test_get_client_tty_injection_semicolon),
 		cmocka_unit_test(test_get_client_tty_nonnumeric_id),
 		cmocka_unit_test(test_get_client_tty_valid),
+		cmocka_unit_test(test_get_client_tty_rejects_missing_dev_prefix),
 		cmocka_unit_test(test_get_client_tty_uses_absolute_tmux_path),
+		cmocka_unit_test(test_get_client_tty_does_not_corrupt_tmux_env),
 	};
 	return cmocka_run_group_tests(tests, NULL, NULL);
 }

@@ -15,20 +15,26 @@
  * Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include <assert.h>
 #include "mem.h"
+#include "log.h"
 
 void *xmalloc(size_t size)
 {
 	void *data = malloc(size);
-	assert(data != NULL && "malloc() failed");
+	if (data == NULL) {
+		log_error("xmalloc: out of memory\n");
+		abort();
+	}
 	return (data);
 }
 
 void *xrealloc(void *ptr, size_t size)
 {
 	void *data = realloc(ptr, size);
-	assert(data != NULL && "realloc() failed");
+	if (data == NULL) {
+		log_error("xrealloc: out of memory\n");
+		abort();
+	}
 	return (data);
 }
 
@@ -40,6 +46,9 @@ void xfree(void *ptr)
 char *xstrdup(const char *s)
 {
 	char *data = strdup(s);
-	assert(data != NULL && "strdup() failed");
+	if (data == NULL) {
+		log_error("xstrdup: out of memory\n");
+		abort();
+	}
 	return (data);
 }

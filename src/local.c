@@ -97,14 +97,25 @@ int pusb_is_tty_local(char *tty)
 	}
 
 	/**
-	 * Note: despite the property name this also works for IPv4, v4 addr would be in ut_addr_v6[0] solely while for v6 it will have just a part of the ip. Anyway: if first element is set -> remote
+	 * Note: despite the property name this also works for IPv4, v4 addr would be in ut_addr_v6[0] solely while for v6 it will have just a part of the ip. All four words are checked so that IPv6 addresses with a zero first word (e.g. ::ffff:x.x.x.x mapped addresses) are not incorrectly treated as local.
 	 **/
-	if (utent->ut_addr_v6[0] != 0) {
-		struct in_addr ipnetw;
-		ipnetw.s_addr = utent->ut_addr_v6[0];
-		char* ipaddr = inet_ntoa(ipnetw);
+	if (utent->ut_addr_v6[0] || utent->ut_addr_v6[1] ||
+	    utent->ut_addr_v6[2] || utent->ut_addr_v6[3]) {
+		char ipbuf[INET6_ADDRSTRLEN];
+		const char *ipaddr;
+		if (utent->ut_addr_v6[1] || utent->ut_addr_v6[2] || utent->ut_addr_v6[3]) {
+			/* IPv6: all four 32-bit words are used */
+			ipaddr = inet_ntop(AF_INET6, utent->ut_addr_v6, ipbuf, sizeof(ipbuf));
+		} else {
+			/* IPv4: only ut_addr_v6[0] is populated */
+			struct in_addr ipnetw;
+			ipnetw.s_addr = utent->ut_addr_v6[0];
+			ipaddr = inet_ntop(AF_INET, &ipnetw, ipbuf, sizeof(ipbuf));
+		}
+		if (ipaddr == NULL) ipaddr = "(unknown)";
 
-		log_error("Remote authentication request, host: %s, ip: %s\n", utent->ut_host, ipaddr);
+		log_error("Remote authentication request, host: %.*s, ip: %s\n",
+		          (int)sizeof(utent->ut_host), utent->ut_host, ipaddr);
 		return (-1);
 	}
 
@@ -155,7 +166,7 @@ char *pusb_get_tty_from_display_server(const char *display)
 
 				DIR *d_fd = opendir(fd_path);
 				if (d_fd == NULL) {
-					log_debug("	Determining tty by display server failed (running 'pamusb-check' as user?)\n", fd_path);
+					log_debug("	Determining tty by display server failed on %s (running 'pamusb-check' as user?)\n", fd_path);
 
 					xfree(cmdline_path);
 					xfree(cmdline);
@@ -250,7 +261,8 @@ char *pusb_get_tty_by_loginctl()
 	char *tty = NULL;
 	if (fgets(buf, BUFSIZ, fp) != NULL)
 	{
-		tty = strtok(buf, "\n");
+		char *saveptr = NULL;
+		tty = strtok_r(buf, "\n", &saveptr);
 		log_debug("		Got tty: %s\n", tty);
 
 		if (pclose(fp))
@@ -287,7 +299,8 @@ int pusb_is_loginctl_local()
 	char *is_remote = NULL;
 	if (fgets(buf, BUFSIZ, fp) != NULL)
 	{
-		is_remote = strtok(buf, "\n");
+		char *saveptr = NULL;
+		is_remote = strtok_r(buf, "\n", &saveptr);
 		log_debug("		loginctl considers this session to be remote: %s\n", is_remote);
 
 		if (pclose(fp))
