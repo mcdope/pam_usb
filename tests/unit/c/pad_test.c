@@ -394,6 +394,63 @@ static void test_generate_random_bytes_fills_buffer(void **state)
 	assert_int_not_equal(0, (int)acc);
 }
 
+/* ── F6 regression: open_pad_file_in_dir rejects symlink at parent directory ── */
+
+static void test_open_pad_file_in_dir_rejects_dir_symlink(void **state)
+{
+	(void)state;
+
+	/* A real directory containing a real file */
+	char real_dir[] = "/tmp/pamusb_f6real_XXXXXX";
+	assert_non_null(mkdtemp(real_dir));
+	char real_file[512];
+	snprintf(real_file, sizeof(real_file), "%s/test.pad", real_dir);
+	write_file(real_file, "x", 1);
+
+	/* A temp dir containing a symlink that points at real_dir */
+	char base_dir[] = "/tmp/pamusb_f6base_XXXXXX";
+	assert_non_null(mkdtemp(base_dir));
+	char sym_dir[512];
+	snprintf(sym_dir, sizeof(sym_dir), "%s/pads", base_dir);
+	assert_int_equal(0, symlink(real_dir, sym_dir));
+
+	/* Path whose parent component is a symlink */
+	char path[1024];
+	snprintf(path, sizeof(path), "%s/test.pad", sym_dir);
+
+	/* open_pad_file_in_dir must fail: O_NOFOLLOW rejects symlink as directory */
+	int fd = open_pad_file_in_dir(path, O_RDONLY);
+	assert_true(fd < 0);
+	if (fd >= 0) close(fd);
+
+	unlink(sym_dir);
+	unlink(real_file);
+	rmdir(real_dir);
+	rmdir(base_dir);
+}
+
+/* ── F10 regression: device pad path truncation denied ── */
+
+static void test_device_pad_path_too_long_denied(void **state)
+{
+	(void)state;
+
+	t_pusb_options opts = {0};
+	pusb_conf_init(&opts);
+	/* Fill device_pad_directory to near PATH_MAX (4095 'a' chars) */
+	memset(opts.device_pad_directory, 'a', sizeof(opts.device_pad_directory) - 1);
+	opts.device_pad_directory[sizeof(opts.device_pad_directory) - 1] = '\0';
+
+	/* mnt_point of 1100 chars: 1100 + 1 + 4095 = 5196 > 5120 -- triggers truncation check */
+	char long_mnt[1101];
+	memset(long_mnt, 'b', sizeof(long_mnt) - 1);
+	long_mnt[sizeof(long_mnt) - 1] = '\0';
+
+	char path_out[1024 * 5];
+	int result = pusb_pad_build_device_path(&opts, long_mnt, "user", path_out, sizeof(path_out));
+	assert_int_equal(0, result);
+}
+
 /* ── F4 regression: timingsafe_memcmp correctness ── */
 
 static void test_timingsafe_memcmp_equal(void **state)
@@ -434,6 +491,8 @@ int main(void)
 		cmocka_unit_test(test_pad_missing),
 		cmocka_unit_test(test_first_run_no_pads_allowed),
 		cmocka_unit_test(test_missing_system_pad_denied),
+		cmocka_unit_test(test_open_pad_file_in_dir_rejects_dir_symlink),
+		cmocka_unit_test(test_device_pad_path_too_long_denied),
 		cmocka_unit_test(test_generate_random_bytes_fills_buffer),
 		cmocka_unit_test(test_timingsafe_memcmp_equal),
 		cmocka_unit_test(test_timingsafe_memcmp_differ),
