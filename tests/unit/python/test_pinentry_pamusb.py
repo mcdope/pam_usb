@@ -34,6 +34,7 @@ Syslog logging coverage:
   LOG_NOTICE logged when falling back to a valid fallback app
   LOG_ERR logged when fallback app is invalid or missing
   LOG_WARNING logged when PINENTRY_PASSWORD is empty
+  LOG_ERR logged when os.execv raises OSError (TOCTOU race)
 """
 
 import importlib.util
@@ -517,5 +518,29 @@ def test_syslog_missing_password_warning_logged():
         c.args[0] == syslog.LOG_WARNING and
         "PINENTRY_PASSWORD is not set" in c.args[1] and
         "alice" in c.args[1]
+        for c in mock_syslog.call_args_list
+    )
+
+
+def test_syslog_execv_oserror_logged(tmp_path):
+    """LOG_ERR is logged and sys.exit(1) raised when os.execv raises OSError."""
+    script = tmp_path / "fake-pinentry"
+    script.write_text("#!/bin/sh\necho OK\n")
+    script.chmod(0o755)
+    fallback = str(script)
+    mod = _load_pinentry()
+
+    with patch('syslog.openlog'), \
+         patch('syslog.syslog') as mock_syslog, \
+         patch.object(mod, '_run_pamusb_check', return_value=_auth_result(False)), \
+         patch('os.execv', side_effect=OSError("permission denied")):
+        with pytest.raises(SystemExit) as exc:
+            mod._run_as_pinentry('alice', 'secret', fallback, [])
+
+    assert exc.value.code == 1
+    assert any(
+        c.args[0] == syslog.LOG_ERR and
+        "Failed to execute fallback" in c.args[1] and
+        fallback in c.args[1]
         for c in mock_syslog.call_args_list
     )

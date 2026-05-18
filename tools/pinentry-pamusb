@@ -160,7 +160,13 @@ def _run_as_pinentry(user, pinentry_password, fallback_pinentry_app, unknown_arg
                 and os.access(fallback_pinentry_app, os.X_OK)):
             syslog.syslog(syslog.LOG_NOTICE,
                           f"Falling back to '{fallback_pinentry_app}'")
-            os.execv(fallback_pinentry_app, [fallback_pinentry_app] + unknown_args)
+            try:
+                os.execv(fallback_pinentry_app, [fallback_pinentry_app] + unknown_args)
+            except OSError as e:
+                syslog.syslog(syslog.LOG_ERR,
+                              f"Failed to execute fallback '{fallback_pinentry_app}': {e}")
+                sys.stderr.write(f"Failed to execute fallback '{fallback_pinentry_app}': {e}\n")
+                sys.exit(1)
         else:
             syslog.syslog(syslog.LOG_ERR,
                           f"PINENTRY_FALLBACK_APP='{fallback_pinentry_app}' is not set or not a valid executable, cannot fall back")
