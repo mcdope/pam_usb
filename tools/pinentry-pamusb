@@ -125,8 +125,14 @@ def _run_as_pinentry(user, pinentry_password, fallback_pinentry_app, unknown_arg
         syslog.syslog(syslog.LOG_WARNING,
                       f"PINENTRY_PASSWORD is not set for user '{user}'")
 
-    auth_result = _run_pamusb_check(user)
-    if auth_result.returncode == 0:
+    try:
+        auth_result = _run_pamusb_check(user)
+    except OSError as e:
+        syslog.syslog(syslog.LOG_ERR,
+                      f"Failed to run pamusb-check for user '{user}': {e}")
+        auth_result = None
+
+    if auth_result is not None and auth_result.returncode == 0:
         syslog.syslog(syslog.LOG_NOTICE,
                       f"Authentication succeeded for user '{user}'")
         print("OK Pleased to meet you", flush=True)
@@ -152,8 +158,9 @@ def _run_as_pinentry(user, pinentry_password, fallback_pinentry_app, unknown_arg
             else:
                 print("OK", flush=True)
     else:
+        reason = auth_result.stderr.decode().strip() if (auth_result and auth_result.stderr) else "unknown reason"
         syslog.syslog(syslog.LOG_NOTICE,
-                      f"Authentication failed for user '{user}'")
+                      f"Authentication failed for user '{user}' (code {auth_result.returncode if auth_result else 'N/A'}): {reason}")
         if (fallback_pinentry_app
                 and os.path.isabs(fallback_pinentry_app)
                 and os.path.isfile(fallback_pinentry_app)
@@ -161,6 +168,7 @@ def _run_as_pinentry(user, pinentry_password, fallback_pinentry_app, unknown_arg
             syslog.syslog(syslog.LOG_NOTICE,
                           f"Falling back to '{fallback_pinentry_app}'")
             try:
+                syslog.closelog()
                 os.execv(fallback_pinentry_app, [fallback_pinentry_app] + unknown_args)
             except OSError as e:
                 syslog.syslog(syslog.LOG_ERR,

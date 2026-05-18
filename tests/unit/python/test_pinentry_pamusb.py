@@ -35,6 +35,7 @@ Syslog logging coverage:
   LOG_ERR logged when fallback app is invalid or missing
   LOG_WARNING logged when PINENTRY_PASSWORD is empty
   LOG_ERR logged when os.execv raises OSError (TOCTOU race)
+  LOG_ERR logged when _run_pamusb_check raises OSError
 """
 
 import importlib.util
@@ -461,13 +462,25 @@ def test_syslog_getpin_delivery_logged():
 
 
 def test_syslog_auth_failure_logged():
-    """LOG_NOTICE is logged when authentication fails."""
+    """LOG_NOTICE is logged when authentication fails, including returncode and stderr."""
     mod = _load_pinentry()
-    _, mock_syslog = _syslog_run(mod, 'alice', 'secret', None, [], auth_ok=False)
+    result = subprocess.CompletedProcess([], returncode=1, stdout=b"", stderr=b"device not found")
+    it = iter([])
+
+    with patch('syslog.openlog'), \
+         patch('syslog.syslog') as mock_syslog, \
+         patch.object(mod, '_run_pamusb_check', return_value=result), \
+         patch('builtins.input', side_effect=lambda: next(it)):
+        try:
+            mod._run_as_pinentry('alice', 'secret', None, [])
+        except (StopIteration, SystemExit):
+            pass
+
     assert any(
         c.args[0] == syslog.LOG_NOTICE and
         "Authentication failed" in c.args[1] and
-        "alice" in c.args[1]
+        "alice" in c.args[1] and
+        "device not found" in c.args[1]
         for c in mock_syslog.call_args_list
     )
 
@@ -482,6 +495,7 @@ def test_syslog_fallback_logged(tmp_path):
 
     with patch('syslog.openlog'), \
          patch('syslog.syslog') as mock_syslog, \
+         patch('syslog.closelog'), \
          patch.object(mod, '_run_pamusb_check', return_value=_auth_result(False)), \
          patch('os.execv'):
         mod._run_as_pinentry('alice', 'secret', fallback, [])
@@ -532,6 +546,7 @@ def test_syslog_execv_oserror_logged(tmp_path):
 
     with patch('syslog.openlog'), \
          patch('syslog.syslog') as mock_syslog, \
+         patch('syslog.closelog'), \
          patch.object(mod, '_run_pamusb_check', return_value=_auth_result(False)), \
          patch('os.execv', side_effect=OSError("permission denied")):
         with pytest.raises(SystemExit) as exc:
@@ -542,5 +557,24 @@ def test_syslog_execv_oserror_logged(tmp_path):
         c.args[0] == syslog.LOG_ERR and
         "Failed to execute fallback" in c.args[1] and
         fallback in c.args[1]
+        for c in mock_syslog.call_args_list
+    )
+
+
+def test_syslog_pamusb_check_oserror_logged():
+    """LOG_ERR is logged when _run_pamusb_check raises OSError."""
+    mod = _load_pinentry()
+
+    with patch('syslog.openlog'), \
+         patch('syslog.syslog') as mock_syslog, \
+         patch.object(mod, '_run_pamusb_check', side_effect=OSError("no such file")):
+        with pytest.raises(SystemExit):
+            mod._run_as_pinentry('alice', 'secret', None, [])
+
+    assert any(
+        c.args[0] == syslog.LOG_ERR and
+        "Failed to run pamusb-check" in c.args[1] and
+        "alice" in c.args[1] and
+        "no such file" in c.args[1]
         for c in mock_syslog.call_args_list
     )
