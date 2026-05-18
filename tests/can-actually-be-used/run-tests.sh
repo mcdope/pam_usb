@@ -16,5 +16,6 @@ rm -rf /home/`whoami`/.pamusb
 ./test-conf-reset-pads.sh && \
 ./test-check-many-devices.sh && \
 ./test-check-superuser-filtering.sh && \
+./test-conf-adds-user-with-superuser.sh && \
 rm -rf /tmp/fakestick/.pamusb && \
 ./test-agent-properly-triggers.sh
