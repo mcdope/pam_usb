@@ -34,8 +34,8 @@ Syslog logging coverage:
   LOG_NOTICE logged when falling back to a valid fallback app
   LOG_ERR logged when fallback app is invalid or missing
   LOG_WARNING logged when PINENTRY_PASSWORD is empty
-  LOG_ERR logged when os.execv raises OSError (TOCTOU race)
-  LOG_ERR logged when _run_pamusb_check raises OSError
+  LOG_ERR logged when os.execv raises OSError (TOCTOU race); syslog ident preserved
+  LOG_ERR logged when _run_pamusb_check raises OSError; no redundant auth-failure notice
 """
 
 import importlib.util
@@ -495,7 +495,6 @@ def test_syslog_fallback_logged(tmp_path):
 
     with patch('syslog.openlog'), \
          patch('syslog.syslog') as mock_syslog, \
-         patch('syslog.closelog'), \
          patch.object(mod, '_run_pamusb_check', return_value=_auth_result(False)), \
          patch('os.execv'):
         mod._run_as_pinentry('alice', 'secret', fallback, [])
@@ -546,7 +545,6 @@ def test_syslog_execv_oserror_logged(tmp_path):
 
     with patch('syslog.openlog'), \
          patch('syslog.syslog') as mock_syslog, \
-         patch('syslog.closelog'), \
          patch.object(mod, '_run_pamusb_check', return_value=_auth_result(False)), \
          patch('os.execv', side_effect=OSError("permission denied")):
         with pytest.raises(SystemExit) as exc:
@@ -562,7 +560,7 @@ def test_syslog_execv_oserror_logged(tmp_path):
 
 
 def test_syslog_pamusb_check_oserror_logged():
-    """LOG_ERR is logged when _run_pamusb_check raises OSError."""
+    """LOG_ERR is logged when _run_pamusb_check raises OSError; no redundant auth-failure notice."""
     mod = _load_pinentry()
 
     with patch('syslog.openlog'), \
@@ -576,5 +574,9 @@ def test_syslog_pamusb_check_oserror_logged():
         "Failed to run pamusb-check" in c.args[1] and
         "alice" in c.args[1] and
         "no such file" in c.args[1]
+        for c in mock_syslog.call_args_list
+    )
+    assert not any(
+        "Authentication failed" in c.args[1]
         for c in mock_syslog.call_args_list
     )
