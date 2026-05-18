@@ -141,7 +141,7 @@ def addUser(options):
 		device = devices[int(options['deviceNumber'])]
 
 	items = [('User', options['userName']), ('Device', device)]
-	if options.get('superuser', False):
+	if options['superuser']:
 		items.append(('Superuser device', 'yes'))
 	shouldSave(options, items)
 
@@ -158,7 +158,7 @@ def addUser(options):
 			break
 
 	e = doc.createElement('device')
-	if options.get('superuser', False):
+	if options['superuser']:
 		e.setAttribute('superuser', 'true')
 	e.appendChild(doc.createTextNode(device))
 
@@ -329,7 +329,7 @@ def addDevice(options):
 		e.appendChild(doc.createTextNode('false'))
 		dev.appendChild(e)
 
-	devs[0].appendChild(prettifyElement(dev))
+	devs[0].appendChild(doc.importNode(prettifyElement(dev), True))
 	writeConf(options, doc)
 
 def resetPads():

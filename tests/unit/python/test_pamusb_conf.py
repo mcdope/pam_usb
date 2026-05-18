@@ -148,6 +148,7 @@ def test_add_user_produces_user_element(tmp_conf):
         "userName": "newuser",
         "deviceNumber": "0",
         "yes": True,
+        "superuser": False,
     }
 
     with patch.object(_mod, "minidom") as mock_mini, \
@@ -178,6 +179,7 @@ def test_add_user_no_duplicate_on_second_call(tmp_conf):
         "userName": "dupuser",
         "deviceNumber": "0",
         "yes": True,
+        "superuser": False,
     }
 
     with patch.object(_mod, "minidom") as mock_mini, \
