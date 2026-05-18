@@ -54,7 +54,7 @@ The syntax is the following:
 
 > **Time values** accept a number followed by a unit suffix: `s` (seconds), `m` (minutes),
 > `h` (hours), `d` (days). A bare number with no suffix is treated as seconds.
-> Examples: `10s`, `5m`, `1h`, `2d`, `3600` (all equivalent to one hour except the last two).
+> Examples: `10s`, `5m`, `1h`, `2d`, `3600`.
 
 > **Boolean values** are case-sensitive. Only the exact strings `true` and `false` are accepted.
 
