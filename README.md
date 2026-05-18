@@ -27,7 +27,7 @@ Tools
 * `pamusb-conf`: configuration helper
 * `pamusb-check`: integrate pam\_usb's authentication engine within your scripts or applications
 * `pamusb-keyring-unlock-gnome`: utility to unlock the gnome-keyring on login with pam_usb
-* `pamusb-pinentry`: utility to unlock the GPG keyring with pam_usb
+* `pinentry-pamusb`: utility to unlock the GPG keyring with pam_usb
 
 Getting Started
 ----------------

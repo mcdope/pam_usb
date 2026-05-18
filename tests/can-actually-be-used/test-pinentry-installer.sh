@@ -1,13 +1,13 @@
 #!/usr/bin/bash
 set -e
-echo -e "Test:\t\t\tpamusb-pinentry --install / --uninstall"
+echo -e "Test:\t\t\tpinentry-pamusb --install / --uninstall"
 
 FAKE_HOME=$(mktemp -d)
 MOCK_BIN=$(mktemp -d)
 MOCK_LOG=$(mktemp)
 trap "rm -rf $FAKE_HOME $MOCK_BIN $MOCK_LOG" EXIT
 
-TOOL=$(which pamusb-pinentry)
+TOOL=$(which pinentry-pamusb)
 
 # Mock update-alternatives: log all calls, always succeed.
 # printf expands $MOCK_LOG now; $@ stays literal inside the generated script.
@@ -24,8 +24,8 @@ PERMS=$(stat -c "%a" "$FAKE_HOME/.pamusb/.pinentry.env")
 grep -q 'PINENTRY_PASSWORD=changeme' "$FAKE_HOME/.pamusb/.pinentry.env"
 
 # verify update-alternatives --install and --set were called
-grep -q -- "--install /usr/bin/pinentry pinentry /usr/bin/pamusb-pinentry 100" "$MOCK_LOG"
-grep -q -- "--set pinentry /usr/bin/pamusb-pinentry" "$MOCK_LOG"
+grep -q -- "--install /usr/bin/pinentry pinentry /usr/bin/pinentry-pamusb 100" "$MOCK_LOG"
+grep -q -- "--set pinentry /usr/bin/pinentry-pamusb" "$MOCK_LOG"
 
 # idempotency: --install again must not overwrite existing envfile
 HOME=$FAKE_HOME PATH="$MOCK_BIN:$PATH" $TOOL --install
@@ -38,6 +38,6 @@ HOME=$FAKE_HOME PATH="$MOCK_BIN:$PATH" $TOOL --uninstall
 [ ! -f "$FAKE_HOME/.pamusb/.pinentry.env" ]
 
 # verify update-alternatives --remove was called
-grep -q -- "--remove pinentry /usr/bin/pamusb-pinentry" "$MOCK_LOG"
+grep -q -- "--remove pinentry /usr/bin/pinentry-pamusb" "$MOCK_LOG"
 
 echo -e "Result:\t\t\tPASSED!"

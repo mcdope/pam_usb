@@ -21,6 +21,7 @@ import subprocess
 import getpass
 import argparse
 import shutil
+import syslog
 import pwd
 from dotenv import load_dotenv
 
@@ -36,12 +37,12 @@ def _user_home():
 ENVFILE_PATH = os.path.join(_user_home(), ".pamusb", ".pinentry.env")
 PINENTRY_LINK = "/usr/bin/pinentry"
 PINENTRY_ALT_NAME = "pinentry"
-PAMUSB_PINENTRY_PATH = "/usr/bin/pamusb-pinentry"
+PAMUSB_PINENTRY_PATH = "/usr/bin/pinentry-pamusb"
 PAMUSB_CHECK_PATH = "/usr/bin/pamusb-check"
 PINENTRY_ALT_PRIORITY = 100
 
 ENVFILE_TEMPLATE = (
-    "# pamusb-pinentry configuration\n"
+    "# pinentry-pamusb configuration\n"
     "# Your GPG passphrase for auto-unlock\n"
     "PINENTRY_PASSWORD=changeme\n"
     "\n"
@@ -83,7 +84,7 @@ def install():
         sys.stderr.write("Failed to activate alternative: %s\n" % result.stderr.decode())
         sys.exit(1)
 
-    print("pamusb-pinentry registered and activated as pinentry alternative.")
+    print("pinentry-pamusb registered and activated as pinentry alternative.")
 
 
 def uninstall():
@@ -105,7 +106,7 @@ def uninstall():
         sys.stderr.write("Failed to remove alternative: %s\n" % result.stderr.decode())
         sys.exit(1)
 
-    print("pamusb-pinentry alternative removed.")
+    print("pinentry-pamusb alternative removed.")
 
 def escape_assuan_data(data):
     """Assuan protocol requires % and newlines to be percent-escaped in D lines."""
@@ -117,6 +118,72 @@ def _run_pamusb_check(user):
     return subprocess.run([PAMUSB_CHECK_PATH, user], capture_output=True)
 
 
+def _run_as_pinentry(user, pinentry_password, fallback_pinentry_app, unknown_args):
+    syslog.openlog('pinentry-pamusb', syslog.LOG_PID, syslog.LOG_AUTH)
+
+    if not pinentry_password:
+        syslog.syslog(syslog.LOG_WARNING,
+                      f"PINENTRY_PASSWORD is not set for user '{user}'")
+
+    try:
+        auth_result = _run_pamusb_check(user)
+    except OSError as e:
+        syslog.syslog(syslog.LOG_ERR,
+                      f"Failed to run pamusb-check for user '{user}': {e}")
+        auth_result = None
+
+    if auth_result is not None and auth_result.returncode == 0:
+        syslog.syslog(syslog.LOG_NOTICE,
+                      f"Authentication succeeded for user '{user}'")
+        print("OK Pleased to meet you", flush=True)
+        while True:
+            try:
+                line_str = input().strip()
+            except EOFError:
+                break
+
+            if not line_str or line_str.startswith('#'):
+                continue
+
+            cmd = line_str.split(maxsplit=1)[0]
+
+            if cmd == "GETPIN":
+                syslog.syslog(syslog.LOG_NOTICE,
+                              f"Passphrase delivered to gpg-agent for user '{user}'")
+                print("D %s" % escape_assuan_data(pinentry_password), flush=True)
+                print("OK", flush=True)
+            elif cmd == "BYE":
+                print("OK", flush=True)
+                break
+            else:
+                print("OK", flush=True)
+    else:
+        if auth_result is not None:
+            reason = "; ".join(auth_result.stderr.decode(errors='replace').splitlines()).strip() or "unknown reason"
+            syslog.syslog(syslog.LOG_NOTICE,
+                          f"Authentication failed for user '{user}' (code {auth_result.returncode}): {reason}")
+        if (fallback_pinentry_app
+                and os.path.isabs(fallback_pinentry_app)
+                and os.path.isfile(fallback_pinentry_app)
+                and os.access(fallback_pinentry_app, os.X_OK)):
+            syslog.syslog(syslog.LOG_NOTICE,
+                          f"Falling back to '{fallback_pinentry_app}'")
+            try:
+                os.execv(fallback_pinentry_app, [fallback_pinentry_app] + unknown_args)
+            except OSError as e:
+                syslog.syslog(syslog.LOG_ERR,
+                              f"Failed to execute fallback '{fallback_pinentry_app}': {e}")
+                sys.stderr.write(f"Failed to execute fallback '{fallback_pinentry_app}': {e}\n")
+                sys.exit(1)
+        else:
+            syslog.syslog(syslog.LOG_ERR,
+                          f"PINENTRY_FALLBACK_APP='{fallback_pinentry_app}' is not set or not a valid executable, cannot fall back")
+            sys.stderr.write(
+                f'PINENTRY_FALLBACK_APP={fallback_pinentry_app} is not set or not a valid '
+                f'executable path, cannot fall back.\n')
+            sys.exit(1)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="pam_usb pinentry tool"
@@ -124,11 +191,11 @@ if __name__ == "__main__":
     group = parser.add_mutually_exclusive_group()
     group.add_argument(
         "--install", action="store_true",
-        help="Create envfile and register pamusb-pinentry as pinentry alternative"
+        help="Create envfile and register pinentry-pamusb as pinentry alternative"
     )
     group.add_argument(
         "--uninstall", action="store_true",
-        help="Remove envfile and unregister pamusb-pinentry pinentry alternative"
+        help="Remove envfile and unregister pinentry-pamusb pinentry alternative"
     )
 
     args, unknown_args = parser.parse_known_args()
@@ -142,37 +209,9 @@ if __name__ == "__main__":
         sys.exit(0)
 
     load_dotenv(ENVFILE_PATH)
-
-    pinentryPassword = os.getenv('PINENTRY_PASSWORD', '')
-    fallbackPinentryApp = os.getenv('PINENTRY_FALLBACK_APP')
-
-    isAuthenticated = _run_pamusb_check(getpass.getuser())
-    if (isAuthenticated.returncode == 0):
-        print("OK Pleased to meet you", flush=True)
-        while True:
-            try:
-                line_str = input().strip()
-            except EOFError:
-                break
-
-            if not line_str or line_str.startswith('#'):
-                continue
-
-            parts = line_str.split(maxsplit=1)
-            cmd = parts[0]
-
-            if cmd == "GETPIN":
-                escaped_pass = escape_assuan_data(pinentryPassword)
-                print("D %s" % escaped_pass, flush=True)
-                print("OK", flush=True)
-            elif cmd == "BYE":
-                print("OK", flush=True)
-                break
-            else:
-                print("OK", flush=True)
-    else:
-        if fallbackPinentryApp and os.path.isabs(fallbackPinentryApp) and os.path.isfile(fallbackPinentryApp) and os.access(fallbackPinentryApp, os.X_OK):
-            os.execv(fallbackPinentryApp, [fallbackPinentryApp] + unknown_args)
-        else:
-            sys.stderr.write(f'PINENTRY_FALLBACK_APP={fallbackPinentryApp} is not set or not a valid executable path, cannot fall back.\n')
-            sys.exit(1)
+    _run_as_pinentry(
+        getpass.getuser(),
+        os.getenv('PINENTRY_PASSWORD', ''),
+        os.getenv('PINENTRY_FALLBACK_APP'),
+        unknown_args,
+    )

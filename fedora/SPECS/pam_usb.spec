@@ -45,7 +45,7 @@ rm -rf %{buildroot}/usr/share/pam-configs
 %attr(0755,root,root) /usr/bin/pamusb-check
 %attr(0755,root,root) /usr/bin/pamusb-conf
 %attr(0755,root,root) /usr/bin/pamusb-keyring-unlock-gnome
-%attr(0755,root,root) /usr/bin/pamusb-pinentry
+%attr(0755,root,root) /usr/bin/pinentry-pamusb
 
 %config(noreplace) %attr(0644,root,root) /etc/security/pam_usb.conf
 %config(noreplace) %attr(0644,root,root) /usr/lib/systemd/system/polkit-agent-helper@.service.d/systemd-polkit-agent-helper-pamusb.conf
@@ -54,7 +54,7 @@ rm -rf %{buildroot}/usr/share/pam-configs
 %doc %attr(0644,root,root) /usr/share/man/man1/pamusb-check.1.gz
 %doc %attr(0644,root,root) /usr/share/man/man1/pamusb-conf.1.gz
 %doc %attr(0644,root,root) /usr/share/man/man1/pamusb-keyring-unlock-gnome.1.gz
-%doc %attr(0644,root,root) /usr/share/man/man1/pamusb-pinentry.1.gz
+%doc %attr(0644,root,root) /usr/share/man/man1/pinentry-pamusb.1.gz
 %doc %attr(0644,root,root) /usr/share/doc/pam_usb/CONFIGURATION
 %doc %attr(0644,root,root) /usr/share/doc/pam_usb/QUICKSTART
 %doc %attr(0644,root,root) /usr/share/doc/pam_usb/SECURITY
