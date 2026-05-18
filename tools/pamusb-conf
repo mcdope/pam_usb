@@ -469,20 +469,20 @@ if __name__ == '__main__':
 			options['listVolumes'] = True
 		if o in ("--reset-pads"):
 			options['resetPads'] = a
-		if o in ("--superuser"):
+		if o == "--superuser":
 			options['superuser'] = True
 
 	if options['resetPads'] is not None:
 		resetPads()
 
+	if options['superuser'] and options['userName'] is None:
+		print('--superuser can only be used with --add-user')
+		usage()
+
 	if options['listDevices'] is True or options['listVolumes'] is True:
 		udisks = UDisks.Client.new_sync()
 		udisksObjectManager = udisks.get_object_manager()
 		listAvailableDevicesAndVolumes(options)
-
-	if options['superuser'] and options['userName'] is None:
-		print('--superuser can only be used in combination with --add-user')
-		usage()
 
 	if options['deviceName'] is not None and options['userName'] is not None:
 		print('You cannot use both --add-user and --add-device')
