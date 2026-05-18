@@ -118,15 +118,15 @@ def _run_pamusb_check(user):
     return subprocess.run([PAMUSB_CHECK_PATH, user], capture_output=True)
 
 
-def _run_as_pinentry(user, pinentryPassword, fallbackPinentryApp, unknown_args):
+def _run_as_pinentry(user, pinentry_password, fallback_pinentry_app, unknown_args):
     syslog.openlog('pamusb-pinentry', syslog.LOG_PID, syslog.LOG_AUTH)
 
-    if not pinentryPassword:
+    if not pinentry_password:
         syslog.syslog(syslog.LOG_WARNING,
                       f"PINENTRY_PASSWORD is not set for user '{user}'")
 
-    isAuthenticated = _run_pamusb_check(user)
-    if isAuthenticated.returncode == 0:
+    auth_result = _run_pamusb_check(user)
+    if auth_result.returncode == 0:
         syslog.syslog(syslog.LOG_NOTICE,
                       f"Authentication succeeded for user '{user}'")
         print("OK Pleased to meet you", flush=True)
@@ -144,7 +144,7 @@ def _run_as_pinentry(user, pinentryPassword, fallbackPinentryApp, unknown_args):
             if cmd == "GETPIN":
                 syslog.syslog(syslog.LOG_NOTICE,
                               f"Passphrase delivered to gpg-agent for user '{user}'")
-                print("D %s" % escape_assuan_data(pinentryPassword), flush=True)
+                print("D %s" % escape_assuan_data(pinentry_password), flush=True)
                 print("OK", flush=True)
             elif cmd == "BYE":
                 print("OK", flush=True)
@@ -154,18 +154,18 @@ def _run_as_pinentry(user, pinentryPassword, fallbackPinentryApp, unknown_args):
     else:
         syslog.syslog(syslog.LOG_NOTICE,
                       f"Authentication failed for user '{user}'")
-        if (fallbackPinentryApp
-                and os.path.isabs(fallbackPinentryApp)
-                and os.path.isfile(fallbackPinentryApp)
-                and os.access(fallbackPinentryApp, os.X_OK)):
+        if (fallback_pinentry_app
+                and os.path.isabs(fallback_pinentry_app)
+                and os.path.isfile(fallback_pinentry_app)
+                and os.access(fallback_pinentry_app, os.X_OK)):
             syslog.syslog(syslog.LOG_NOTICE,
-                          f"Falling back to '{fallbackPinentryApp}'")
-            os.execv(fallbackPinentryApp, [fallbackPinentryApp] + unknown_args)
+                          f"Falling back to '{fallback_pinentry_app}'")
+            os.execv(fallback_pinentry_app, [fallback_pinentry_app] + unknown_args)
         else:
             syslog.syslog(syslog.LOG_ERR,
-                          f"PINENTRY_FALLBACK_APP='{fallbackPinentryApp}' is not set or not a valid executable, cannot fall back")
+                          f"PINENTRY_FALLBACK_APP='{fallback_pinentry_app}' is not set or not a valid executable, cannot fall back")
             sys.stderr.write(
-                f'PINENTRY_FALLBACK_APP={fallbackPinentryApp} is not set or not a valid '
+                f'PINENTRY_FALLBACK_APP={fallback_pinentry_app} is not set or not a valid '
                 f'executable path, cannot fall back.\n')
             sys.exit(1)
 
