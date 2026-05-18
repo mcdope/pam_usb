@@ -147,6 +147,9 @@ def addUser(options):
 
 	# Check if user exists
 	users = doc.getElementsByTagName('users')
+	if len(users) == 0:
+		print('Malformed configuration file: No <users> section found.')
+		sys.exit(1)
 	userElements = doc.getElementsByTagName('user')
 	user = False
 	for _user in userElements:
