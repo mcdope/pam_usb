@@ -182,7 +182,7 @@ When GPG needs a passphrase it calls whatever binary is registered as `pinentry`
 
 ### Requirements
 
-* `python-dotenv` must be installed (`pip install python-dotenv` or your distro's package, e.g. `python3-dotenv`).
+* `python-dotenv` must be installed (preferably via your distro's package manager, e.g., `python3-dotenv`).
 * `update-alternatives` must be available (standard on Debian/Ubuntu/Fedora; on Arch you may need to perform the registration manually — see below).
 
 ### Setup
