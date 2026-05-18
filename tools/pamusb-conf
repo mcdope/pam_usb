@@ -160,16 +160,14 @@ def addUser(options):
 		e = doc.createElement('device')
 		if options.get('superuser', False):
 			e.setAttribute('superuser', 'true')
-		t = doc.createTextNode(device)
-		e.appendChild(t)
+		e.appendChild(doc.createTextNode(device))
 		user.appendChild(e)
 		users[0].appendChild(prettifyElement(user))
 	else: # just add another device
 		e = doc.createElement('device')
 		if options.get('superuser', False):
 			e.setAttribute('superuser', 'true')
-		t = doc.createTextNode(device)
-		e.appendChild(t)
+		e.appendChild(doc.createTextNode(device))
 		user.appendChild(e)
 
 	writeConf(options, doc)
@@ -421,7 +419,7 @@ def resetPads():
 
 def usage():
 	print('Version 0.8.5')
-	print('Usage: %s [--help] [--verbose] [--yes] [--config=path] [--reset-pads=username] [--add-user=name [--superuser] | --add-device=name [[--device=number] [--volume=number]]' % os.path.basename(__file__))
+	print('Usage: %s [--help] [--verbose] [--yes] [--config=path] [--reset-pads=username] [[--add-user=name [--superuser]] | [--add-device=name [[--device=number] [--volume=number]]]]' % os.path.basename(__file__))
 	sys.exit(1)
 
 if __name__ == '__main__':
