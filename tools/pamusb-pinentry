@@ -106,6 +106,11 @@ def uninstall():
 
     print("pamusb-pinentry alternative removed.")
 
+def escape_assuan_data(data):
+    """Assuan protocol requires % and newlines to be percent-escaped in D lines."""
+    if not data:
+        return ""
+    return data.replace('%', '%25').replace('\n', '%0A').replace('\r', '%0D')
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -120,7 +125,8 @@ if __name__ == "__main__":
         "--uninstall", action="store_true",
         help="Remove envfile and unregister pamusb-pinentry pinentry alternative"
     )
-    args = parser.parse_args()
+
+    args, unknown_args = parser.parse_known_args()
 
     if args.install:
         install()
@@ -132,22 +138,36 @@ if __name__ == "__main__":
 
     load_dotenv(ENVFILE_PATH)
 
-    pinentryPassword = os.getenv('PINENTRY_PASSWORD')
+    pinentryPassword = os.getenv('PINENTRY_PASSWORD', '')
     fallbackPinentryApp = os.getenv('PINENTRY_FALLBACK_APP')
 
     isAuthenticated = subprocess.run(["pamusb-check", getpass.getuser()], capture_output=True)
     if (isAuthenticated.returncode == 0):
-        print("OK Pleased to meet you")
+        print("OK Pleased to meet you", flush=True)
         while True:
-            line = input().split()
-            if line[0] == "GETPIN":
-                print("D %s" % pinentryPassword)
-            elif line[0] == "BYE":
-                exit()
-            print("OK")
+            try:
+                line_str = input().strip()
+            except EOFError:
+                break
+
+            if not line_str or line_str.startswith('#'):
+                continue
+
+            parts = line_str.split()
+            cmd = parts[0]
+
+            if cmd == "GETPIN":
+                escaped_pass = escape_assuan_data(pinentryPassword)
+                print("D %s" % escaped_pass, flush=True)
+                print("OK", flush=True)
+            elif cmd == "BYE":
+                print("OK", flush=True)
+                break
+            else:
+                print("OK", flush=True)
     else:
         if fallbackPinentryApp and os.path.isabs(fallbackPinentryApp) and os.path.isfile(fallbackPinentryApp) and os.access(fallbackPinentryApp, os.X_OK):
-            subprocess.run([fallbackPinentryApp])
+            os.execv(fallbackPinentryApp, [fallbackPinentryApp] + unknown_args)
         else:
-            sys.stderr.write('PINENTRY_FALLBACK_APP is not set or not a valid executable path, cannot fall back.\n')
+            sys.stderr.write(f'PINENTRY_FALLBACK_APP={fallbackPinentryApp} is not set or not a valid executable path, cannot fall back.\n')
             sys.exit(1)
