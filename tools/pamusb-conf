@@ -165,7 +165,7 @@ def addUser(options):
 		user.appendChild(e)
 		users[0].appendChild(prettifyElement(user))
 	else: # just add another device
-		user.appendChild(e)
+		user.appendChild(prettifyElement(e))
 
 	writeConf(options, doc)
 
