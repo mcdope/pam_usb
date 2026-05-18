@@ -28,7 +28,7 @@ Once you've connected your USB device to the computer, use pamusb-conf to add it
     [Y/n] y
     Done.
 
-Note that `MyDevice` can be any arbitrary name you'd like, but will be used as an XML attribute value so stay away from any special characters and stick to A-Z. 
+Note that `MyDevice` can be any arbitrary name you'd like, but will be used as an XML attribute value so stay away from any special characters and stick to A-Z.
 
 Also, you can add as many devices as you want. However, in versions prior to v0.8.5 each user can only use a single device. So additional devices can only be used for additional users. Starting from v0.8.5 a single user can have multiple devices assigned as well.
 
@@ -60,13 +60,13 @@ This tool will simulate an authentication request (requires your device to be co
 Setting up the PAM module
 -------------------------
 
-Before you do this step you should read into how `pam.d` configuration works. If you make the wrong changes you could easily end up with a system where you can't login at all - requiring you to use recovery mode to revert your changes. 
+Before you do this step you should read into how `pam.d` configuration works. If you make the wrong changes you could easily end up with a system where you can't login at all - requiring you to use recovery mode to revert your changes.
 
-See https://manpages.ubuntu.com/manpages/impish/en/man7/PAM.7.html for a quick explanation of PAM and https://manpages.ubuntu.com/manpages/impish/man5/pam.d.5.html for a configuration file guide. If you aren't on a Debian based distro check your system man pages for them since there will be some differences most likely.  
+See https://manpages.ubuntu.com/manpages/impish/en/man7/PAM.7.html for a quick explanation of PAM and https://manpages.ubuntu.com/manpages/impish/man5/pam.d.5.html for a configuration file guide. If you aren't on a Debian based distro check your system man pages for them since there will be some differences most likely.
 
 To add pam_usb into the system authentication process, we need to edit `/etc/pam.d/common-auth`
-    
-    NOTE: If you are using RedHat, Arch or Fedora this file can be known as `/etc/pam.d/system-auth`.  
+
+    NOTE: If you are using RedHat, Arch or Fedora this file can be known as `/etc/pam.d/system-auth`.
     Some distributions also require you to additionally insert the line into `/etc/pam.d/password-auth`.
 
 Your default PAM common-auth configuration should include the following line:
@@ -80,7 +80,7 @@ Alter your `/etc/pam.d/common-auth` configuration to:
     auth    sufficient      pam_usb.so
     auth    required        pam_unix.so nullok_secure
 
-Remember what we've learned in the pam manpages (you've read them, riiiight?): pam rules are a stack, order of the rules is important and makes a difference in behavior. 
+Remember what we've learned in the pam manpages (you've read them, riiiight?): pam rules are a stack, order of the rules is important and makes a difference in behavior.
 
 ### Use pam_usb to replace your password
 The `sufficient` keyword means that if pam_usb allows the authentication, then no password will be asked.
@@ -118,29 +118,126 @@ You can find details in [the "Agent" section of Configuration](https://github.co
 Auto-unlock your GNOME keyring
 ------------------------------
 
-You should think twice if you want to enable this feature. To use it you need to put your keyring password in cleartext into your home directory. 
+> **Security warning:** You should think twice before enabling this feature.
+> To use it you need to put your keyring password in cleartext in your home directory.
+> The tool restricts the file to owner-only permissions (0600), but anyone with root/sudo
+> access can still read it. Even worse: if you have Samba user shares enabled, the password
+> file will be accessible to anyone who can reach that share.
+> **This is a comfort feature and is insecure by design.**
 
-The tool will only work if that file has permissions only for the owner, however - anyone with root/sudo access will still be able to read it. Keep that in mind before using this feature. Even worse: if you have samba user shares enabled you would share your password via SMB shares - to whoever can access that share. To be clear: this is a comfort feature and is insecure by design. 
+### How it works
 
-If you still want to use it, run:
+An autostart `.desktop` entry runs `pamusb-keyring-unlock-gnome` at the start of every
+GNOME session. The script calls `pamusb-check` for the current user; if the USB token is
+present and valid, it kills any existing `gnome-keyring-daemon` instance and re-launches it
+with the stored password supplied over stdin, unlocking your default keyring without a
+password prompt. If the token is absent or the check fails the script exits silently,
+leaving the keyring locked.
+
+### Requirements
+
+* pam_usb must already be configured and working for your user (`pamusb-check <username>`
+  must succeed with the device connected).
+* `gnome-keyring-daemon` must be installed (package `gnome-keyring` on most distros).
+
+### Setup
+
+Run **as your normal user — do not run as root**:
 
     pamusb-keyring-unlock-gnome --install
 
-and follow the prompts. This creates the password file with correct permissions and installs
-the GNOME autostart entry. To undo, run:
+Follow the prompt to enter your keyring password. The installer:
+
+1. Writes `~/.pamusb/.keyring_unlock_password` (mode 0600) with your password.
+2. Creates `~/.config/autostart/pamusb-keyring-unlock-gnome.desktop` — the unlock autostart entry.
+3. Creates `~/.config/autostart/gnome-keyring-secrets.desktop` with `Hidden=true` to disable
+   GNOME's own default keyring autostart, preventing conflicts.
+
+Log out and back in for the autostart to take effect.
+
+### Removal
 
     pamusb-keyring-unlock-gnome --uninstall
+
+This removes the password file and both `.desktop` files created above, fully reverting
+the installation.
+
+### Troubleshooting
+
+| Symptom | What to check |
+|---|---|
+| Keyring still asks for password on login | Confirm `pamusb-check <username>` succeeds with device connected |
+| Nothing happens at login | Check syslog: `journalctl -t pamusb-keyring-unlock-gnome` for error messages |
+| "Bad permissions" error in syslog | Run `chmod 0600 ~/.pamusb/.keyring_unlock_password` |
+| Autostart not running | Verify GNOME autostart is enabled and the `.desktop` file exists in `~/.config/autostart/` |
 
 Auto-unlock your GPG keys
 ------------------------------
 
-You should think twice if you want to enable this feature. To use it you need to put your password in cleartext into your home directory. You will also have to install `python3-dotenv` additionally for this to work.
+`pam_usb` ships a custom pinentry program — **`pamusb-pinentry`** — that supplies your GPG passphrase automatically when your USB token is present and verified.
 
-If you still want to use it, you will have to do four things:
-* create `.pinentry.env` in `~/.pamusb/`
-* put `PINENTRY_PASSWORD=yourGpgKeyPassword` in there
-* also put `PINENTRY_FALLBACK_APP=/path/to/fallback/pinentry` there (eg `/usr/bin/pinentry-gnome3` or whatever you're using right now)
-* configure GPG to use this application by setting it in `~/.gnupg/gpg-agent.conf`. To do so add `pinentry-program /path/to/pamusb-pinentry` (default: `/usr/bin/pamusb-pinentry`)
+### How it works
+
+When GPG needs a passphrase it calls whatever binary is registered as `pinentry`. `pamusb-pinentry` intercepts that call, runs `pamusb-check` for the current user, and — if the token is present and valid — returns the passphrase stored in `~/.pamusb/.pinentry.env`. If the token is absent or the check fails it falls back to a regular pinentry program of your choice (e.g. `pinentry-gnome3`).
+
+### Requirements
+
+* `python-dotenv` must be installed (preferably via your distro's package manager, e.g., `python3-dotenv`).
+* `update-alternatives` must be available (standard on Debian/Ubuntu/Fedora; on Arch you may need to perform the registration manually — see below).
+
+### Setup
+
+Run the installer **as root** (so it can register the `update-alternatives` entry system-wide, but the env file is written to the calling user's home via `$SUDO_USER`):
+
+    sudo pamusb-pinentry --install
+
+This does two things:
+
+1. Creates `~/.pamusb/.pinentry.env` (mode `0600`) with a template you must edit.
+2. Registers `pamusb-pinentry` as a `pinentry` alternative with priority 100 and activates it.
+
+Now edit the env file and set your actual GPG passphrase:
+
+    $EDITOR ~/.pamusb/.pinentry.env
+
+The file looks like this:
+
+    # pamusb-pinentry configuration
+    # Your GPG passphrase for auto-unlock
+    PINENTRY_PASSWORD=changeme
+
+    # Fallback pinentry application (must be an absolute path)
+    # PINENTRY_FALLBACK_APP=/usr/bin/pinentry-gnome3
+
+Replace `changeme` with your real passphrase and, if you want a fallback when the token is not present, uncomment and set `PINENTRY_FALLBACK_APP` to the full path of another pinentry binary.
+
+> **Security note:** `~/.pamusb/.pinentry.env` is created with mode `0600` and must remain readable only by you. Do not place it in a world-readable directory or check it into version control. Anyone with root/sudo access will still be able to read it — keep that in mind before using this feature.
+
+### Removal
+
+To undo the installation (removes the env file and de-registers the alternative):
+
+    sudo pamusb-pinentry --uninstall
+
+### Manual registration (systems without `update-alternatives`)
+
+If `update-alternatives` is not available (e.g. vanilla Arch Linux), `--install` will still create the env file but skip alternative registration. You can register the alternative manually or simply symlink:
+
+    # Option A – symlink (destructive, replaces the existing pinentry)
+    sudo ln -sf /usr/bin/pamusb-pinentry /usr/bin/pinentry
+
+    # Option B – keep the original and switch back manually later
+    sudo mv /usr/bin/pinentry /usr/bin/pinentry.bak
+    sudo ln -sf /usr/bin/pamusb-pinentry /usr/bin/pinentry
+
+### Troubleshooting
+
+| Symptom | Likely cause |
+|---|---|
+| GPG still asks for passphrase interactively | `pamusb-pinentry` is not the active pinentry — run `update-alternatives --display pinentry` to check |
+| `PINENTRY_FALLBACK_APP is not set…` error | Token check failed and no fallback is configured; set `PINENTRY_FALLBACK_APP` in the env file |
+| Wrong passphrase returned | `PINENTRY_PASSWORD` in the env file does not match your GPG key's passphrase |
+| `No module named 'dotenv'` | Install `python-dotenv` for your system Python 3 |
 
 Fine Tuning
 -----------
