@@ -258,6 +258,42 @@ def test_add_user_without_superuser_flag_has_no_attribute(tmp_conf):
     assert user_devices[0].getAttribute("superuser") == ""
 
 
+def test_add_user_uses_device_name_directly_for_combined_workflow(tmp_conf):
+    """When deviceName is set (combined --add-device --add-user flow), addUser must use
+    it directly as the device id without requiring a deviceNumber selection."""
+    doc = minidom.parseString(
+        '<?xml version="1.0"?>'
+        "<configuration>"
+        "  <devices>"
+        '    <device id="myusb"><serial>S</serial></device>'
+        "  </devices>"
+        "  <users/>"
+        "</configuration>"
+    )
+    options = {
+        "configFile": str(tmp_conf),
+        "userName": "carol",
+        "deviceName": "myusb",
+        "deviceNumber": None,
+        "yes": True,
+        "superuser": True,
+    }
+    with patch.object(_mod, "minidom") as mock_mini, \
+         patch.object(_mod, "writeConf"):
+        mock_mini.parse.return_value = doc
+        mock_mini.parseString = minidom.parseString
+        _mod.addUser(options)
+
+    user_devices = [
+        d for u in doc.getElementsByTagName("user")
+        if u.getAttribute("id") == "carol"
+        for d in u.getElementsByTagName("device")
+    ]
+    assert len(user_devices) == 1
+    assert user_devices[0].firstChild.nodeValue == "myusb"
+    assert user_devices[0].getAttribute("superuser") == "true"
+
+
 # ── C-2 regression: UUID validation ──────────────────────────────────────────
 
 import re as _re
