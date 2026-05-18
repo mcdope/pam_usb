@@ -113,7 +113,7 @@ def shouldSave(options, items):
 
 def prettifyElement(element):
 	tmp = minidom.parseString(element.toprettyxml())
-	return tmp.lastChild
+	return tmp.documentElement
 
 def addUser(options):
 	try:
