@@ -140,13 +140,10 @@ def addUser(options):
 	else:
 		device = devices[int(options['deviceNumber'])]
 
-	shouldSave(
-		options, 
-		[
-			('User', options['userName']),
-			('Device', device)
-		]
-	)
+	items = [('User', options['userName']), ('Device', device)]
+	if options.get('superuser', False):
+		items.append(('Superuser device', 'yes'))
+	shouldSave(options, items)
 
 	# Check if user exists
 	users = doc.getElementsByTagName('users')
@@ -161,12 +158,16 @@ def addUser(options):
 		user = doc.createElement('user')
 		user.attributes['id'] = options['userName']
 		e = doc.createElement('device')
+		if options.get('superuser', False):
+			e.setAttribute('superuser', 'true')
 		t = doc.createTextNode(device)
 		e.appendChild(t)
 		user.appendChild(e)
 		users[0].appendChild(prettifyElement(user))
 	else: # just add another device
 		e = doc.createElement('device')
+		if options.get('superuser', False):
+			e.setAttribute('superuser', 'true')
 		t = doc.createTextNode(device)
 		e.appendChild(t)
 		user.appendChild(e)
@@ -420,7 +421,7 @@ def resetPads():
 
 def usage():
 	print('Version 0.8.5')
-	print('Usage: %s [--help] [--verbose] [--yes] [--config=path] [--reset-pads=username] [--add-user=name | --add-device=name [[--device=number] [--volume=number]]' % os.path.basename(__file__))
+	print('Usage: %s [--help] [--verbose] [--yes] [--config=path] [--reset-pads=username] [--add-user=name [--superuser] | --add-device=name [[--device=number] [--volume=number]]' % os.path.basename(__file__))
 	sys.exit(1)
 
 if __name__ == '__main__':
@@ -428,7 +429,7 @@ if __name__ == '__main__':
 		opts, args = getopt.getopt(
 			sys.argv[1:],
 			"hvd:nu:c:y",
-			["help", "verbose", "add-device=", "add-user=", "config=", "reset-pads=", "yes", "device=", "volume=", "list-devices", "list-volumes"]
+			["help", "verbose", "add-device=", "add-user=", "config=", "reset-pads=", "yes", "device=", "volume=", "list-devices", "list-volumes", "superuser"]
 		)
 	except getopt.GetoptError:
 		usage()
@@ -446,7 +447,8 @@ if __name__ == '__main__':
 		'volumeNumber': None,
 		'listDevices': False,
 		'listVolumes': False,
-		'resetPads': None
+		'resetPads': None,
+		'superuser': False
 	}
 
 	for o, a in opts:
@@ -472,6 +474,8 @@ if __name__ == '__main__':
 			options['listVolumes'] = True
 		if o in ("--reset-pads"):
 			options['resetPads'] = a
+		if o in ("--superuser"):
+			options['superuser'] = True
 
 	if options['resetPads'] is not None:
 		resetPads()

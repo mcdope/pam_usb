@@ -192,6 +192,72 @@ def test_add_user_no_duplicate_on_second_call(tmp_conf):
     assert len(users) == 1
 
 
+def test_add_user_with_superuser_flag(tmp_conf):
+    """addUser with superuser=True must set superuser="true" on the <device> element."""
+    doc = minidom.parseString(
+        '<?xml version="1.0"?>'
+        "<configuration>"
+        "  <devices>"
+        '    <device id="dev1"><serial>S</serial></device>'
+        "  </devices>"
+        "  <users/>"
+        "</configuration>"
+    )
+    options = {
+        "configFile": str(tmp_conf),
+        "userName": "superuser_alice",
+        "deviceNumber": "0",
+        "yes": True,
+        "superuser": True,
+    }
+    with patch.object(_mod, "minidom") as mock_mini, \
+         patch.object(_mod, "writeConf"):
+        mock_mini.parse.return_value = doc
+        mock_mini.parseString = minidom.parseString
+        _mod.addUser(options)
+
+    user_devices = [
+        d for u in doc.getElementsByTagName("user")
+        if u.getAttribute("id") == "superuser_alice"
+        for d in u.getElementsByTagName("device")
+    ]
+    assert len(user_devices) == 1
+    assert user_devices[0].getAttribute("superuser") == "true"
+
+
+def test_add_user_without_superuser_flag_has_no_attribute(tmp_conf):
+    """addUser without superuser flag must NOT add a superuser attribute."""
+    doc = minidom.parseString(
+        '<?xml version="1.0"?>'
+        "<configuration>"
+        "  <devices>"
+        '    <device id="dev1"><serial>S</serial></device>'
+        "  </devices>"
+        "  <users/>"
+        "</configuration>"
+    )
+    options = {
+        "configFile": str(tmp_conf),
+        "userName": "plain_bob",
+        "deviceNumber": "0",
+        "yes": True,
+        "superuser": False,
+    }
+    with patch.object(_mod, "minidom") as mock_mini, \
+         patch.object(_mod, "writeConf"):
+        mock_mini.parse.return_value = doc
+        mock_mini.parseString = minidom.parseString
+        _mod.addUser(options)
+
+    user_devices = [
+        d for u in doc.getElementsByTagName("user")
+        if u.getAttribute("id") == "plain_bob"
+        for d in u.getElementsByTagName("device")
+    ]
+    assert len(user_devices) == 1
+    assert user_devices[0].getAttribute("superuser") == ""
+
+
 # ── C-2 regression: UUID validation ──────────────────────────────────────────
 
 import re as _re
