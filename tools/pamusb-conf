@@ -472,12 +472,12 @@ if __name__ == '__main__':
 		if o == "--superuser":
 			options['superuser'] = True
 
-	if options['resetPads'] is not None:
-		resetPads()
-
 	if options['superuser'] and options['userName'] is None:
 		print('--superuser can only be used with --add-user')
 		usage()
+
+	if options['resetPads'] is not None:
+		resetPads()
 
 	if options['listDevices'] is True or options['listVolumes'] is True:
 		udisks = UDisks.Client.new_sync()
