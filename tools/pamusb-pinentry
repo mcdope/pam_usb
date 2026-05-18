@@ -153,7 +153,7 @@ if __name__ == "__main__":
             if not line_str or line_str.startswith('#'):
                 continue
 
-            parts = line_str.split()
+            parts = line_str.split(maxsplit=1)
             cmd = parts[0]
 
             if cmd == "GETPIN":
