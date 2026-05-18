@@ -68,7 +68,7 @@ PAMUSB_CHECK := pamusb-check
 PAMUSB_CONF := pamusb-conf
 PAMUSB_AGENT := pamusb-agent
 PAMUSB_KEYRING_GNOME := pamusb-keyring-unlock-gnome
-PAMUSB_PINENTRY := pamusb-pinentry
+PAMUSB_PINENTRY := pinentry-pamusb
 TOOLS_DEST := $(DESTDIR)$(PREFIX)/bin
 TOOLS_SRC := tools
 
@@ -81,7 +81,7 @@ DOCS := doc/CONFIGURATION doc/QUICKSTART doc/SECURITY doc/TROUBLESHOOTING
 DOCS_DEST := $(DESTDIR)$(PREFIX)/share/doc/pam_usb
 
 # Man
-MANS := doc/pamusb-conf.1.gz doc/pamusb-agent.1.gz doc/pamusb-check.1.gz doc/pamusb-keyring-unlock-gnome.1.gz doc/pamusb-pinentry.1.gz
+MANS := doc/pamusb-conf.1.gz doc/pamusb-agent.1.gz doc/pamusb-check.1.gz doc/pamusb-keyring-unlock-gnome.1.gz doc/pinentry-pamusb.1.gz
 MANS_DEST := $(DESTDIR)$(PREFIX)/share/man/man1
 
 # PAM config

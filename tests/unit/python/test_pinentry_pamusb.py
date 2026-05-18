@@ -1,5 +1,5 @@
 """
-Unit tests for tools/pamusb-pinentry
+Unit tests for tools/pinentry-pamusb
 
 Security regression coverage:
   M-3: PINENTRY_FALLBACK_APP validation — relative path rejected
@@ -27,7 +27,7 @@ Installer/uninstaller coverage:
   uninstall(): exits 1 when update-alternatives --remove fails
 
 Syslog logging coverage:
-  openlog() called with ident 'pamusb-pinentry', LOG_PID, LOG_AUTH
+  openlog() called with ident 'pinentry-pamusb', LOG_PID, LOG_AUTH
   LOG_NOTICE logged on authentication success
   LOG_NOTICE logged on GETPIN passphrase delivery
   LOG_NOTICE logged on authentication failure
@@ -51,12 +51,12 @@ from unittest.mock import patch, MagicMock, call
 # ── Module loader ─────────────────────────────────────────────────────────────
 
 def _load_pinentry():
-    """Import tools/pamusb-pinentry as a module without triggering __main__."""
+    """Import tools/pinentry-pamusb as a module without triggering __main__."""
     script_path = os.path.normpath(
-        os.path.join(os.path.dirname(__file__), "../../../tools/pamusb-pinentry")
+        os.path.join(os.path.dirname(__file__), "../../../tools/pinentry-pamusb")
     )
-    loader = SourceFileLoader("pamusb_pinentry", script_path)
-    spec = importlib.util.spec_from_loader("pamusb_pinentry", loader)
+    loader = SourceFileLoader("pinentry_pamusb", script_path)
+    spec = importlib.util.spec_from_loader("pinentry_pamusb", loader)
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod
@@ -76,7 +76,7 @@ def _auth_ok_run(*args, **kwargs):
 
 def _run_pinentry_fallback(tmp_path, fallback_app, monkeypatch, auth_ok=False):
     """
-    Run the fallback-validation logic from pamusb-pinentry with mocked auth.
+    Run the fallback-validation logic from pinentry-pamusb with mocked auth.
     Returns the SystemExit code, or None if subprocess was called (success path).
     """
     run_fn = _auth_ok_run if auth_ok else _auth_failed_run
@@ -96,7 +96,7 @@ def _run_pinentry_fallback(tmp_path, fallback_app, monkeypatch, auth_ok=False):
              "PINENTRY_PASSWORD": "secret",
          }.get(k, d)):
         try:
-            # Re-execute the validation logic inline (mirrors pamusb-pinentry lines 39-43)
+            # Re-execute the validation logic inline (mirrors pinentry-pamusb lines 39-43)
             if fallback_app and os.path.isabs(fallback_app) \
                     and os.path.isfile(fallback_app) \
                     and os.access(fallback_app, os.X_OK):
@@ -173,7 +173,7 @@ def test_getpin_returns_password(capsys):
             output_lines.append(" ".join(str(a) for a in args))
 
         with patch("builtins.print", side_effect=fake_print):
-            # Simulate the authenticated branch of pamusb-pinentry
+            # Simulate the authenticated branch of pinentry-pamusb
             print("OK Pleased to meet you")
             while True:
                 try:
@@ -429,10 +429,10 @@ def _syslog_run(mod, user, password, fallback, input_lines, auth_ok=True):
 
 
 def test_syslog_openlog_called():
-    """openlog() is called with ident 'pamusb-pinentry', LOG_PID, and LOG_AUTH."""
+    """openlog() is called with ident 'pinentry-pamusb', LOG_PID, and LOG_AUTH."""
     mod = _load_pinentry()
     mock_openlog, _ = _syslog_run(mod, 'alice', 'secret', None, ['BYE'])
-    mock_openlog.assert_called_once_with('pamusb-pinentry', syslog.LOG_PID, syslog.LOG_AUTH)
+    mock_openlog.assert_called_once_with('pinentry-pamusb', syslog.LOG_PID, syslog.LOG_AUTH)
 
 
 def test_syslog_auth_success_logged():

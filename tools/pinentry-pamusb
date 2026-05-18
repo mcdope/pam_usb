@@ -37,12 +37,12 @@ def _user_home():
 ENVFILE_PATH = os.path.join(_user_home(), ".pamusb", ".pinentry.env")
 PINENTRY_LINK = "/usr/bin/pinentry"
 PINENTRY_ALT_NAME = "pinentry"
-PAMUSB_PINENTRY_PATH = "/usr/bin/pamusb-pinentry"
+PAMUSB_PINENTRY_PATH = "/usr/bin/pinentry-pamusb"
 PAMUSB_CHECK_PATH = "/usr/bin/pamusb-check"
 PINENTRY_ALT_PRIORITY = 100
 
 ENVFILE_TEMPLATE = (
-    "# pamusb-pinentry configuration\n"
+    "# pinentry-pamusb configuration\n"
     "# Your GPG passphrase for auto-unlock\n"
     "PINENTRY_PASSWORD=changeme\n"
     "\n"
@@ -84,7 +84,7 @@ def install():
         sys.stderr.write("Failed to activate alternative: %s\n" % result.stderr.decode())
         sys.exit(1)
 
-    print("pamusb-pinentry registered and activated as pinentry alternative.")
+    print("pinentry-pamusb registered and activated as pinentry alternative.")
 
 
 def uninstall():
@@ -106,7 +106,7 @@ def uninstall():
         sys.stderr.write("Failed to remove alternative: %s\n" % result.stderr.decode())
         sys.exit(1)
 
-    print("pamusb-pinentry alternative removed.")
+    print("pinentry-pamusb alternative removed.")
 
 def escape_assuan_data(data):
     """Assuan protocol requires % and newlines to be percent-escaped in D lines."""
@@ -119,7 +119,7 @@ def _run_pamusb_check(user):
 
 
 def _run_as_pinentry(user, pinentry_password, fallback_pinentry_app, unknown_args):
-    syslog.openlog('pamusb-pinentry', syslog.LOG_PID, syslog.LOG_AUTH)
+    syslog.openlog('pinentry-pamusb', syslog.LOG_PID, syslog.LOG_AUTH)
 
     if not pinentry_password:
         syslog.syslog(syslog.LOG_WARNING,
@@ -177,11 +177,11 @@ if __name__ == "__main__":
     group = parser.add_mutually_exclusive_group()
     group.add_argument(
         "--install", action="store_true",
-        help="Create envfile and register pamusb-pinentry as pinentry alternative"
+        help="Create envfile and register pinentry-pamusb as pinentry alternative"
     )
     group.add_argument(
         "--uninstall", action="store_true",
-        help="Remove envfile and unregister pamusb-pinentry pinentry alternative"
+        help="Remove envfile and unregister pinentry-pamusb pinentry alternative"
     )
 
     args, unknown_args = parser.parse_known_args()
