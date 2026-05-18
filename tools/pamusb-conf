@@ -163,9 +163,9 @@ def addUser(options):
 		user = doc.createElement('user')
 		user.attributes['id'] = options['userName']
 		user.appendChild(e)
-		users[0].appendChild(prettifyElement(user))
+		users[0].appendChild(doc.importNode(prettifyElement(user), True))
 	else: # just add another device
-		user.appendChild(prettifyElement(e))
+		user.appendChild(doc.importNode(prettifyElement(e), True))
 
 	writeConf(options, doc)
 
