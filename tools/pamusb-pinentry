@@ -108,7 +108,7 @@ def uninstall():
     print("pamusb-pinentry alternative removed.")
 
 def escape_assuan_data(data):
-    """Assuan protocol requires % and newlines to be percent-escaped in D lines."""
+    """Assuan protocol requires %, newlines, and carriage returns to be percent-escaped in D lines."""
     if not data:
         return ""
     return data.replace('%', '%25').replace('\n', '%0A').replace('\r', '%0D')
