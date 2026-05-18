@@ -174,11 +174,11 @@ the installation.
 Auto-unlock your GPG keys
 ------------------------------
 
-`pam_usb` ships a custom pinentry program — **`pamusb-pinentry`** — that supplies your GPG passphrase automatically when your USB token is present and verified.
+`pam_usb` ships a custom pinentry program — **`pinentry-pamusb`** — that supplies your GPG passphrase automatically when your USB token is present and verified.
 
 ### How it works
 
-When GPG needs a passphrase it calls whatever binary is registered as `pinentry`. `pamusb-pinentry` intercepts that call, runs `pamusb-check` for the current user, and — if the token is present and valid — returns the passphrase stored in `~/.pamusb/.pinentry.env`. If the token is absent or the check fails it falls back to a regular pinentry program of your choice (e.g. `pinentry-gnome3`).
+When GPG needs a passphrase it calls whatever binary is registered as `pinentry`. `pinentry-pamusb` intercepts that call, runs `pamusb-check` for the current user, and — if the token is present and valid — returns the passphrase stored in `~/.pamusb/.pinentry.env`. If the token is absent or the check fails it falls back to a regular pinentry program of your choice (e.g. `pinentry-gnome3`).
 
 ### Requirements
 
@@ -189,12 +189,12 @@ When GPG needs a passphrase it calls whatever binary is registered as `pinentry`
 
 Run the installer **as root** (so it can register the `update-alternatives` entry system-wide, but the env file is written to the calling user's home via `$SUDO_USER`):
 
-    sudo pamusb-pinentry --install
+    sudo pinentry-pamusb --install
 
 This does two things:
 
 1. Creates `~/.pamusb/.pinentry.env` (mode `0600`) with a template you must edit.
-2. Registers `pamusb-pinentry` as a `pinentry` alternative with priority 100 and activates it.
+2. Registers `pinentry-pamusb` as a `pinentry` alternative with priority 100 and activates it.
 
 Now edit the env file and set your actual GPG passphrase:
 
@@ -202,7 +202,7 @@ Now edit the env file and set your actual GPG passphrase:
 
 The file looks like this:
 
-    # pamusb-pinentry configuration
+    # pinentry-pamusb configuration
     # Your GPG passphrase for auto-unlock
     PINENTRY_PASSWORD=changeme
 
@@ -217,24 +217,24 @@ Replace `changeme` with your real passphrase and, if you want a fallback when th
 
 To undo the installation (removes the env file and de-registers the alternative):
 
-    sudo pamusb-pinentry --uninstall
+    sudo pinentry-pamusb --uninstall
 
 ### Manual registration (systems without `update-alternatives`)
 
 If `update-alternatives` is not available (e.g. vanilla Arch Linux), `--install` will still create the env file but skip alternative registration. You can register the alternative manually or simply symlink:
 
     # Option A – symlink (destructive, replaces the existing pinentry)
-    sudo ln -sf /usr/bin/pamusb-pinentry /usr/bin/pinentry
+    sudo ln -sf /usr/bin/pinentry-pamusb /usr/bin/pinentry
 
     # Option B – keep the original and switch back manually later
     sudo mv /usr/bin/pinentry /usr/bin/pinentry.bak
-    sudo ln -sf /usr/bin/pamusb-pinentry /usr/bin/pinentry
+    sudo ln -sf /usr/bin/pinentry-pamusb /usr/bin/pinentry
 
 ### Troubleshooting
 
 | Symptom | Likely cause |
 |---|---|
-| GPG still asks for passphrase interactively | `pamusb-pinentry` is not the active pinentry — run `update-alternatives --display pinentry` to check |
+| GPG still asks for passphrase interactively | `pinentry-pamusb` is not the active pinentry — run `update-alternatives --display pinentry` to check |
 | `PINENTRY_FALLBACK_APP is not set…` error | Token check failed and no fallback is configured; set `PINENTRY_FALLBACK_APP` in the env file |
 | Wrong passphrase returned | `PINENTRY_PASSWORD` in the env file does not match your GPG key's passphrase |
 | `No module named 'dotenv'` | Install `python-dotenv` for your system Python 3 |

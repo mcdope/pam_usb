@@ -13,7 +13,7 @@ Most pam_usb tools log to syslog, but not all:
 | `pam_usb.so` | Yes | AUTH — usually `/var/log/auth.log` |
 | `pamusb-agent` | Yes | AUTH — usually `/var/log/auth.log` |
 | `pamusb-keyring-unlock-gnome` | Yes | LOCAL0 — tag `pamusb-keyring-unlock-gnome` |
-| `pamusb-pinentry` | **No** | stdout/stderr only (Assuan protocol to gpg-agent) |
+| `pinentry-pamusb` | Yes | AUTH — tag `pinentry-pamusb` |
 
 This can be useful for GUI-driven applications (for instance GDM) where you
 don't get to see console output.
@@ -33,9 +33,13 @@ depending on the operating system you're using.
 
 On systems using systemd without a traditional syslog daemon, `/var/log/auth.log` may not exist. Use journalctl instead:
 
-    # journalctl -f -t pam_usb -t pamusb-agent -t pamusb-keyring-unlock-gnome
+    # journalctl -f -t pam_usb -t pamusb-agent -t pamusb-keyring-unlock-gnome -t pinentry-pamusb
 
-**Troubleshooting pamusb-pinentry:** Since it communicates exclusively over stdout/stderr with gpg-agent, its output does not appear in auth.log or the journal. To diagnose issues, run it directly in a terminal or enable gpg-agent debug logging (`--debug-all` in `~/.gnupg/gpg-agent.conf`).
+**Troubleshooting pinentry-pamusb:** Authentication results, passphrase delivery, and fallback events are logged to syslog (AUTH facility, tag `pinentry-pamusb`). Check the log with:
+
+    journalctl -t pinentry-pamusb
+
+For deeper gpg-agent protocol issues, enable gpg-agent debug logging (`--debug-all` in `~/.gnupg/gpg-agent.conf`).
 
 For `pamusb-check` you can also use the `--debug` argument, but that is only temporary and wont help you with i.e login manager issues.
 
