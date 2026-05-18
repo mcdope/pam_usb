@@ -143,7 +143,7 @@ if __name__ == "__main__":
 
     load_dotenv(ENVFILE_PATH)
 
-    pinentryPassword = os.getenv('PINENTRY_PASSWORD', '')
+    pinentry_password = os.getenv('PINENTRY_PASSWORD', '')
     fallbackPinentryApp = os.getenv('PINENTRY_FALLBACK_APP')
 
     isAuthenticated = _run_pamusb_check(getpass.getuser())
