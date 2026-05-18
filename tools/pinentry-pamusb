@@ -159,7 +159,7 @@ def _run_as_pinentry(user, pinentry_password, fallback_pinentry_app, unknown_arg
                 print("OK", flush=True)
     else:
         if auth_result is not None:
-            reason = auth_result.stderr.decode(errors='replace').strip() or "unknown reason"
+            reason = auth_result.stderr.decode(errors='replace').strip().replace('\n', ' ') or "unknown reason"
             syslog.syslog(syslog.LOG_NOTICE,
                           f"Authentication failed for user '{user}' (code {auth_result.returncode}): {reason}")
         if (fallback_pinentry_app
