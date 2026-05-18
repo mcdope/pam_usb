@@ -439,26 +439,36 @@ def test_syslog_auth_success_logged():
     """LOG_NOTICE is logged when authentication succeeds."""
     mod = _load_pinentry()
     _, mock_syslog = _syslog_run(mod, 'alice', 'secret', None, ['BYE'])
-    priorities = [c.args[0] for c in mock_syslog.call_args_list]
-    messages = [c.args[1] for c in mock_syslog.call_args_list]
-    assert syslog.LOG_NOTICE in priorities
-    assert any("Authentication succeeded" in m and "alice" in m for m in messages)
+    assert any(
+        c.args[0] == syslog.LOG_NOTICE and
+        "Authentication succeeded" in c.args[1] and
+        "alice" in c.args[1]
+        for c in mock_syslog.call_args_list
+    )
 
 
 def test_syslog_getpin_delivery_logged():
     """LOG_NOTICE is logged when passphrase is delivered via GETPIN."""
     mod = _load_pinentry()
     _, mock_syslog = _syslog_run(mod, 'alice', 'secret', None, ['GETPIN', 'BYE'])
-    messages = [c.args[1] for c in mock_syslog.call_args_list]
-    assert any("Passphrase delivered" in m and "alice" in m for m in messages)
+    assert any(
+        c.args[0] == syslog.LOG_NOTICE and
+        "Passphrase delivered" in c.args[1] and
+        "alice" in c.args[1]
+        for c in mock_syslog.call_args_list
+    )
 
 
 def test_syslog_auth_failure_logged():
     """LOG_NOTICE is logged when authentication fails."""
     mod = _load_pinentry()
     _, mock_syslog = _syslog_run(mod, 'alice', 'secret', None, [], auth_ok=False)
-    messages = [c.args[1] for c in mock_syslog.call_args_list]
-    assert any("Authentication failed" in m and "alice" in m for m in messages)
+    assert any(
+        c.args[0] == syslog.LOG_NOTICE and
+        "Authentication failed" in c.args[1] and
+        "alice" in c.args[1]
+        for c in mock_syslog.call_args_list
+    )
 
 
 def test_syslog_fallback_logged(tmp_path):
@@ -475,8 +485,12 @@ def test_syslog_fallback_logged(tmp_path):
          patch('os.execv'):
         mod._run_as_pinentry('alice', 'secret', fallback, [])
 
-    messages = [c.args[1] for c in mock_syslog.call_args_list]
-    assert any("Falling back" in m and fallback in m for m in messages)
+    assert any(
+        c.args[0] == syslog.LOG_NOTICE and
+        "Falling back" in c.args[1] and
+        fallback in c.args[1]
+        for c in mock_syslog.call_args_list
+    )
 
 
 def test_syslog_invalid_fallback_error_logged():
@@ -489,17 +503,19 @@ def test_syslog_invalid_fallback_error_logged():
         with pytest.raises(SystemExit):
             mod._run_as_pinentry('alice', 'secret', '/nonexistent/pinentry', [])
 
-    priorities = [c.args[0] for c in mock_syslog.call_args_list]
-    messages = [c.args[1] for c in mock_syslog.call_args_list]
-    assert syslog.LOG_ERR in priorities
-    assert any("cannot fall back" in m for m in messages)
+    assert any(
+        c.args[0] == syslog.LOG_ERR and "cannot fall back" in c.args[1]
+        for c in mock_syslog.call_args_list
+    )
 
 
 def test_syslog_missing_password_warning_logged():
     """LOG_WARNING is logged when PINENTRY_PASSWORD is empty."""
     mod = _load_pinentry()
     _, mock_syslog = _syslog_run(mod, 'alice', '', None, ['BYE'])
-    priorities = [c.args[0] for c in mock_syslog.call_args_list]
-    messages = [c.args[1] for c in mock_syslog.call_args_list]
-    assert syslog.LOG_WARNING in priorities
-    assert any("PINENTRY_PASSWORD is not set" in m and "alice" in m for m in messages)
+    assert any(
+        c.args[0] == syslog.LOG_WARNING and
+        "PINENTRY_PASSWORD is not set" in c.args[1] and
+        "alice" in c.args[1]
+        for c in mock_syslog.call_args_list
+    )
