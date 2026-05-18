@@ -135,9 +135,7 @@ def addUser(options):
 	for device in devicesObj:
 		devices.append(device.getAttribute('id'))
 
-	if options.get('deviceName') is not None:
-		device = options['deviceName']
-	elif options['deviceNumber'] is None:
+	if options['deviceNumber'] is None:
 		device = devices[listOptions("Which device would you like to use for authentication ?", devices)]
 	else:
 		device = devices[int(options['deviceNumber'])]
@@ -418,7 +416,7 @@ def resetPads():
 
 def usage():
 	print('Version 0.8.5')
-	print('Usage: %s [--help] [--verbose] [--yes] [--config=path] [--reset-pads=username] [[--add-device=name [[--device=number] [--volume=number]]] [--add-user=name [--superuser]]]' % os.path.basename(__file__))
+	print('Usage: %s [--help] [--verbose] [--yes] [--config=path] [--reset-pads=username] [[--add-user=name [--superuser]] | [--add-device=name [[--device=number] [--volume=number]]]]' % os.path.basename(__file__))
 	sys.exit(1)
 
 if __name__ == '__main__':
@@ -481,6 +479,14 @@ if __name__ == '__main__':
 		udisks = UDisks.Client.new_sync()
 		udisksObjectManager = udisks.get_object_manager()
 		listAvailableDevicesAndVolumes(options)
+
+	if options['superuser'] and options['userName'] is None:
+		print('--superuser can only be used in combination with --add-user')
+		usage()
+
+	if options['deviceName'] is not None and options['userName'] is not None:
+		print('You cannot use both --add-user and --add-device')
+		usage()
 
 	if options['deviceName'] is None and options['userName'] is None:
 		usage()
