@@ -162,8 +162,8 @@ if __name__ == "__main__":
             cmd = parts[0]
 
             if cmd == "GETPIN":
-                escaped_pass = escape_assuan_data(pinentryPassword)
-                print("D %s" % escaped_pass, flush=True)
+                escaped_pass = escape_assuan_data(pinentry_password)
+                print(f"D {escaped_pass}", flush=True)
                 print("OK", flush=True)
             elif cmd == "BYE":
                 print("OK", flush=True)
