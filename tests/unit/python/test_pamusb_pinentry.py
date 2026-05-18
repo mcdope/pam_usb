@@ -25,6 +25,15 @@ Installer/uninstaller coverage:
   uninstall(): skips update-alternatives when not available
   uninstall(): removes alternative via update-alternatives
   uninstall(): exits 1 when update-alternatives --remove fails
+
+Syslog logging coverage:
+  openlog() called with ident 'pamusb-pinentry', LOG_PID, LOG_AUTH
+  LOG_NOTICE logged on authentication success
+  LOG_NOTICE logged on GETPIN passphrase delivery
+  LOG_NOTICE logged on authentication failure
+  LOG_NOTICE logged when falling back to a valid fallback app
+  LOG_ERR logged when fallback app is invalid or missing
+  LOG_WARNING logged when PINENTRY_PASSWORD is empty
 """
 
 import importlib.util
@@ -34,6 +43,7 @@ import sys
 import stat
 import subprocess
 import io
+import syslog
 import pytest
 from unittest.mock import patch, MagicMock, call
 
@@ -390,3 +400,106 @@ def test_uninstall_exits_on_update_alternatives_failure(tmp_path):
         with pytest.raises(SystemExit) as exc:
             mod.uninstall()
     assert exc.value.code == 1
+
+
+# ── syslog logging ────────────────────────────────────────────────────────────
+
+def _auth_result(ok):
+    return subprocess.CompletedProcess([], returncode=0 if ok else 1, stdout=b"", stderr=b"")
+
+
+def _syslog_run(mod, user, password, fallback, input_lines, auth_ok=True):
+    """
+    Run mod._run_as_pinentry() with syslog, subprocess, and input mocked.
+    Returns (openlog_mock, syslog_mock).
+    """
+    result = _auth_result(auth_ok)
+    it = iter(input_lines)
+
+    with patch('syslog.openlog') as mock_openlog, \
+         patch('syslog.syslog') as mock_syslog, \
+         patch.object(mod, '_run_pamusb_check', return_value=result), \
+         patch('builtins.input', side_effect=lambda: next(it)):
+        try:
+            mod._run_as_pinentry(user, password, fallback, [])
+        except (StopIteration, SystemExit):
+            pass
+
+    return mock_openlog, mock_syslog
+
+
+def test_syslog_openlog_called():
+    """openlog() is called with ident 'pamusb-pinentry', LOG_PID, and LOG_AUTH."""
+    mod = _load_pinentry()
+    mock_openlog, _ = _syslog_run(mod, 'alice', 'secret', None, ['BYE'])
+    mock_openlog.assert_called_once_with('pamusb-pinentry', syslog.LOG_PID, syslog.LOG_AUTH)
+
+
+def test_syslog_auth_success_logged():
+    """LOG_NOTICE is logged when authentication succeeds."""
+    mod = _load_pinentry()
+    _, mock_syslog = _syslog_run(mod, 'alice', 'secret', None, ['BYE'])
+    priorities = [c.args[0] for c in mock_syslog.call_args_list]
+    messages = [c.args[1] for c in mock_syslog.call_args_list]
+    assert syslog.LOG_NOTICE in priorities
+    assert any("Authentication succeeded" in m and "alice" in m for m in messages)
+
+
+def test_syslog_getpin_delivery_logged():
+    """LOG_NOTICE is logged when passphrase is delivered via GETPIN."""
+    mod = _load_pinentry()
+    _, mock_syslog = _syslog_run(mod, 'alice', 'secret', None, ['GETPIN', 'BYE'])
+    messages = [c.args[1] for c in mock_syslog.call_args_list]
+    assert any("Passphrase delivered" in m and "alice" in m for m in messages)
+
+
+def test_syslog_auth_failure_logged():
+    """LOG_NOTICE is logged when authentication fails."""
+    mod = _load_pinentry()
+    _, mock_syslog = _syslog_run(mod, 'alice', 'secret', None, [], auth_ok=False)
+    messages = [c.args[1] for c in mock_syslog.call_args_list]
+    assert any("Authentication failed" in m and "alice" in m for m in messages)
+
+
+def test_syslog_fallback_logged(tmp_path):
+    """LOG_NOTICE is logged when falling back to a valid fallback app."""
+    script = tmp_path / "fake-pinentry"
+    script.write_text("#!/bin/sh\necho OK\n")
+    script.chmod(0o755)
+    fallback = str(script)
+    mod = _load_pinentry()
+
+    with patch('syslog.openlog'), \
+         patch('syslog.syslog') as mock_syslog, \
+         patch.object(mod, '_run_pamusb_check', return_value=_auth_result(False)), \
+         patch('os.execv'):
+        mod._run_as_pinentry('alice', 'secret', fallback, [])
+
+    messages = [c.args[1] for c in mock_syslog.call_args_list]
+    assert any("Falling back" in m and fallback in m for m in messages)
+
+
+def test_syslog_invalid_fallback_error_logged():
+    """LOG_ERR is logged when fallback app is missing or not executable."""
+    mod = _load_pinentry()
+
+    with patch('syslog.openlog'), \
+         patch('syslog.syslog') as mock_syslog, \
+         patch.object(mod, '_run_pamusb_check', return_value=_auth_result(False)):
+        with pytest.raises(SystemExit):
+            mod._run_as_pinentry('alice', 'secret', '/nonexistent/pinentry', [])
+
+    priorities = [c.args[0] for c in mock_syslog.call_args_list]
+    messages = [c.args[1] for c in mock_syslog.call_args_list]
+    assert syslog.LOG_ERR in priorities
+    assert any("cannot fall back" in m for m in messages)
+
+
+def test_syslog_missing_password_warning_logged():
+    """LOG_WARNING is logged when PINENTRY_PASSWORD is empty."""
+    mod = _load_pinentry()
+    _, mock_syslog = _syslog_run(mod, 'alice', '', None, ['BYE'])
+    priorities = [c.args[0] for c in mock_syslog.call_args_list]
+    messages = [c.args[1] for c in mock_syslog.call_args_list]
+    assert syslog.LOG_WARNING in priorities
+    assert any("PINENTRY_PASSWORD is not set" in m and "alice" in m for m in messages)
