@@ -31,7 +31,8 @@ static int pusb_do_auth(
 	int flags,
 	int argc,
 	const char **argv,
-	const char *action_log
+	const char *action_name,
+	int print_version
 )
 {
 	t_pusb_options opts;
@@ -97,7 +98,11 @@ static int pusb_do_auth(
 		}
 	}
 
-	log_info(action_log, user, service);
+	if (print_version)
+	{
+		log_info("pam_usb v%s\n", PUSB_VERSION);
+	}
+	log_info("%s request for user \"%s\" (%s)\n", action_name, user, service);
 
 	if (pusb_local_login(&opts, user, service) != 1)
 	{
@@ -124,8 +129,7 @@ int pam_sm_authenticate(
 	const char **argv
 )
 {
-	return pusb_do_auth(pamh, flags, argc, argv,
-		"Authentication request for user \"%s\" (%s)\n");
+	return pusb_do_auth(pamh, flags, argc, argv, "Authentication", 0);
 }
 
 PAM_EXTERN
@@ -147,9 +151,7 @@ int pam_sm_acct_mgmt(
 	const char **argv
 )
 {
-	log_info("pam_usb v%s\n", PUSB_VERSION);
-	return pusb_do_auth(pamh, flags, argc, argv,
-		"Account request for user \"%s\" (%s)\n");
+	return pusb_do_auth(pamh, flags, argc, argv, "Account", 1);
 }
 
 

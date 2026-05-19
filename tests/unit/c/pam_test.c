@@ -182,6 +182,8 @@ static void test_auth_device_check_failure(void **state)
 
 /* ── tests: pam_sm_acct_mgmt ── */
 
+/* pam_sm_acct_mgmt must return PAM_IGNORE (not PAM_SUCCESS) when disabled,
+ * meaning the version banner must NOT have been printed before the enable check. */
 static void test_acct_mgmt_success(void **state)
 {
 	(void)state;
