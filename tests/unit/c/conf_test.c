@@ -288,9 +288,10 @@ static void test_parse_many_devices_no_false_positive(void **state)
 	/*
 	 * Positive regression for the SIZE_MAX / sizeof(t_pusb_device) guard added
 	 * in conf.c. 200 devices is well within the safe range on any target, so
-	 * pusb_conf_parse must succeed. The actual overflow boundary (~6.7 M on
-	 * 32-bit) cannot be exercised portably in a unit test; the guard's
-	 * correctness is verified by code inspection and the build-debian CI run.
+	 * pusb_conf_parse must succeed. The actual overflow boundary cannot be
+	 * exercised portably in a unit test (it requires SIZE_MAX / 640 entries,
+	 * which is impractical on any real target); correctness is verified by
+	 * code inspection.
 	 */
 	const int N = 200;
 	char tmpfile[] = "/tmp/pamusb_test_many_XXXXXX";
