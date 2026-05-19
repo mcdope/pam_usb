@@ -13,6 +13,7 @@
 WHOAMI=$(whoami)
 CONF=/etc/security/pam_usb.conf
 TMP_CONF=$(mktemp /tmp/pam_usb_xrdp_test_XXXXXX.conf)
+trap 'rm -f "$TMP_CONF"' EXIT
 
 # Flip deny_remote to true (CI sets it to false globally to allow SSH-based checks)
 sed 's|<option name="deny_remote">false</option>|<option name="deny_remote">true</option>|' "$CONF" > "$TMP_CONF"
@@ -20,7 +21,6 @@ sed 's|<option name="deny_remote">false</option>|<option name="deny_remote">true
 echo -e "Test:\t\t\tpamusb-check denies access when XRDP_SESSION is set"
 if XRDP_SESSION=1 pamusb-check --config="$TMP_CONF" "$WHOAMI" 2>/dev/null; then
     echo "FAILED: pamusb-check should deny access when XRDP_SESSION is set"
-    rm -f "$TMP_CONF"
     exit 1
 fi
 echo -e "Result:\t\t\tPASSED!"
@@ -29,6 +29,4 @@ echo -e "Test:\t\t\tpamusb-check log contains XRDP session message"
 XRDP_SESSION=testvalue pamusb-check --config="$TMP_CONF" "$WHOAMI" 2>/dev/null || true
 journalctl -t pam_usb --no-pager -n 20 2>/dev/null | grep -q "XRDP session detected (testvalue)" && \
     echo -e "Result:\t\t\tPASSED!" || \
-    { echo "FAILED: expected 'XRDP session detected (testvalue)' in syslog"; rm -f "$TMP_CONF"; exit 1; }
-
-rm -f "$TMP_CONF"
+    { echo "FAILED: expected 'XRDP session detected (testvalue)' in syslog"; exit 1; }
