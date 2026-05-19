@@ -33,7 +33,7 @@ Run \fBpamusb-agent\fP in the background.
 \fB--check\fP, \fB-c\fPd
 Set the path to pamusb-check (defaults to /usr/bin/pamusb-check)
 .SH ENVIRONMENT
-\fBpamusb-agent\fP runs event handler commands (\fI<cmd>\fP) as root.
+\fBpamusb-agent\fP runs event handler commands (\fI<cmd>\fP) as the user specified in the configuration (privileges are dropped to that user's UID/GID before execution).
 To prevent privilege escalation via dynamic linker or interpreter injection, the following
 environment variables are stripped from the subprocess environment before execution:
 .PP
