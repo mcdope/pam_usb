@@ -300,14 +300,14 @@ static void test_parse_many_devices_no_false_positive(void **state)
 	FILE *f = fdopen(fd, "w");
 	assert_non_null(f);
 
-	fprintf(f, "<?xml version=\"1.0\"?><configuration><devices>\n");
+	fprintf(f, "<?xml version=\"1.0\"?><configuration><devices>\n"); /* DevSkim: ignore DS154189 */
 	for (int i = 0; i < N; i++)
-		fprintf(f, "<device id=\"dev%d\"><vendor>V</vendor><model>M</model>"
+		fprintf(f, "<device id=\"dev%d\"><vendor>V</vendor><model>M</model>" /* DevSkim: ignore DS154189 */
 		           "<serial>S%03d</serial><volume_uuid>U%d</volume_uuid></device>\n", i, i, i);
-	fprintf(f, "</devices><users><user id=\"testuser\">\n");
+	fprintf(f, "</devices><users><user id=\"testuser\">\n"); /* DevSkim: ignore DS154189 */
 	for (int i = 0; i < N; i++)
-		fprintf(f, "<device>dev%d</device>\n", i);
-	fprintf(f, "</user></users><services/></configuration>\n");
+		fprintf(f, "<device>dev%d</device>\n", i); /* DevSkim: ignore DS154189 */
+	fprintf(f, "</user></users><services/></configuration>\n"); /* DevSkim: ignore DS154189 */
 	fclose(f);
 
 	t_pusb_options opts;
