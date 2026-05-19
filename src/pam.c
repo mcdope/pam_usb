@@ -26,12 +26,12 @@
 #include "local.h"
 #include "device.h"
 
-PAM_EXTERN
-int pam_sm_authenticate(
+static int pusb_do_auth(
 	pam_handle_t *pamh,
 	int flags,
 	int argc,
-	const char **argv
+	const char **argv,
+	const char *action_log
 )
 {
 	t_pusb_options opts;
@@ -41,7 +41,7 @@ int pam_sm_authenticate(
 	char *conf_file = PUSB_CONF_FILE;
 	int retval;
 
-	memset(&opts, 0, sizeof(t_pusb_options)); // Initialize opts
+	memset(&opts, 0, sizeof(t_pusb_options));
 	pusb_log_init(&opts);
 
 	retval = pam_get_item(pamh, PAM_SERVICE, (const void **)&service);
@@ -97,7 +97,7 @@ int pam_sm_authenticate(
 		}
 	}
 
-	log_info("Authentication request for user \"%s\" (%s)\n", user, service);
+	log_info(action_log, user, service);
 
 	if (pusb_local_login(&opts, user, service) != 1)
 	{
@@ -114,6 +114,18 @@ int pam_sm_authenticate(
 	log_error("Access denied.\n");
 	pusb_conf_free(&opts);
 	return PAM_AUTH_ERR;
+}
+
+PAM_EXTERN
+int pam_sm_authenticate(
+	pam_handle_t *pamh,
+	int flags,
+	int argc,
+	const char **argv
+)
+{
+	return pusb_do_auth(pamh, flags, argc, argv,
+		"Authentication request for user \"%s\" (%s)\n");
 }
 
 PAM_EXTERN
@@ -135,87 +147,9 @@ int pam_sm_acct_mgmt(
 	const char **argv
 )
 {
-	t_pusb_options opts;
-	const char *service = NULL;
-	const char *user = NULL;
-	const char *rhost = NULL;
-	char *conf_file = PUSB_CONF_FILE;
-	int retval;
-
-	memset(&opts, 0, sizeof(t_pusb_options)); // Initialize opts
-	pusb_log_init(&opts);
-
-	retval = pam_get_item(pamh, PAM_SERVICE, (const void **)&service);
-	if (retval != PAM_SUCCESS)
-	{
-		log_error("Unable to retrieve the PAM service name.\n");
-		return PAM_AUTH_ERR;
-	}
-
-	if (pam_get_user(pamh, &user, NULL) != PAM_SUCCESS || !user || !*user)
-	{
-		log_error("Unable to retrieve the PAM user name.\n");
-		return PAM_AUTH_ERR;
-	}
-
-	if (argc > 1 && !strcmp(argv[0], "-c"))
-	{
-		conf_file = (char *)argv[1];
-	}
-
-	if (!pusb_conf_init(&opts))
-	{
-		return PAM_AUTH_ERR;
-	}
-
-	if (!pusb_conf_parse(conf_file, &opts, user, service))
-	{
-		return PAM_AUTH_ERR;
-	}
-	pusb_log_init(&opts);
-
-	if (!opts.enable)
-	{
-		log_debug("Not enabled, exiting...\n");
-		pusb_conf_free(&opts);
-		return PAM_IGNORE;
-	}
-
-	if (opts.deny_remote)
-	{
-		retval = pam_get_item(pamh, PAM_RHOST, (const void **)&rhost);
-		if (retval != PAM_SUCCESS)
-		{
-			log_error("Unable to retrieve PAM_RHOST.\n");
-			pusb_conf_free(&opts);
-			return PAM_AUTH_ERR;
-		}
-		else if (rhost != NULL && *rhost != '\0')
-		{
-			log_debug("RHOST is set (%s), must be a remote request - disabling myself for this request!\n", rhost);
-			pusb_conf_free(&opts);
-			return PAM_IGNORE;
-		}
-	}
-
 	log_info("pam_usb v%s\n", PUSB_VERSION);
-	log_info("Account request for user \"%s\" (%s)\n", user, service);
-
-	if (pusb_local_login(&opts, user, service) != 1)
-	{
-		log_error("Access denied.\n");
-		pusb_conf_free(&opts);
-		return PAM_AUTH_ERR;
-	}
-	if (pusb_device_check(&opts, user))
-	{
-		log_info("Access granted.\n");
-		pusb_conf_free(&opts);
-		return PAM_SUCCESS;
-	}
-	log_error("Access denied.\n");
-	pusb_conf_free(&opts);
-	return PAM_AUTH_ERR;
+	return pusb_do_auth(pamh, flags, argc, argv,
+		"Account request for user \"%s\" (%s)\n");
 }
 
 

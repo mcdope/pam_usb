@@ -114,6 +114,7 @@ PROC_LDFLAGS             := -lcmocka
 RMSVC_LDFLAGS            := -lcmocka
 EVDEV_LDFLAGS            := -lcmocka
 LOCAL_LDFLAGS            := `pkg-config --libs libevdev` -lcmocka
+PAM_TEST_LDFLAGS         := -lcmocka
 
 test-c-xpath: src/xpath.o src/mem.o src/log.o
 	$(CC) $(TEST_CFLAGS) tests/unit/c/xpath_test.c $^ $(XPATH_LDFLAGS) -o tests/unit/c/xpath_test
@@ -152,7 +153,13 @@ test-c-evdev: src/mem.o src/log.o
 		$(EVDEV_LDFLAGS) -o tests/unit/c/evdev_test
 	./tests/unit/c/evdev_test
 
-test-c: test-c-xpath test-c-conf test-c-tmux test-c-pad test-c-process test-c-rmsvc test-c-local test-c-evdev
+test-c-pam: src/log.o
+	$(CC) $(TEST_CFLAGS) tests/unit/c/pam_test.c src/pam.c $^ \
+		-Wl,--wrap=pam_get_item,--wrap=pam_get_user,--wrap=pusb_conf_init,--wrap=pusb_conf_parse,--wrap=pusb_conf_free,--wrap=pusb_local_login,--wrap=pusb_device_check \
+		$(PAM_TEST_LDFLAGS) -o tests/unit/c/pam_test
+	./tests/unit/c/pam_test
+
+test-c: test-c-xpath test-c-conf test-c-tmux test-c-pad test-c-process test-c-rmsvc test-c-local test-c-evdev test-c-pam
 
 test-python:
 	python3 -m pytest tests/unit/python/ -v
