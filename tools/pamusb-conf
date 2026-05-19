@@ -286,6 +286,9 @@ def addDevice(options):
 		sys.exit(1)
 
 	devs = doc.getElementsByTagName('devices')
+	if len(devs) == 0:
+		print('Malformed configuration file: No <devices> section found.')
+		sys.exit(1)
 
 	# Check that the id of the device to add is not already present in the configFile
 	for devices in devs:
