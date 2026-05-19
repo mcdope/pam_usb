@@ -22,9 +22,9 @@
 #include "conf.h"
 #include "log.h"
 
-static int pusb_log_debug = 0;
-static int pusb_log_quiet = 0;
-static int pusb_log_color = 0;
+static _Thread_local int pusb_log_debug = 0;
+static _Thread_local int pusb_log_quiet = 0;
+static _Thread_local int pusb_log_color = 0;
 
 static void pusb_log_syslog(int level, const char *format, va_list ap)
 {
