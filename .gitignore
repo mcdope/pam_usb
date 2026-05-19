@@ -19,3 +19,4 @@ doc/*.1.gz
 .build
 **/__pycache__
 tests/unit/c/*_test
+.claude/*.lock
