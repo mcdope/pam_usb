@@ -1,4 +1,4 @@
-libpam-usb (0.9.0) unstable; urgency=high
+libpam-usb (0.9.0) unstable; urgency=critical
   * [Feature] Remove hardcoded 10-device limit per user (#236)
   * [Feature] Add additional remote connection check for VNC/RDP (optional, default on) (#202)
   * [Enhancement] Add --superuser flag to pamusb-conf --add-user (#344)
