@@ -1,4 +1,4 @@
-.TH pamusb-keyring-unlock-gnome 1 "November 06, 2021" "" "PAM_USB"
+.TH pamusb-keyring-unlock-gnome 1 "May 2026" "" "PAM_USB"
 
 .SH NAME
 \fBpamusb-keyring-unlock-gnome \fP- pam_usb unlock tool for the gnome-keyring
@@ -19,6 +19,11 @@ Removes all files created by \-\-install.
 \fBpamusb-keyring-unlock-gnome\fP is a tool to unlock your GNOME keyring when used with pam_usb autologin.
 .SH CONFIGURATION
 See the pam_usb Wiki <https://github.com/mcdope/pam_usb/wiki/Getting-Started#auto-unlock-your-gnome-keyring> for details about how to configure this feature.
+.SH SECURITY
+The keyring password is passed to \fBgnome-keyring-daemon\fP(1) via a stdin pipe rather than
+as a command-line argument, so it does not appear in the process list.
+.SH LOGGING
+\fBpamusb-keyring-unlock-gnome\fP logs to syslog using the tag \fIpamusb-keyring-unlock-gnome\fP.
 .SH BUGS
 Please post bug reports on the Github issue tracker.
 .SH AUTHOR
