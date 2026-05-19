@@ -22,7 +22,9 @@
 #include "conf.h"
 #include "log.h"
 
-static t_pusb_options *pusb_opts = NULL;
+static _Thread_local int pusb_log_debug = 0;
+static _Thread_local int pusb_log_quiet = 0;
+static _Thread_local int pusb_log_color = 0;
 
 static void pusb_log_syslog(int level, const char *format, va_list ap)
 {
@@ -33,14 +35,14 @@ static void pusb_log_syslog(int level, const char *format, va_list ap)
 
 static void pusb_log_output(int level, const char *format, va_list ap)
 {
-	if (!isatty(fileno(stdin))) 
+	if (!isatty(fileno(stdin)))
 	{
 		return;
 	}
-	
-	if (pusb_opts && !pusb_opts->quiet)
+
+	if (!pusb_log_quiet)
 	{
-		if (pusb_opts && pusb_opts->color_log)
+		if (pusb_log_color)
 		{
 			if (level == LOG_ERR)
 			{
@@ -64,7 +66,7 @@ void __log_debug(const char *file, int line, const char *fmt, ...)
 {
 	va_list	ap;
 
-	if (!pusb_opts || !pusb_opts->debug)
+	if (!pusb_log_debug)
 	{
 		return;
 	}
@@ -107,5 +109,7 @@ void log_info(const char *fmt, ...)
 
 void pusb_log_init(t_pusb_options *opts)
 {
-	pusb_opts = opts;
+	pusb_log_debug = opts ? opts->debug     : 0;
+	pusb_log_quiet = opts ? opts->quiet     : 0;
+	pusb_log_color = opts ? opts->color_log : 0;
 }

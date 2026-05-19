@@ -71,6 +71,7 @@ int pam_sm_authenticate(
 	{
 		return PAM_AUTH_ERR;
 	}
+	pusb_log_init(&opts);
 
 	if (!opts.enable)
 	{
@@ -171,6 +172,7 @@ int pam_sm_acct_mgmt(
 	{
 		return PAM_AUTH_ERR;
 	}
+	pusb_log_init(&opts);
 
 	if (!opts.enable)
 	{
