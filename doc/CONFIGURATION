@@ -348,7 +348,7 @@ Device "StudentUSB" excluded for service "sudo" (no superuser attribute).
 
 - Adding more superuser-granted services requires only a new `<service>` entry — no change to device or user configuration.
 - If a user has no device with `superuser="true"` and authenticates against a superuser-marked service, pam_usb denies the request. The fallback PAM module (e.g. `pam_unix`) still runs if configured as `sufficient` rather than `required`.
-- `pamusb-conf` does not yet have a CLI flag for the `superuser` attribute — add it manually to the `<device>` element after running `pamusb-conf --add-user`.
+- Use `pamusb-conf --add-user=<username> --superuser` to mark the device as superuser-capable at configuration time. The `--superuser` flag sets `superuser="true"` on the `<device>` element automatically (available from v0.8.8).
 
 ----------
 
