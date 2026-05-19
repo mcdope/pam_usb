@@ -18,6 +18,7 @@
 #include <sys/utsname.h>
 #include <string.h>
 #include <errno.h>
+#include <stdint.h>
 #include "mem.h"
 #include "conf.h"
 #include "xpath.h"
@@ -223,6 +224,13 @@ int pusb_conf_parse(
 	if (n_devices == 0)
 	{
 		log_error("No authentication device(s) configured for user \"%s\".\n", user);
+		xmlFreeDoc(doc);
+		xmlCleanupParser();
+		return 0;
+	}
+	if (n_devices < 0 || (size_t)n_devices > SIZE_MAX / sizeof(t_pusb_device))
+	{
+		log_error("Device count for user \"%s\" would overflow allocation.\n", user);
 		xmlFreeDoc(doc);
 		xmlCleanupParser();
 		return 0;

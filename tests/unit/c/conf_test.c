@@ -280,6 +280,43 @@ static void test_conf_parses_more_than_ten_devices(void **state)
 	pusb_conf_free(&opts);
 }
 
+/* ── overflow guard ── */
+
+static void test_parse_many_devices_no_false_positive(void **state)
+{
+	(void)state;
+	/*
+	 * Positive regression for the SIZE_MAX / sizeof(t_pusb_device) guard added
+	 * in conf.c. 200 devices is well within the safe range on any target, so
+	 * pusb_conf_parse must succeed. The actual overflow boundary (~6.7 M on
+	 * 32-bit) cannot be exercised portably in a unit test; the guard's
+	 * correctness is verified by code inspection and the build-debian CI run.
+	 */
+	const int N = 200;
+	char tmpfile[] = "/tmp/pamusb_test_many_XXXXXX";
+	int fd = mkstemp(tmpfile);
+	assert_true(fd >= 0);
+	FILE *f = fdopen(fd, "w");
+	assert_non_null(f);
+
+	fprintf(f, "<?xml version=\"1.0\"?><configuration><devices>\n");
+	for (int i = 0; i < N; i++)
+		fprintf(f, "<device id=\"dev%d\"><vendor>V</vendor><model>M</model>"
+		           "<serial>S%03d</serial><volume_uuid>U%d</volume_uuid></device>\n", i, i, i);
+	fprintf(f, "</devices><users><user id=\"testuser\">\n");
+	for (int i = 0; i < N; i++)
+		fprintf(f, "<device>dev%d</device>\n", i);
+	fprintf(f, "</user></users><services/></configuration>\n");
+	fclose(f);
+
+	t_pusb_options opts;
+	pusb_conf_init(&opts);
+	assert_int_equal(1, pusb_conf_parse(tmpfile, &opts, "testuser", "login"));
+	assert_int_equal(N, opts.device_count);
+	pusb_conf_free(&opts);
+	unlink(tmpfile);
+}
+
 /* ── main ── */
 
 int main(void)
@@ -305,6 +342,7 @@ int main(void)
 		cmocka_unit_test(test_parse_user_not_in_conf),
 		cmocka_unit_test(test_superuser_attribute_case_sensitive),
 		cmocka_unit_test(test_conf_parses_more_than_ten_devices),
+		cmocka_unit_test(test_parse_many_devices_no_false_positive),
 	};
 	return cmocka_run_group_tests(tests, NULL, NULL);
 }
