@@ -1,4 +1,4 @@
-.TH pamusb-check 1 "August 22, 2022" "" "PAM_USB"
+.TH pamusb-check 1 "May 2026" "" "PAM_USB"
 
 .SH NAME
 \fBpamusb-check \fP- check if current pam_usb configuration authenticates given user
@@ -57,8 +57,16 @@ one_time_pad
 : true
 .TP
 .B
+deny_remote
+: true
+.TP
+.B
+pad_expiration
+: 3600 seconds
+.TP
+.B
 probe_timeout
-: 10
+: 10 seconds
 .TP
 .B
 hostname
@@ -96,6 +104,10 @@ Dump the configuration, but do not try to authenticate
 .B
 \fB--quiet\fP, \fB-q\fP
 Quiet mode
+.TP
+.B
+\fB--version\fP
+Print version information and exit.
 .SH BUGS
 Please report bugs on the Github issue tracker at https://github.com/mcdope/pam_usb/issues.
 .SH AUTHOR

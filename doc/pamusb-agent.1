@@ -1,4 +1,4 @@
-.TH pamusb-agent 1 "August 22, 2022" "" "PAM_USB"
+.TH pamusb-agent 1 "May 2026" "" "PAM_USB"
 
 .SH NAME
 \fBpamusb-agent \fP- pam_usb event handler, triggers configured commands on device removal and/or plug.
@@ -32,6 +32,26 @@ Run \fBpamusb-agent\fP in the background.
 .B
 \fB--check\fP, \fB-c\fPd
 Set the path to pamusb-check (defaults to /usr/bin/pamusb-check)
+.SH ENVIRONMENT
+\fBpamusb-agent\fP runs event handler commands (\fI<cmd>\fP) as the user specified in the configuration (privileges are dropped to that user's UID/GID before execution).
+To prevent privilege escalation via dynamic linker or interpreter injection, the following
+environment variables are stripped from the subprocess environment before execution:
+.PP
+.RS
+.TP
+Linker:
+\fBLD_PRELOAD\fP, \fBLD_LIBRARY_PATH\fP, \fBLD_AUDIT\fP, \fBLD_DEBUG\fP, \fBGLIBC_TUNABLES\fP
+.TP
+Interpreters:
+\fBPYTHONPATH\fP, \fBPERL5LIB\fP, \fBRUBYLIB\fP
+.TP
+Shell:
+\fBIFS\fP, \fBCDPATH\fP, \fBENV\fP, \fBBASH_ENV\fP, \fBPATH\fP
+.RE
+.PP
+Any variable not in this blocklist that is declared via \fI<env>\fP in the configuration is passed through unchanged.
+.SH LOGGING
+\fBpamusb-agent\fP logs to syslog using the tag \fIpamusb-agent\fP.
 .SH BUGS
 Please report bugs on the Github issue tracker at https://github.com/mcdope/pam_usb/issues.
 .SH AUTHOR

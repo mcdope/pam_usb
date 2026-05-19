@@ -1,4 +1,4 @@
-.TH pinentry-pamusb 1 "November 03, 2024" "" "PAM_USB"
+.TH pinentry-pamusb 1 "May 2026" "" "PAM_USB"
 
 .SH NAME
 \fBpinentry-pamusb \fP- pam_usb tool to be used as pinentry application
@@ -19,7 +19,20 @@ Remove the envfile (\fI~/.pamusb/.pinentry.env\fP) and, if \fBupdate-alternative
 The envfile path is resolved via \fBSUDO_USER\fP when run via sudo.
 The \fBupdate-alternatives\fP step requires root privileges.
 .SH CONFIGURATION
-See the pam_usb Wiki <https://github.com/mcdope/pam_usb/wiki/Getting-Started#auto-unlock-your-gpg-keys> for details about how to configure this feature.
+\fBpinentry-pamusb\fP reads its configuration from \fI~/.pamusb/.pinentry.env\fP (mode 0600,
+created by \fB--install\fP).
+The file is sourced as a shell environment file and supports the following variables:
+.TP
+.B PINENTRY_PASSWORD
+The password that will be returned to \fBgpg-agent\fP(1) via the Assuan protocol when
+pam_usb authentication succeeds.
+.TP
+.B PINENTRY_FALLBACK_APP
+Absolute path to an alternative pinentry program (e.g. \fI/usr/bin/pinentry-gnome3\fP) that
+is invoked when pam_usb authentication fails.
+Must be an absolute path.
+.PP
+For further setup details see the pam_usb Wiki <https://github.com/mcdope/pam_usb/wiki/Getting-Started#auto-unlock-your-gpg-keys>.
 .SH BUGS
 Please post bug reports on the Github issue tracker.
 .SH AUTHOR
