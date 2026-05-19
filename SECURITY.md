@@ -6,8 +6,8 @@ At every point in time only the most recent release is supported.
 
 | Version | Supported          |
 |---------| ------------------ |
-| 0.8.7   | ✅                 |
-| < 0.8.7 | ❌                 |
+| 0.9.0   | ✅                 |
+| < 0.9.0 | ❌                 |
 
 ## Reporting a Vulnerability
 
@@ -29,4 +29,4 @@ Once a vulnerability has been reported via email and coordinated with the mainta
 
 There are multiple published security advisories for these versions.
 
-If you're running anything except 0.8.7 please update immediately!
+If you're running anything except 0.9.0 please update immediately!

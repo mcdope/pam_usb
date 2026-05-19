@@ -1,7 +1,7 @@
 %define _topdir         /usr/local/src/pam_usb/fedora
 %define name            pam_usb 
 %define release         1
-%define version         0.8.7
+%define version         0.9.0
 %define buildroot       %{_topdir}/%{name}‑%{version}‑root
 
 BuildRoot: %{buildroot}
@@ -61,6 +61,41 @@ rm -rf %{buildroot}/usr/share/pam-configs
 %doc %attr(0644,root,root) /usr/share/doc/pam_usb/TROUBLESHOOTING
 
 %changelog
+
+* Tue May 19 2026 Tobias Bäumer <tobiasbaeumer@gmail.com> - 0.9.0
+- [Feature] Remove hardcoded 10-device limit per user (#236)
+- [Feature] Add additional remote connection check for VNC/RDP (optional, default on) (#202)
+- [Enhancement] Add --superuser flag to pamusb-conf --add-user (#344)
+- [Enhancement] Rename pamusb-pinentry to pinentry-pamusb, add syslog logging (#343)
+- [Enhancement] Improve pinentry robustness (thx @DhruvaSambrani) (#341)
+- [Enhancement] Add --install/--uninstall options to pinentry-pamusb (#290)
+- [Enhancement] Add --install/--uninstall options to pamusb-keyring-unlock-gnome (#121)
+- [Bugfix] Fix --reset-pads only applying to the primary/first device (#305)
+- [Bugfix] Use absolute path for pamusb-check invocation
+- [Bugfix] Use absolute shell path for agent commands (#325)
+- [Security] Harden OTP pad mechanism: uninitialized magic, partial-read denial, timing-safe compare, sensitive buffer zeroing, O_CLOEXEC (#303)
+- [Security] Harden tmux local login checks (#318)
+- [Security] Harden process stat parent parsing (#319)
+- [Security] Reject unsafe config XPath IDs
+- [Security] Harden tmux command lookup
+- [Security] Harden utmp display session matching (#306)
+- [Security] Harden XPath string copying
+- [Security] Harden reset-pads path handling
+- [Security] Harden keyring auth check path (#323)
+- [Security] Fixed GHSA-vx6f-rrqr-j87c (OTP pad authentication bypass) (#303)
+- [Security] Fixed GHSA-vfj3-5h5v-6g93 (XPath injection via PAM-supplied identifiers) (#311)
+- [Security] Fixed GHSA-pp29-w28g-r9h9 (uncontrolled search path in PAM tools)
+- [Security] Fixed GHSA-7cgr-4c38-59h2 (local check bypass via process/session parsing)
+- [Security] Fixed GHSA-jmmj-qhrq-w45g (IPv6-mapped address bypass in deny_remote) (#336)
+- [Security] Fixed GHSA-j3xw-vc43-x7jg (strtok thread-safety race in deny_remote) (#336)
+- [Security] Fixed GHSA-7rvx-jcc6-7hqq (OOM guards removable via -DNDEBUG) (#336)
+- [CI/Tests] Add unit test suite (#296)
+- [CI/Tests] Add integration test for >10 devices per user (#236)
+- [CI/Tests] Add integration test for superuser device filtering (#223)
+- [CI/Tests] Add integration test for pinentry --install/--uninstall (#304)
+- [Docs] Update manpages to reflect current feature set (#345)
+- [Docs] Expand CONTRIBUTING.md with bounty conditions and AI contribution rules
+- [Misc] Update AUTHORS
 
 * Tue May 05 2026 Tobias Bäumer <tobiasbaeumer@gmail.com> - 0.8.7
 - [Enhancement] Specify a dedicated device for superuser services
