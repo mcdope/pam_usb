@@ -115,6 +115,7 @@ RMSVC_LDFLAGS            := -lcmocka
 EVDEV_LDFLAGS            := -lcmocka
 LOCAL_LDFLAGS            := `pkg-config --libs libevdev` -lcmocka
 PAM_TEST_LDFLAGS         := -lcmocka
+LOG_TEST_LDFLAGS         := -lcmocka
 
 test-c-xpath: src/xpath.o src/mem.o src/log.o
 	$(CC) $(TEST_CFLAGS) tests/unit/c/xpath_test.c $^ $(XPATH_LDFLAGS) -o tests/unit/c/xpath_test
@@ -159,7 +160,12 @@ test-c-pam: src/log.o
 		$(PAM_TEST_LDFLAGS) -o tests/unit/c/pam_test
 	./tests/unit/c/pam_test
 
-test-c: test-c-xpath test-c-conf test-c-tmux test-c-pad test-c-process test-c-rmsvc test-c-local test-c-evdev test-c-pam
+test-c-log: tests/unit/c/log_test.c src/log.c
+	$(CC) $(TEST_CFLAGS) tests/unit/c/log_test.c \
+		$(LOG_TEST_LDFLAGS) -o tests/unit/c/log_test
+	./tests/unit/c/log_test
+
+test-c: test-c-xpath test-c-conf test-c-tmux test-c-pad test-c-process test-c-rmsvc test-c-local test-c-evdev test-c-pam test-c-log
 
 test-python:
 	python3 -m pytest tests/unit/python/ -v
