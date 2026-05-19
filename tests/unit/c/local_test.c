@@ -7,6 +7,7 @@
 #include <stdarg.h>
 #include <stddef.h>
 #include <setjmp.h>
+#include <stdlib.h>
 #include <string.h>
 #include <cmocka.h>
 
@@ -102,6 +103,20 @@ static void test_utmpx_field_starts_with_rejects_long_prefix(void **state)
 	assert_int_equal(0, pusb_utmpx_field_starts_with(field, sizeof(field), "pts/"));
 }
 
+static void test_local_login_denies_xrdp_session(void **state)
+{
+	(void)state;
+	t_pusb_options opts;
+	memset(&opts, 0, sizeof(opts));
+	opts.deny_remote = 1;
+
+	setenv("XRDP_SESSION", "1", 1);
+	int result = pusb_local_login(&opts, "testuser", "testservice");
+	unsetenv("XRDP_SESSION");
+
+	assert_int_equal(0, result);
+}
+
 int main(void)
 {
 	const struct CMUnitTest tests[] = {
@@ -115,6 +130,7 @@ int main(void)
 		cmocka_unit_test(test_utmpx_field_starts_with_pts_slave),
 		cmocka_unit_test(test_utmpx_field_starts_with_full_width_field),
 		cmocka_unit_test(test_utmpx_field_starts_with_rejects_long_prefix),
+		cmocka_unit_test(test_local_login_denies_xrdp_session),
 	};
 	return cmocka_run_group_tests(tests, NULL, NULL);
 }
