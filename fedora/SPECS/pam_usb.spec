@@ -89,6 +89,13 @@ rm -rf %{buildroot}/usr/share/pam-configs
 - [Security] Fixed GHSA-jmmj-qhrq-w45g (IPv6-mapped address bypass in deny_remote) (#336)
 - [Security] Fixed GHSA-j3xw-vc43-x7jg (strtok thread-safety race in deny_remote) (#336)
 - [Security] Fixed GHSA-7rvx-jcc6-7hqq (OOM guards removable via -DNDEBUG) (#336)
+- [CI/Tests] Add unit test suite (#296)
+- [CI/Tests] Add integration test for >10 devices per user (#236)
+- [CI/Tests] Add integration test for superuser device filtering (#223)
+- [CI/Tests] Add integration test for pinentry --install/--uninstall (#304)
+- [Docs] Update manpages to reflect current feature set (#345)
+- [Docs] Expand CONTRIBUTING.md with bounty conditions and AI contribution rules
+- [Misc] Update AUTHORS
 
 * Tue May 05 2026 Tobias Bäumer <tobiasbaeumer@gmail.com> - 0.8.7
 - [Enhancement] Specify a dedicated device for superuser services
