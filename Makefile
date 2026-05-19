@@ -160,7 +160,7 @@ test-c-pam: src/log.o
 		$(PAM_TEST_LDFLAGS) -o tests/unit/c/pam_test
 	./tests/unit/c/pam_test
 
-test-c-log:
+test-c-log: tests/unit/c/log_test.c src/log.c
 	$(CC) $(TEST_CFLAGS) tests/unit/c/log_test.c \
 		$(LOG_TEST_LDFLAGS) -o tests/unit/c/log_test
 	./tests/unit/c/log_test
