@@ -15,6 +15,7 @@
  * Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include <malloc.h>
 #include "mem.h"
 #include "log.h"
 
@@ -40,6 +41,8 @@ void *xrealloc(void *ptr, size_t size)
 
 void xfree(void *ptr)
 {
+	if (ptr)
+		explicit_bzero(ptr, malloc_usable_size(ptr));
 	free(ptr);
 }
 
