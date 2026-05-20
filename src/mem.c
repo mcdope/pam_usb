@@ -39,6 +39,7 @@ void *xrealloc(void *ptr, size_t size)
 	return (data);
 }
 
+__attribute__((noinline))
 void xfree(void *ptr)
 {
 	if (ptr)
