@@ -166,8 +166,8 @@ test-c-log: tests/unit/c/log_test.c src/log.c
 		$(LOG_TEST_LDFLAGS) -o tests/unit/c/log_test
 	./tests/unit/c/log_test
 
-test-c-mem: src/log.o
-	$(CC) $(TEST_CFLAGS) tests/unit/c/mem_test.c $^ \
+test-c-mem: tests/unit/c/mem_test.c src/mem.c src/log.o
+	$(CC) $(TEST_CFLAGS) tests/unit/c/mem_test.c src/log.o \
 		-Wl,--wrap=explicit_bzero \
 		$(MEM_LDFLAGS) -o tests/unit/c/mem_test
 	./tests/unit/c/mem_test
