@@ -29,6 +29,7 @@ typedef struct {
 	const char *phys;    /* NULL means no physical path */
 	unsigned int event_types; /* bitmask: bit EV_KEY, EV_REL, EV_ABS */
 	int  init_fails;     /* if non-zero, libevdev_new_from_fd returns -ENODEV */
+	int  open_errno;     /* if non-zero, __wrap_open sets errno to this and returns -1 */
 } fake_device_t;
 
 fake_device_t g_mock_devices[FAKE_EVDEV_MAX_DEVICES];
@@ -139,6 +140,10 @@ int __wrap_open(const char *pathname, int flags, ...)
 	int idx = atoi(base + 5);
 	if (idx < 0 || idx >= g_mock_device_count) {
 		errno = ENOENT;
+		return -1;
+	}
+	if (g_mock_devices[idx].open_errno != 0) {
+		errno = g_mock_devices[idx].open_errno;
 		return -1;
 	}
 	return idx;  /* use index as fd */

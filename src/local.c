@@ -352,9 +352,14 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 			log_error("Active remote desktop service with connection detected, denying.\n");
 			return (0);
 		}
-		if (pusb_has_virtual_input_device("/dev/input")) {
+		int evdev_result = pusb_has_virtual_input_device("/dev/input");
+		if (evdev_result == 1) {
 			log_error("Virtual input device detected (possible remote desktop tool), denying.\n");
 			return (0);
+		} else if (evdev_result == -1) {
+			log_error("Cannot check for virtual input devices (permission denied on /dev/input). "
+			          "Run pamusb-check as root or add user to the 'input' group for reliable "
+			          "remote desktop detection.\n");
 		}
 	}
 

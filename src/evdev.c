@@ -17,6 +17,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <errno.h>
 #include <dirent.h>
 #include <fcntl.h>
 #include <unistd.h>
@@ -37,6 +38,7 @@ int pusb_has_virtual_input_device(const char *input_dir)
 
 	char dev_path[PATH_MAX];
 	struct dirent *ent;
+	int permission_denied = 0;
 
 	while ((ent = readdir(d)) != NULL) {
 		if (strncmp(ent->d_name, "event", 5) != 0)
@@ -45,8 +47,11 @@ int pusb_has_virtual_input_device(const char *input_dir)
 		snprintf(dev_path, sizeof(dev_path), "%s/%s", input_dir, ent->d_name);
 
 		int fd = open(dev_path, O_RDONLY | O_NONBLOCK | O_CLOEXEC);
-		if (fd < 0)
+		if (fd < 0) {
+			if (errno == EACCES)
+				permission_denied = 1;
 			continue;
+		}
 
 		struct libevdev *dev = NULL;
 		int rc = libevdev_new_from_fd(fd, &dev);
@@ -82,5 +87,5 @@ int pusb_has_virtual_input_device(const char *input_dir)
 	}
 
 	closedir(d);
-	return 0;
+	return permission_denied ? -1 : 0;
 }

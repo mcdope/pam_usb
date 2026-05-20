@@ -25,7 +25,12 @@
  *   - physical path is NULL or empty
  *   - device has keyboard (EV_KEY) or pointer (EV_REL/EV_ABS) capabilities
  *
- * Returns 1 if such a device is found, 0 otherwise.
+ * Returns:
+ *   1  — virtual input device found
+ *   0  — no virtual input device found
+ *  -1  — scan inconclusive: at least one device could not be opened due to
+ *         insufficient permissions (EACCES); result should be treated as a
+ *         warning, not a definitive negative
  * Production callers should pass "/dev/input".
  */
 int pusb_has_virtual_input_device(const char *input_dir);

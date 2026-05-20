@@ -12,6 +12,7 @@
 #include <stddef.h>
 #include <setjmp.h>
 #include <string.h>
+#include <errno.h>
 #include <cmocka.h>
 #include <linux/input.h>
 
@@ -21,6 +22,7 @@ typedef struct {
 	const char *phys;
 	unsigned int event_types;
 	int  init_fails;
+	int  open_errno;
 } fake_device_t;
 
 extern fake_device_t g_mock_devices[];
@@ -38,6 +40,14 @@ void fake_evdev_reset(void);
 		g_mock_devices[idx].phys        = (ph); \
 		g_mock_devices[idx].event_types = (et); \
 		g_mock_devices[idx].init_fails  = 0; \
+		g_mock_devices[idx].open_errno  = 0; \
+		g_mock_device_count = (idx) + 1; \
+	} while(0)
+
+#define SETUP_DEVICE_EACCES(idx) \
+	do { \
+		memset(&g_mock_devices[idx], 0, sizeof(g_mock_devices[idx])); \
+		g_mock_devices[idx].open_errno = EACCES; \
 		g_mock_device_count = (idx) + 1; \
 	} while(0)
 
@@ -139,6 +149,28 @@ static void test_physical_before_virtual(void **state)
 	assert_int_equal(1, pusb_has_virtual_input_device("/dev/input"));
 }
 
+static void test_all_devices_eacces_returns_inconclusive(void **state)
+{
+	(void)state;
+	/* All opens fail with EACCES → should return -1, not 0 */
+	SETUP_DEVICE_EACCES(0);
+	assert_int_equal(-1, pusb_has_virtual_input_device("/dev/input"));
+}
+
+static void test_eacces_then_virtual_returns_found(void **state)
+{
+	(void)state;
+	/* First device EACCES, second is virtual keyboard → should return 1 */
+	SETUP_DEVICE_EACCES(0);
+	g_mock_devices[1].bustype     = BUS_VIRTUAL;
+	g_mock_devices[1].phys        = NULL;
+	g_mock_devices[1].event_types = (1u << EV_KEY);
+	g_mock_devices[1].init_fails  = 0;
+	g_mock_devices[1].open_errno  = 0;
+	g_mock_device_count = 2;
+	assert_int_equal(1, pusb_has_virtual_input_device("/dev/input"));
+}
+
 int main(void)
 {
 	const struct CMUnitTest tests[] = {
@@ -150,8 +182,10 @@ int main(void)
 		cmocka_unit_test_setup(test_virtual_no_input_capability,  setup),
 		cmocka_unit_test_setup(test_virtual_with_phys_path,       setup),
 		cmocka_unit_test_setup(test_virtual_with_empty_phys,      setup),
-		cmocka_unit_test_setup(test_open_fails_skipped,           setup),
-		cmocka_unit_test_setup(test_physical_before_virtual,      setup),
+		cmocka_unit_test_setup(test_open_fails_skipped,                    setup),
+		cmocka_unit_test_setup(test_physical_before_virtual,               setup),
+		cmocka_unit_test_setup(test_all_devices_eacces_returns_inconclusive, setup),
+		cmocka_unit_test_setup(test_eacces_then_virtual_returns_found,     setup),
 	};
 	return cmocka_run_group_tests(tests, NULL, NULL);
 }
