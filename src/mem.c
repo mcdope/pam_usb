@@ -43,7 +43,7 @@ void *xrealloc(void *ptr, size_t size)
  * sees the allocation size at the call site and flags malloc_usable_size() as
  * overflowing that size (alignment padding). As a non-inline function, ptr has
  * unknown object size so FORTIFY_SOURCE skips the check. */
-__attribute__((noinline))
+__attribute__((__noinline__))
 void xfree(void *ptr)
 {
 	if (ptr)

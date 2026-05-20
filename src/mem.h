@@ -22,7 +22,7 @@
 
 void *xmalloc(size_t size);
 void *xrealloc(void *ptr, size_t size);
-__attribute__((noinline)) void xfree(void *ptr);
+__attribute__((__noinline__)) void xfree(void *ptr);
 char *xstrdup(const char *s);
 
 #endif /* !PUSB_MEM_H_ */
