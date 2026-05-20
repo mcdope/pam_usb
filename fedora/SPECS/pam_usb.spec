@@ -1,7 +1,7 @@
 %define _topdir         /usr/local/src/pam_usb/fedora
 %define name            pam_usb 
 %define release         1
-%define version         0.9.0
+%define version         0.9.1
 %define buildroot       %{_topdir}/%{name}‑%{version}‑root
 
 BuildRoot: %{buildroot}
@@ -61,6 +61,15 @@ rm -rf %{buildroot}/usr/share/pam-configs
 %doc %attr(0644,root,root) /usr/share/doc/pam_usb/TROUBLESHOOTING
 
 %changelog
+
+* Wed May 20 2026 Tobias Bäumer <tobiasbaeumer@gmail.com> - 0.9.1
+- [Bugfix] Restore debug output suppressed before config parsing; fix XRDP detection log message (#355)
+- [Security] Fixed GHSA-qg76-57wq-mpv6 (thread-unsafe static pointer in log.c) (#355)
+- [Security] Fixed GHSA-24mw-m2vf-36vp (integer overflow before heap allocation in conf.c) (#359)
+- [Security] Fixed GHSA-pvrg-chgw-x42c (evdev scan silently discards EACCES under non-root) (#360)
+- [Security] Fixed GHSA-w38v-cw9r-x9p6 (PAM_RHOST check skipped when deny_remote=false) (#361)
+- [CI/Tests] Add regression tests for thread-safe log.c (#357)
+- [Refactor] Deduplicate pam_sm_authenticate / pam_sm_acct_mgmt in pam.c (#356)
 
 * Tue May 19 2026 Tobias Bäumer <tobiasbaeumer@gmail.com> - 0.9.0
 - [Feature] Remove hardcoded 10-device limit per user (#236)
