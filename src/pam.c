@@ -81,21 +81,18 @@ static int pusb_do_auth(
 		return PAM_IGNORE;
 	}
 
-	if (opts.deny_remote)
+	retval = pam_get_item(pamh, PAM_RHOST, (const void **)&rhost);
+	if (retval != PAM_SUCCESS)
 	{
-		retval = pam_get_item(pamh, PAM_RHOST, (const void **)&rhost);
-		if (retval != PAM_SUCCESS)
-		{
-			log_error("Unable to retrieve PAM_RHOST.\n");
-			pusb_conf_free(&opts);
-			return PAM_AUTH_ERR;
-		}
-		else if (rhost != NULL && *rhost != '\0')
-		{
-			log_debug("RHOST is set (%s), must be a remote request - disabling myself for this request!\n", rhost);
-			pusb_conf_free(&opts);
-			return PAM_IGNORE;
-		}
+		log_error("Unable to retrieve PAM_RHOST.\n");
+		pusb_conf_free(&opts);
+		return PAM_AUTH_ERR;
+	}
+	if (rhost != NULL && *rhost != '\0')
+	{
+		log_debug("RHOST is set (%s), must be a remote request - disabling myself for this request!\n", rhost);
+		pusb_conf_free(&opts);
+		return PAM_IGNORE;
 	}
 
 	if (print_version)
