@@ -39,6 +39,10 @@ void *xrealloc(void *ptr, size_t size)
 	return (data);
 }
 
+/* noinline: prevents FORTIFY_SOURCE false positive. When inlined, the compiler
+ * sees the allocation size at the call site and flags malloc_usable_size() as
+ * overflowing that size (alignment padding). As a non-inline function, ptr has
+ * unknown object size so FORTIFY_SOURCE skips the check. */
 __attribute__((noinline))
 void xfree(void *ptr)
 {
