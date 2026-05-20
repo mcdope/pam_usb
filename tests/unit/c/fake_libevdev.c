@@ -34,11 +34,13 @@ typedef struct {
 
 fake_device_t g_mock_devices[FAKE_EVDEV_MAX_DEVICES];
 int           g_mock_device_count = 0;
+int           g_opendir_errno = 0;
 
 void fake_evdev_reset(void)
 {
 	memset(g_mock_devices, 0, sizeof(g_mock_devices));
 	g_mock_device_count = 0;
+	g_opendir_errno = 0;
 }
 
 /* ── Fake DIR / dirent for /dev/input ── */
@@ -105,6 +107,10 @@ DIR *__wrap_opendir(const char *name)
 {
 	(void)name;
 	g_mock_dirent_idx = 0;
+	if (g_opendir_errno != 0) {
+		errno = g_opendir_errno;
+		return NULL;
+	}
 	if (g_mock_device_count == 0)
 		return NULL;
 	return (DIR *)&g_fake_dir_sentinel;

@@ -27,6 +27,7 @@ typedef struct {
 
 extern fake_device_t g_mock_devices[];
 extern int           g_mock_device_count;
+extern int           g_opendir_errno;
 void fake_evdev_reset(void);
 
 /* Include source directly */
@@ -149,6 +150,15 @@ static void test_physical_before_virtual(void **state)
 	assert_int_equal(1, pusb_has_virtual_input_device("/dev/input"));
 }
 
+static void test_opendir_eacces_returns_inconclusive(void **state)
+{
+	(void)state;
+	/* opendir() itself fails with EACCES → should return -1, not 0 */
+	g_opendir_errno = EACCES;
+	g_mock_device_count = 0;
+	assert_int_equal(-1, pusb_has_virtual_input_device("/dev/input"));
+}
+
 static void test_all_devices_eacces_returns_inconclusive(void **state)
 {
 	(void)state;
@@ -184,6 +194,7 @@ int main(void)
 		cmocka_unit_test_setup(test_virtual_with_empty_phys,      setup),
 		cmocka_unit_test_setup(test_open_fails_skipped,                    setup),
 		cmocka_unit_test_setup(test_physical_before_virtual,               setup),
+		cmocka_unit_test_setup(test_opendir_eacces_returns_inconclusive,    setup),
 		cmocka_unit_test_setup(test_all_devices_eacces_returns_inconclusive, setup),
 		cmocka_unit_test_setup(test_eacces_then_virtual_returns_found,     setup),
 	};

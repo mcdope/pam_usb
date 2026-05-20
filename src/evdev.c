@@ -32,8 +32,9 @@ int pusb_has_virtual_input_device(const char *input_dir)
 
 	DIR *d = opendir(input_dir);
 	if (!d) {
+		int saved_errno = errno;
 		log_debug("	Could not open %s for evdev scan\n", input_dir);
-		return 0;
+		return saved_errno == EACCES ? -1 : 0;
 	}
 
 	char dev_path[PATH_MAX];
