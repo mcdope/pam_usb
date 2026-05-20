@@ -157,6 +157,24 @@ static void test_auth_deny_remote_rhost_retrieval_fails(void **state)
 	assert_int_equal(PAM_AUTH_ERR, pam_sm_authenticate(NULL, 0, 0, NULL));
 }
 
+static void test_auth_rhost_set_deny_remote_false_returns_ignore(void **state)
+{
+	(void)state;
+	reset_mocks();
+	g_deny_remote = 0;
+	g_rhost       = "192.168.1.1";
+	assert_int_equal(PAM_IGNORE, pam_sm_authenticate(NULL, 0, 0, NULL));
+}
+
+static void test_auth_rhost_retrieval_fails_deny_remote_false(void **state)
+{
+	(void)state;
+	reset_mocks();
+	g_deny_remote  = 0;
+	g_rhost_retval = PAM_AUTH_ERR;
+	assert_int_equal(PAM_AUTH_ERR, pam_sm_authenticate(NULL, 0, 0, NULL));
+}
+
 static void test_auth_local_login_denied(void **state)
 {
 	(void)state;
@@ -216,6 +234,8 @@ int main(void)
 		cmocka_unit_test(test_auth_disabled_returns_ignore),
 		cmocka_unit_test(test_auth_deny_remote_rhost_set_returns_ignore),
 		cmocka_unit_test(test_auth_deny_remote_rhost_retrieval_fails),
+		cmocka_unit_test(test_auth_rhost_set_deny_remote_false_returns_ignore),
+		cmocka_unit_test(test_auth_rhost_retrieval_fails_deny_remote_false),
 		cmocka_unit_test(test_auth_local_login_denied),
 		cmocka_unit_test(test_auth_device_check_success),
 		cmocka_unit_test(test_auth_device_check_failure),
