@@ -159,6 +159,24 @@ static void test_opendir_eacces_returns_inconclusive(void **state)
 	assert_int_equal(-1, pusb_has_virtual_input_device("/dev/input"));
 }
 
+static void test_opendir_eperm_returns_inconclusive(void **state)
+{
+	(void)state;
+	/* opendir() fails with EPERM (e.g. AppArmor/SELinux policy) → should return -1 */
+	g_opendir_errno = EPERM;
+	g_mock_device_count = 0;
+	assert_int_equal(-1, pusb_has_virtual_input_device("/dev/input"));
+}
+
+static void test_all_devices_eperm_returns_inconclusive(void **state)
+{
+	(void)state;
+	/* All opens fail with EPERM (LSM policy) → should return -1, not 0 */
+	g_mock_devices[0].open_errno = EPERM;
+	g_mock_device_count = 1;
+	assert_int_equal(-1, pusb_has_virtual_input_device("/dev/input"));
+}
+
 static void test_all_devices_eacces_returns_inconclusive(void **state)
 {
 	(void)state;
@@ -195,7 +213,9 @@ int main(void)
 		cmocka_unit_test_setup(test_open_fails_skipped,                    setup),
 		cmocka_unit_test_setup(test_physical_before_virtual,               setup),
 		cmocka_unit_test_setup(test_opendir_eacces_returns_inconclusive,    setup),
+		cmocka_unit_test_setup(test_opendir_eperm_returns_inconclusive,     setup),
 		cmocka_unit_test_setup(test_all_devices_eacces_returns_inconclusive, setup),
+		cmocka_unit_test_setup(test_all_devices_eperm_returns_inconclusive, setup),
 		cmocka_unit_test_setup(test_eacces_then_virtual_returns_found,     setup),
 	};
 	return cmocka_run_group_tests(tests, NULL, NULL);

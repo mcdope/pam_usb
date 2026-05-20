@@ -359,7 +359,7 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 		} else if (evdev_result == -1) {
 			log_error("Cannot check for virtual input devices (permission denied on /dev/input). "
 			          "Run pamusb-check as root or add user to the 'input' group for reliable "
-			          "remote desktop detection.\n");
+			          "remote desktop detection. If using AppArmor/SELinux, check policy.\n");
 		}
 	}
 

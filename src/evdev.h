@@ -29,7 +29,8 @@
  *   1  — virtual input device found
  *   0  — no virtual input device found
  *  -1  — scan inconclusive: at least one device could not be opened due to
- *         insufficient permissions (EACCES); result should be treated as a
+ *         insufficient permissions (EACCES or EPERM, the latter returned by
+ *         some LSMs such as AppArmor/SELinux); result should be treated as a
  *         warning, not a definitive negative
  * Production callers should pass "/dev/input".
  */

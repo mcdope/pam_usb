@@ -34,7 +34,7 @@ int pusb_has_virtual_input_device(const char *input_dir)
 	if (!d) {
 		int saved_errno = errno;
 		log_debug("	Could not open %s for evdev scan\n", input_dir);
-		return saved_errno == EACCES ? -1 : 0;
+		return (saved_errno == EACCES || saved_errno == EPERM) ? -1 : 0;
 	}
 
 	char dev_path[PATH_MAX];
@@ -49,7 +49,7 @@ int pusb_has_virtual_input_device(const char *input_dir)
 
 		int fd = open(dev_path, O_RDONLY | O_NONBLOCK | O_CLOEXEC);
 		if (fd < 0) {
-			if (errno == EACCES)
+			if (errno == EACCES || errno == EPERM)
 				permission_denied = 1;
 			continue;
 		}
