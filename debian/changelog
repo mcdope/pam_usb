@@ -1,3 +1,15 @@
+libpam-usb (0.9.1) unstable; urgency=high
+
+  * [Bugfix] Restore debug output suppressed before config parsing; fix XRDP detection log message (#355)
+  * [Security] Fixed GHSA-qg76-57wq-mpv6 (thread-unsafe static pointer in log.c) (#355)
+  * [Security] Fixed GHSA-24mw-m2vf-36vp (integer overflow before heap allocation in conf.c) (#359)
+  * [Security] Fixed GHSA-pvrg-chgw-x42c (evdev scan silently discards EACCES under non-root) (#360)
+  * [Security] Fixed GHSA-w38v-cw9r-x9p6 (PAM_RHOST check skipped when deny_remote=false) (#361)
+  * [CI/Tests] Add regression tests for thread-safe log.c (#357)
+  * [Refactor] Deduplicate pam_sm_authenticate / pam_sm_acct_mgmt in pam.c (#356)
+
+ -- Tobias Bäumer <tobiasbaeumer@gmail.com>  Wed, 20 May 2026 00:00:00 +0200
+
 libpam-usb (0.9.0) unstable; urgency=critical
   * [Feature] Remove hardcoded 10-device limit per user (#236)
   * [Feature] Add additional remote connection check for VNC/RDP (optional, default on) (#202)

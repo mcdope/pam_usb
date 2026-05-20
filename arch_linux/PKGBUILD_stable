@@ -2,7 +2,7 @@
 # Contributor: Pekka Helenius <fincer89 [at] hotmail [dot] com>
 
 pkgname=pam_usb
-pkgver=0.9.0
+pkgver=0.9.1
 pkgrel=1
 pkgdesc='Hardware authentication for Linux using ordinary flash media (USB & Card based).'
 arch=($CARCH)
