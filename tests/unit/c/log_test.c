@@ -8,6 +8,7 @@
  * log.c is included directly to access the static thread-local variables.
  */
 
+#define _GNU_SOURCE
 #include <stdarg.h>
 #include <stddef.h>
 #include <setjmp.h>

@@ -7,6 +7,7 @@
  * mock table indexed by file descriptor (used as array index).
  */
 
+#define _GNU_SOURCE
 #include <stdarg.h>
 #include <stddef.h>
 #include <setjmp.h>

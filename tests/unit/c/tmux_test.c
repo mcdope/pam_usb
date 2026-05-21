@@ -11,6 +11,7 @@
  *   C-2: tmux command is resolved by absolute path, not PAM-time PATH
  */
 
+#define _GNU_SOURCE
 #include <stdarg.h>
 #include <stddef.h>
 #include <setjmp.h>

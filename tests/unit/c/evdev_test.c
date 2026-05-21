@@ -8,6 +8,7 @@
  * when open() is called for "eventI".
  */
 
+#define _GNU_SOURCE
 #include <stdarg.h>
 #include <stddef.h>
 #include <setjmp.h>

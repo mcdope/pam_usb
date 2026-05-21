@@ -9,6 +9,7 @@
  *   H-3: truncated pad file → pusb_pad_compare() returns 0 (deny)
  */
 
+#define _GNU_SOURCE
 #include <stdarg.h>
 #include <stddef.h>
 #include <setjmp.h>

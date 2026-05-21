@@ -15,6 +15,8 @@
  * Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#define _GNU_SOURCE
+#include <malloc.h>
 #include "mem.h"
 #include "log.h"
 
@@ -28,18 +30,15 @@ void *xmalloc(size_t size)
 	return (data);
 }
 
-void *xrealloc(void *ptr, size_t size)
-{
-	void *data = realloc(ptr, size);
-	if (data == NULL) {
-		log_error("xrealloc: out of memory\n");
-		abort();
-	}
-	return (data);
-}
-
+/* noinline: prevents FORTIFY_SOURCE false positive. When inlined, the compiler
+ * sees the allocation size at the call site and flags malloc_usable_size() as
+ * overflowing that size (alignment padding). As a non-inline function, ptr has
+ * unknown object size so FORTIFY_SOURCE skips the check. */
+__attribute__((__noinline__))
 void xfree(void *ptr)
 {
+	if (ptr)
+		explicit_bzero(ptr, malloc_usable_size(ptr));
 	free(ptr);
 }
 

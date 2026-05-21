@@ -15,6 +15,7 @@
  * Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#define _GNU_SOURCE
 #include <sys/utsname.h>
 #include <string.h>
 #include <errno.h>
