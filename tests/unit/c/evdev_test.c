@@ -220,12 +220,7 @@ static void test_symlink_then_virtual_detected(void **state)
 	(void)state;
 	/* First device is a symlink (ELOOP), second is a real virtual keyboard → still detected */
 	SETUP_DEVICE_ELOOP(0);
-	g_mock_devices[1].bustype     = BUS_VIRTUAL;
-	g_mock_devices[1].phys        = NULL;
-	g_mock_devices[1].event_types = (1u << EV_KEY);
-	g_mock_devices[1].init_fails  = 0;
-	g_mock_devices[1].open_errno  = 0;
-	g_mock_device_count = 2;
+	SETUP_DEVICE(1, BUS_VIRTUAL, NULL, (1u << EV_KEY));
 	assert_int_equal(1, pusb_has_virtual_input_device("/dev/input"));
 }
 
