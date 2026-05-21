@@ -55,9 +55,10 @@ void fake_evdev_reset(void);
 
 #define SETUP_DEVICE_ELOOP(idx) \
 	do { \
-		memset(&g_mock_devices[idx], 0, sizeof(g_mock_devices[idx])); \
-		g_mock_devices[idx].open_errno = ELOOP; \
-		g_mock_device_count = (idx) + 1; \
+		int _idx = (idx); \
+		memset(&g_mock_devices[_idx], 0, sizeof(g_mock_devices[_idx])); \
+		g_mock_devices[_idx].open_errno = ELOOP; \
+		g_mock_device_count = _idx + 1; \
 	} while(0)
 
 static int setup(void **state)
