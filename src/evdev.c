@@ -48,7 +48,7 @@ int pusb_has_virtual_input_device(const char *input_dir)
 
 		snprintf(dev_path, sizeof(dev_path), "%s/%s", input_dir, ent->d_name);
 
-		int fd = open(dev_path, O_RDONLY | O_NONBLOCK | O_CLOEXEC);
+		int fd = open(dev_path, O_RDONLY | O_NONBLOCK | O_CLOEXEC | O_NOFOLLOW);
 		if (fd < 0) {
 			if (errno == EACCES || errno == EPERM)
 				permission_denied = 1;
