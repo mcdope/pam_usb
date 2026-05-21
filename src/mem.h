@@ -21,7 +21,6 @@
 # include <string.h>
 
 void *xmalloc(size_t size);
-void *xrealloc(void *ptr, size_t size);
 __attribute__((__noinline__)) void xfree(void *ptr);
 char *xstrdup(const char *s);
 

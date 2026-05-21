@@ -30,17 +30,6 @@ void *xmalloc(size_t size)
 	return (data);
 }
 
-void *xrealloc(void *ptr, size_t size)
-{
-	size_t oldsize = ptr ? malloc_usable_size(ptr) : 0;
-	void *data = xmalloc(size);
-	if (ptr) {
-		memcpy(data, ptr, oldsize < size ? oldsize : size); /* DevSkim: ignore DS121708 */
-		xfree(ptr);
-	}
-	return (data);
-}
-
 /* noinline: prevents FORTIFY_SOURCE false positive. When inlined, the compiler
  * sees the allocation size at the call site and flags malloc_usable_size() as
  * overflowing that size (alignment padding). As a non-inline function, ptr has
