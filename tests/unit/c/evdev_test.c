@@ -53,6 +53,14 @@ void fake_evdev_reset(void);
 		g_mock_device_count = (idx) + 1; \
 	} while(0)
 
+#define SETUP_DEVICE_ELOOP(idx) \
+	do { \
+		int _idx = (idx); \
+		memset(&g_mock_devices[_idx], 0, sizeof(g_mock_devices[_idx])); \
+		g_mock_devices[_idx].open_errno = ELOOP; \
+		g_mock_device_count = _idx + 1; \
+	} while(0)
+
 static int setup(void **state)
 {
 	(void)state;
@@ -200,6 +208,23 @@ static void test_eacces_then_virtual_returns_found(void **state)
 	assert_int_equal(1, pusb_has_virtual_input_device("/dev/input"));
 }
 
+static void test_symlink_device_skipped(void **state)
+{
+	(void)state;
+	/* O_NOFOLLOW rejects a symlink → ELOOP → device skipped, result is 0 (not inconclusive) */
+	SETUP_DEVICE_ELOOP(0);
+	assert_int_equal(0, pusb_has_virtual_input_device("/dev/input"));
+}
+
+static void test_symlink_then_virtual_detected(void **state)
+{
+	(void)state;
+	/* First device is a symlink (ELOOP), second is a real virtual keyboard → still detected */
+	SETUP_DEVICE_ELOOP(0);
+	SETUP_DEVICE(1, BUS_VIRTUAL, NULL, (1u << EV_KEY));
+	assert_int_equal(1, pusb_has_virtual_input_device("/dev/input"));
+}
+
 int main(void)
 {
 	const struct CMUnitTest tests[] = {
@@ -218,6 +243,8 @@ int main(void)
 		cmocka_unit_test_setup(test_all_devices_eacces_returns_inconclusive, setup),
 		cmocka_unit_test_setup(test_all_devices_eperm_returns_inconclusive, setup),
 		cmocka_unit_test_setup(test_eacces_then_virtual_returns_found,     setup),
+		cmocka_unit_test_setup(test_symlink_device_skipped,               setup),
+		cmocka_unit_test_setup(test_symlink_then_virtual_detected,        setup),
 	};
 	return cmocka_run_group_tests(tests, NULL, NULL);
 }
