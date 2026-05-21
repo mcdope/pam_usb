@@ -3,6 +3,7 @@
  * Tests pusb_xpath_get_bool, _get_time, _get_int, _get_string, _get_string_list
  */
 
+#define _GNU_SOURCE
 #include <stdarg.h>
 #include <stddef.h>
 #include <setjmp.h>

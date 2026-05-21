@@ -5,6 +5,7 @@
  * allowing tests to inject fixture file paths directly.
  */
 
+#define _GNU_SOURCE
 #include <stdarg.h>
 #include <stddef.h>
 #include <setjmp.h>

@@ -15,6 +15,7 @@
  * Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#define _GNU_SOURCE
 #include <malloc.h>
 #include "mem.h"
 #include "log.h"

@@ -16,6 +16,7 @@
  */
 
 #define PAM_SM_AUTH
+#define _GNU_SOURCE
 #include <security/pam_modules.h>
 #include <security/_pam_macros.h>
 #include <string.h>

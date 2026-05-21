@@ -1,14 +1,16 @@
 /*
  * Unit tests for src/mem.c
  *
- * Verifies that xfree() calls explicit_bzero() before free() so that
- * sensitive heap-allocated data (pad bytes, device serials, XPath queries)
- * is cleared before the allocator reclaims the region.
+ * Verifies that xfree() and xrealloc() call explicit_bzero() before
+ * releasing the old allocation so that sensitive heap-allocated data
+ * (pad bytes, device serials, XPath queries) is cleared before the
+ * allocator reclaims the region.
  *
  * explicit_bzero is wrapped at link time with --wrap=explicit_bzero so the
  * test can observe the call without relying on post-free memory inspection.
  */
 
+#define _GNU_SOURCE
 #include <stdarg.h>
 #include <stddef.h>
 #include <setjmp.h>
