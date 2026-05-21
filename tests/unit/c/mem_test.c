@@ -66,11 +66,38 @@ static void test_xfree_clears_memory(void **state)
 	assert_true(g_bzero_len >= sz);
 }
 
+/* ── xrealloc() must clear the old allocation via xfree() ──
+ *
+ * xrealloc uses the safe allocate-copy-zero-free pattern rather than
+ * realloc(), so the old block is always passed to xfree() which calls
+ * explicit_bzero on it before release.
+ */
+static void test_xrealloc_clears_old_memory(void **state)
+{
+	(void)state;
+	const size_t sz = 64;
+	char *ptr = xmalloc(sz);
+	memset(ptr, 0xBB, sz);
+
+	g_bzero_called = 0;
+	g_bzero_len    = 0;
+
+	char *new_ptr = xrealloc(ptr, sz * 2);
+
+	assert_int_equal(1, g_bzero_called);
+	assert_true(g_bzero_len >= sz);
+	assert_non_null(new_ptr);
+
+	g_bzero_called = 0;
+	xfree(new_ptr);
+}
+
 int main(void)
 {
 	const struct CMUnitTest tests[] = {
 		cmocka_unit_test(test_xfree_null_safe),
 		cmocka_unit_test(test_xfree_clears_memory),
+		cmocka_unit_test(test_xrealloc_clears_old_memory),
 	};
 	return cmocka_run_group_tests(tests, NULL, NULL);
 }

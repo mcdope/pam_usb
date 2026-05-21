@@ -32,10 +32,11 @@ void *xmalloc(size_t size)
 
 void *xrealloc(void *ptr, size_t size)
 {
-	void *data = realloc(ptr, size);
-	if (data == NULL) {
-		log_error("xrealloc: out of memory\n");
-		abort();
+	size_t oldsize = ptr ? malloc_usable_size(ptr) : 0;
+	void *data = xmalloc(size);
+	if (ptr) {
+		memcpy(data, ptr, oldsize < size ? oldsize : size);
+		xfree(ptr);
 	}
 	return (data);
 }
