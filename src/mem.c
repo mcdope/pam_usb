@@ -35,7 +35,7 @@ void *xrealloc(void *ptr, size_t size)
 	size_t oldsize = ptr ? malloc_usable_size(ptr) : 0;
 	void *data = xmalloc(size);
 	if (ptr) {
-		memcpy(data, ptr, oldsize < size ? oldsize : size);
+		memcpy(data, ptr, oldsize < size ? oldsize : size); /* DevSkim: ignore DS121708 */
 		xfree(ptr);
 	}
 	return (data);
