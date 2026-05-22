@@ -517,6 +517,55 @@ static void test_pad_update_rejected_on_stale_tmp(void **state)
 	rmdir(sys_pad_dir);
 }
 
+/* ── CWE-367 regression: mkdir-first eliminates TOCTOU in pad dir creation ── */
+
+static void test_device_pad_dir_existing_accepted(void **state)
+{
+	(void)state;
+	char mnt_dir[] = "/tmp/pamusb_toctou_dev_XXXXXX";
+	assert_non_null(mkdtemp(mnt_dir));
+
+	/* Pre-create the device pad directory so mkdir() will see EEXIST */
+	char pad_dir[PUSB_PAD_PATH_MAX];
+	snprintf(pad_dir, sizeof(pad_dir), "%s/.pamusb", mnt_dir);
+	mkdir_p(pad_dir);
+
+	t_pusb_options opts = {0};
+	pusb_conf_init(&opts);
+	snprintf(opts.device.name, sizeof(opts.device.name), "testdev");
+
+	char path_out[PUSB_PAD_PATH_MAX];
+	int result = pusb_pad_build_device_path(&opts, mnt_dir, "testuser", path_out, sizeof(path_out));
+	assert_int_equal(1, result);
+
+	rmdir(pad_dir);
+	rmdir(mnt_dir);
+}
+
+static void test_system_pad_dir_existing_accepted(void **state)
+{
+	(void)state;
+	struct passwd *pw = getpwuid(getuid());
+	assert_non_null(pw);
+
+	/* Pre-create the system pad directory so mkdir() will see EEXIST */
+	char sys_pad_dir[PUSB_PAD_PATH_MAX];
+	snprintf(sys_pad_dir, sizeof(sys_pad_dir), "%s/.pamusb_toctou_sys_unit", pw->pw_dir);
+	mkdir_p(sys_pad_dir);
+
+	t_pusb_options opts = {0};
+	pusb_conf_init(&opts);
+	snprintf(opts.device.name, sizeof(opts.device.name), "pamusb_toctou_sys");
+	snprintf(opts.system_pad_directory, sizeof(opts.system_pad_directory),
+	         ".pamusb_toctou_sys_unit");
+
+	char path_out[PUSB_PAD_PATH_MAX];
+	int result = pusb_pad_build_system_path(&opts, pw->pw_name, path_out, sizeof(path_out));
+	assert_int_equal(1, result);
+
+	rmdir(sys_pad_dir);
+}
+
 /* ── main ── */
 
 int main(void)
@@ -542,6 +591,8 @@ int main(void)
 		cmocka_unit_test(test_timingsafe_memcmp_equal),
 		cmocka_unit_test(test_timingsafe_memcmp_differ),
 		cmocka_unit_test(test_pad_update_rejected_on_stale_tmp),
+		cmocka_unit_test(test_device_pad_dir_existing_accepted),
+		cmocka_unit_test(test_system_pad_dir_existing_accepted),
 	};
 	return cmocka_run_group_tests(tests, NULL, NULL);
 }

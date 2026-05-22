@@ -37,6 +37,26 @@
 #define PUSB_PAD_SIZE     1024
 #define PUSB_PAD_PATH_MAX (1024 * 5)
 
+/* mkdir(path, 0700) atomically; on EEXIST verify path is not a symlink.
+ * Returns 1 if newly created, 0 if pre-existed and is not a symlink, -1 on error. */
+static int pusb_mkdir_safe(const char *path, const char *context)
+{
+	struct stat sb;
+	if (mkdir(path, S_IRUSR | S_IWUSR | S_IXUSR) == 0)
+		return 1;
+	if (errno != EEXIST)
+	{
+		log_debug("Unable to create directory %s: %s\n", path, strerror(errno));
+		return -1;
+	}
+	if (lstat(path, &sb) != 0 || S_ISLNK(sb.st_mode))
+	{
+		log_error("%s directory %s is a symlink, refusing to use it.\n", context, path);
+		return -1;
+	}
+	return 0;
+}
+
 static int pusb_pad_build_device_path(
 	t_pusb_options *opts,
 	const char *mnt_point,
@@ -46,7 +66,6 @@ static int pusb_pad_build_device_path(
 )
 {
 	char path_devpad[PUSB_PAD_PATH_MAX];
-	struct stat sb;
 
 	int pn1 = snprintf(path_devpad, sizeof(path_devpad), "%s/%s", mnt_point, opts->device_pad_directory);
 	if (pn1 < 0 || (size_t)pn1 >= sizeof(path_devpad))
@@ -54,20 +73,8 @@ static int pusb_pad_build_device_path(
 		log_error("Device pad directory path too long.\n");
 		return 0;
 	}
-	if (lstat(path_devpad, &sb) != 0)
-	{
-		log_debug("Directory %s does not exist, creating it.\n", path_devpad);
-		if (mkdir(path_devpad, S_IRUSR | S_IWUSR | S_IXUSR) != 0)
-		{
-			log_debug("Unable to create directory %s: %s\n", path_devpad, strerror(errno));
-			return 0;
-		}
-	}
-	else if (S_ISLNK(sb.st_mode))
-	{
-		log_error("Device pad directory %s is a symlink, refusing to use it.\n", path_devpad);
+	if (pusb_mkdir_safe(path_devpad, "Device pad") < 0)
 		return 0;
-	}
 
 	int pn2 = snprintf(
 		path_out,
@@ -94,7 +101,6 @@ static int pusb_pad_build_system_path(
 )
 {
 	struct passwd *user_ent = NULL;
-	struct stat sb;
 	char device_name[128];
 	char *device_name_ptr = device_name;
 	char dir_path[PUSB_PAD_PATH_MAX];
@@ -117,26 +123,14 @@ static int pusb_pad_build_system_path(
 		log_error("System pad directory path too long.\n");
 		return 0;
 	}
-	if (lstat(dir_path, &sb) != 0)
-	{
-		log_debug("Directory %s does not exist, creating one.\n", dir_path);
-		if (mkdir(dir_path, S_IRUSR | S_IWUSR | S_IXUSR) != 0)
-		{
-			log_debug("Unable to create directory %s: %s\n", dir_path, strerror(errno));
-			return 0;
-		}
-
-		if (chown(dir_path, user_ent->pw_uid, user_ent->pw_gid) != 0)
-		{
-			log_error("Unable to chown directory %s: %s\n", dir_path, strerror(errno));
-		}
-
-		chmod(dir_path, S_IRUSR | S_IWUSR | S_IXUSR);
-	}
-	else if (S_ISLNK(sb.st_mode))
-	{
-		log_error("System pad directory %s is a symlink, refusing to use it.\n", dir_path);
+	int rc = pusb_mkdir_safe(dir_path, "System pad");
+	if (rc < 0)
 		return 0;
+	if (rc > 0)
+	{
+		if (chown(dir_path, user_ent->pw_uid, user_ent->pw_gid) != 0)
+			log_error("Unable to chown directory %s: %s\n", dir_path, strerror(errno));
+		chmod(dir_path, S_IRUSR | S_IWUSR | S_IXUSR);
 	}
 	/* change slashes in device name to underscores */
 	snprintf(device_name, sizeof(device_name), "%s", opts->device.name);
