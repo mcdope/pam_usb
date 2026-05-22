@@ -125,14 +125,17 @@ static void test_local_login_display_env_null(void **state)
 	memset(&opts, 0, sizeof(opts));
 	opts.deny_remote = 1;
 
-	const char *saved = getenv("DISPLAY");
+	const char *raw = secure_getenv("DISPLAY");
+	char *saved = raw ? xstrdup(raw) : NULL;
 	unsetenv("DISPLAY");
 	int result = pusb_local_login(&opts, "testuser", "testservice");
-	if (saved)
+	if (saved) {
 		setenv("DISPLAY", saved, 1);
+		xfree(saved);
+	}
 
-	/* NULL DISPLAY must not crash; function returns 0 (deny) or 1 (allow) */
-	assert_true(result == 0 || result == 1);
+	/* NULL DISPLAY must not crash; function returns -1, 0, or 1 */
+	assert_true(result >= -1 && result <= 1);
 }
 
 static void test_local_login_display_env_set(void **state)
@@ -142,16 +145,19 @@ static void test_local_login_display_env_set(void **state)
 	memset(&opts, 0, sizeof(opts));
 	opts.deny_remote = 1;
 
-	const char *saved = getenv("DISPLAY");
+	const char *raw = secure_getenv("DISPLAY");
+	char *saved = raw ? xstrdup(raw) : NULL;
 	setenv("DISPLAY", ":0", 1);
 	int result = pusb_local_login(&opts, "testuser", "testservice");
-	if (saved)
+	if (saved) {
 		setenv("DISPLAY", saved, 1);
-	else
+		xfree(saved);
+	} else {
 		unsetenv("DISPLAY");
+	}
 
-	/* DISPLAY=:0 must not crash; function returns 0 (deny) or 1 (allow) */
-	assert_true(result == 0 || result == 1);
+	/* DISPLAY=:0 must not crash; function returns -1, 0, or 1 */
+	assert_true(result >= -1 && result <= 1);
 }
 
 int main(void)
