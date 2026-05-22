@@ -129,12 +129,13 @@ static void test_local_login_display_env_null(void **state)
 	char *saved = raw ? xstrdup(raw) : NULL;
 	unsetenv("DISPLAY");
 	int result = pusb_local_login(&opts, "testuser", "testservice");
-	if (saved) {
+	if (saved)
+	{
 		setenv("DISPLAY", saved, 1);
 		xfree(saved);
 	}
 
-	/* NULL DISPLAY must not crash; function returns -1, 0, or 1 */
+	/* NULL DISPLAY must not crash; result depends on environment (loginctl, utmp) */
 	assert_true(result >= -1 && result <= 1);
 }
 
@@ -149,14 +150,17 @@ static void test_local_login_display_env_set(void **state)
 	char *saved = raw ? xstrdup(raw) : NULL;
 	setenv("DISPLAY", ":0", 1);
 	int result = pusb_local_login(&opts, "testuser", "testservice");
-	if (saved) {
+	if (saved)
+	{
 		setenv("DISPLAY", saved, 1);
 		xfree(saved);
-	} else {
+	}
+	else
+	{
 		unsetenv("DISPLAY");
 	}
 
-	/* DISPLAY=:0 must not crash; function returns -1, 0, or 1 */
+	/* DISPLAY=:0 must not crash; result depends on environment (loginctl, utmp) */
 	assert_true(result >= -1 && result <= 1);
 }
 
