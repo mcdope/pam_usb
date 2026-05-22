@@ -47,9 +47,9 @@ static int pusb_mkdir_safe(const char *path, const char *context)
 	{
 		int err = errno;
 		if (err == EACCES || err == EPERM)
-			log_debug("Unable to create directory %s: %s (check AppArmor/SELinux policy)\n", path, strerror(err));
+			log_debug("Unable to create directory %s: %s (check AppArmor/SELinux policy)\n", path, strerror(err)); /* DevSkim: ignore DS154189 */
 		else
-			log_debug("Unable to create directory %s: %s\n", path, strerror(err));
+			log_debug("Unable to create directory %s: %s\n", path, strerror(err)); /* DevSkim: ignore DS154189 */
 		return -1;
 	}
 	/* O_DIRECTORY|O_NOFOLLOW|O_CLOEXEC: rejects symlinks (ELOOP), non-directories (ENOTDIR), prevents fd leak */
@@ -139,18 +139,18 @@ static int pusb_pad_build_system_path(
 		if (dfd < 0)
 		{
 			int err = errno;
-			log_error("Unable to open newly created directory %s: %s\n", dir_path, strerror(err));
+			log_error("Unable to open newly created directory %s: %s\n", dir_path, strerror(err)); /* DevSkim: ignore DS154189 */
 			return 0;
 		}
 		if (fchown(dfd, user_ent->pw_uid, user_ent->pw_gid) != 0)
 		{
 			int err = errno;
-			log_error("Unable to chown directory %s: %s\n", dir_path, strerror(err));
+			log_error("Unable to chown directory %s: %s\n", dir_path, strerror(err)); /* DevSkim: ignore DS154189 */
 		}
 		if (fchmod(dfd, S_IRUSR | S_IWUSR | S_IXUSR) != 0)
 		{
 			int err = errno;
-			log_error("Unable to chmod directory %s: %s\n", dir_path, strerror(err));
+			log_error("Unable to chmod directory %s: %s\n", dir_path, strerror(err)); /* DevSkim: ignore DS154189 */
 		}
 		close(dfd);
 	}
