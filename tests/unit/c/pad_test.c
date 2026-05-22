@@ -473,6 +473,50 @@ static void test_timingsafe_memcmp_differ(void **state)
 	assert_int_not_equal(0, timingsafe_memcmp(a, b, sizeof(a)));
 }
 
+/* ── CWE-362 regression: O_EXCL on temp file prevents concurrent update race ── */
+
+static void test_pad_update_rejected_on_stale_tmp(void **state)
+{
+	(void)state;
+	struct passwd *pw = getpwuid(getuid());
+	assert_non_null(pw);
+
+	char mnt_dir[] = "/tmp/pamusb_oexcl_XXXXXX";
+	assert_non_null(mkdtemp(mnt_dir));
+
+	t_pusb_options opts = {0};
+	pusb_conf_init(&opts);
+	snprintf(opts.device.name, sizeof(opts.device.name), "pamusb_oexcl_test");
+	snprintf(opts.system_pad_directory, sizeof(opts.system_pad_directory),
+	         ".pamusb_oexcl_unit");
+
+	/* Create system pad dir but no pad file — makes pusb_pad_should_update return 1 */
+	char sys_pad_dir[512];
+	snprintf(sys_pad_dir, sizeof(sys_pad_dir), "%s/.pamusb_oexcl_unit", pw->pw_dir);
+	mkdir_p(sys_pad_dir);
+
+	/* Create device pad dir */
+	char dev_pad_dir[512];
+	snprintf(dev_pad_dir, sizeof(dev_pad_dir), "%s/.pamusb", mnt_dir);
+	mkdir_p(dev_pad_dir);
+
+	/* Pre-create a stale device pad temp file to simulate a leftover from a prior crash */
+	char dev_tmp_path[1024];
+	snprintf(dev_tmp_path, sizeof(dev_tmp_path), "%s/%s.%s.pad.tmp",
+	         dev_pad_dir, pw->pw_name, opts.hostname);
+	write_file(dev_tmp_path, "stale", 5);
+
+	/* pusb_pad_update must fail: O_EXCL rejects the pre-existing temp file */
+	int result = pusb_pad_update(&opts, mnt_dir, pw->pw_name);
+	assert_int_equal(0, result);
+
+	/* cleanup */
+	unlink(dev_tmp_path);
+	rmdir(dev_pad_dir);
+	rmdir(mnt_dir);
+	rmdir(sys_pad_dir);
+}
+
 /* ── main ── */
 
 int main(void)
@@ -497,6 +541,7 @@ int main(void)
 		cmocka_unit_test(test_generate_random_bytes_fills_buffer),
 		cmocka_unit_test(test_timingsafe_memcmp_equal),
 		cmocka_unit_test(test_timingsafe_memcmp_differ),
+		cmocka_unit_test(test_pad_update_rejected_on_stale_tmp),
 	};
 	return cmocka_run_group_tests(tests, NULL, NULL);
 }
