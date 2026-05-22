@@ -231,8 +231,9 @@ static void test_parse_rejects_double_quote_in_device_id(void **state)
 	char tmpfile[] = "/tmp/pamusb_test_dquote_device_XXXXXX";
 	int fd = mkstemp(tmpfile);
 	assert_true(fd >= 0);
-	const char *xml =
-		"<?xml version=\"1.0\"?>"
+	FILE *f = fdopen(fd, "w");
+	assert_non_null(f);
+	fputs("<?xml version=\"1.0\"?>"
 		"<configuration>"
 		"  <devices>"
 		"    <device id=\"victim\"><vendor>V</vendor><model>M</model>"
@@ -244,9 +245,8 @@ static void test_parse_rejects_double_quote_in_device_id(void **state)
 		"  <services>"
 		"    <service id=\"login\"></service>"
 		"  </services>"
-		"</configuration>";
-	write(fd, xml, strlen(xml)); /* DevSkim: ignore DS154189 - xml is a string literal, always null-terminated */
-	close(fd);
+		"</configuration>", f);
+	fclose(f);
 
 	t_pusb_options opts;
 	pusb_conf_init(&opts);
