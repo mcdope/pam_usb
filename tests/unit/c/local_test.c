@@ -125,7 +125,7 @@ static void test_local_login_display_env_null(void **state)
 	memset(&opts, 0, sizeof(opts));
 	opts.deny_remote = 1;
 
-	const char *raw = secure_getenv("DISPLAY");
+	const char *raw = getenv("DISPLAY"); /* DevSkim: ignore DS154189 - saving for restore, xstrdup'd immediately */
 	char *saved = raw ? xstrdup(raw) : NULL;
 	unsetenv("DISPLAY");
 	int result = pusb_local_login(&opts, "testuser", "testservice");
@@ -146,7 +146,7 @@ static void test_local_login_display_env_set(void **state)
 	memset(&opts, 0, sizeof(opts));
 	opts.deny_remote = 1;
 
-	const char *raw = secure_getenv("DISPLAY");
+	const char *raw = getenv("DISPLAY"); /* DevSkim: ignore DS154189 - saving for restore, xstrdup'd immediately */
 	char *saved = raw ? xstrdup(raw) : NULL;
 	setenv("DISPLAY", ":0", 1);
 	int result = pusb_local_login(&opts, "testuser", "testservice");
