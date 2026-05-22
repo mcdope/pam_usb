@@ -37,23 +37,29 @@
 #define PUSB_PAD_SIZE     1024
 #define PUSB_PAD_PATH_MAX (1024 * 5)
 
-/* mkdir(path, 0700) atomically; on EEXIST verify path is not a symlink.
- * Returns 1 if newly created, 0 if pre-existed and is not a symlink, -1 on error. */
+/* mkdir(path, 0700) atomically; on EEXIST verify path is a real directory (not a symlink).
+ * Returns 1 if newly created, 0 if pre-existed and is a real directory, -1 on error. */
 static int pusb_mkdir_safe(const char *path, const char *context)
 {
-	struct stat sb;
 	if (mkdir(path, S_IRUSR | S_IWUSR | S_IXUSR) == 0)
 		return 1;
 	if (errno != EEXIST)
 	{
-		log_debug("Unable to create directory %s: %s\n", path, strerror(errno));
+		int err = errno;
+		if (err == EACCES || err == EPERM)
+			log_debug("Unable to create directory %s: %s (check AppArmor/SELinux policy)\n", path, strerror(err));
+		else
+			log_debug("Unable to create directory %s: %s\n", path, strerror(err));
 		return -1;
 	}
-	if (lstat(path, &sb) != 0 || S_ISLNK(sb.st_mode))
+	/* O_DIRECTORY|O_NOFOLLOW rejects symlinks (ELOOP) and non-directories (ENOTDIR) */
+	int fd = open(path, O_RDONLY | O_DIRECTORY | O_NOFOLLOW);
+	if (fd < 0)
 	{
-		log_error("%s directory %s is a symlink, refusing to use it.\n", context, path);
+		log_error("%s directory %s is a symlink or not a directory, refusing to use it.\n", context, path);
 		return -1;
 	}
+	close(fd);
 	return 0;
 }
 
@@ -128,9 +134,19 @@ static int pusb_pad_build_system_path(
 		return 0;
 	if (rc > 0)
 	{
-		if (chown(dir_path, user_ent->pw_uid, user_ent->pw_gid) != 0)
-			log_error("Unable to chown directory %s: %s\n", dir_path, strerror(errno));
-		chmod(dir_path, S_IRUSR | S_IWUSR | S_IXUSR);
+		/* Open the directory we just created via fd to avoid path-based TOCTOU on chown/chmod */
+		int dfd = open(dir_path, O_RDONLY | O_DIRECTORY | O_NOFOLLOW);
+		if (dfd >= 0)
+		{
+			if (fchown(dfd, user_ent->pw_uid, user_ent->pw_gid) != 0)
+				log_error("Unable to chown directory %s: %s\n", dir_path, strerror(errno));
+			fchmod(dfd, S_IRUSR | S_IWUSR | S_IXUSR);
+			close(dfd);
+		}
+		else
+		{
+			log_error("Unable to open newly created directory %s: %s\n", dir_path, strerror(errno));
+		}
 	}
 	/* change slashes in device name to underscores */
 	snprintf(device_name, sizeof(device_name), "%s", opts->device.name);
