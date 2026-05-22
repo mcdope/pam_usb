@@ -366,6 +366,93 @@ static void test_parse_many_devices_no_false_positive(void **state)
 	unlink(tmpfile);
 }
 
+/* ── XXE prevention ── */
+
+static void test_parse_xxe_file_entity_does_not_inject(void **state)
+{
+	(void)state;
+	/*
+	 * Regression: XML_PARSE_NONET | XML_PARSE_NOENT must prevent an external
+	 * file-entity declaration from injecting file content into device IDs.
+	 */
+	char sentinel[] = "/tmp/pamusb_xxe_sentinel_XXXXXX";
+	int sfd = mkstemp(sentinel);
+	assert_true(sfd >= 0);
+	const char *marker = "XXE_SENTINEL_CONTENT";
+	write(sfd, marker, strlen(marker));
+	close(sfd);
+
+	char tmpfile[] = "/tmp/pamusb_xxe_test_XXXXXX";
+	int fd = mkstemp(tmpfile);
+	assert_true(fd >= 0);
+	FILE *f = fdopen(fd, "w");
+	assert_non_null(f);
+	fprintf(f, /* DevSkim: ignore DS154189 */
+		"<?xml version=\"1.0\"?>\n"
+		"<!DOCTYPE configuration [\n"
+		"  <!ENTITY xxe SYSTEM \"file://%s\">\n"
+		"]>\n"
+		"<configuration>\n"
+		"  <devices>\n"
+		"    <device id=\"&xxe;\"><vendor>V</vendor><model>M</model>\n"
+		"      <serial>S001</serial><volume_uuid>UUID-X</volume_uuid></device>\n"
+		"  </devices>\n"
+		"  <users>\n"
+		"    <user id=\"testuser\"><device>XXE_SENTINEL_CONTENT</device></user>\n"
+		"  </users>\n"
+		"  <services><service id=\"login\"></service></services>\n"
+		"</configuration>\n", sentinel);
+	fclose(f);
+
+	t_pusb_options opts;
+	pusb_conf_init(&opts);
+	int result = pusb_conf_parse(tmpfile, &opts, "testuser", "login");
+
+	if (result) {
+		for (int i = 0; i < opts.device_count; i++)
+			assert_string_not_equal(opts.device_list[i].name, marker);
+		pusb_conf_free(&opts);
+	}
+
+	unlink(sentinel);
+	unlink(tmpfile);
+}
+
+static void test_parse_xml_with_internal_entities_is_accepted(void **state)
+{
+	(void)state;
+	/*
+	 * Positive regression: XML_PARSE_NOENT must not break configs that use
+	 * only safe internal entity declarations.
+	 */
+	char tmpfile[] = "/tmp/pamusb_xxe_internal_XXXXXX";
+	int fd = mkstemp(tmpfile);
+	assert_true(fd >= 0);
+	FILE *f = fdopen(fd, "w");
+	assert_non_null(f);
+	fputs("<?xml version=\"1.0\"?>" /* DevSkim: ignore DS154189 */
+		"<!DOCTYPE configuration ["
+		"  <!ENTITY vendor \"TestVendor\">"
+		"]>"
+		"<configuration>"
+		"  <devices>"
+		"    <device id=\"dev1\"><vendor>&vendor;</vendor><model>M</model>"
+		"      <serial>S001</serial><volume_uuid>UUID-1</volume_uuid></device>"
+		"  </devices>"
+		"  <users>"
+		"    <user id=\"testuser\"><device>dev1</device></user>"
+		"  </users>"
+		"  <services><service id=\"login\"></service></services>"
+		"</configuration>", f);
+	fclose(f);
+
+	t_pusb_options opts;
+	pusb_conf_init(&opts);
+	assert_int_equal(1, pusb_conf_parse(tmpfile, &opts, "testuser", "login"));
+	pusb_conf_free(&opts);
+	unlink(tmpfile);
+}
+
 /* ── main ── */
 
 int main(void)
@@ -395,6 +482,8 @@ int main(void)
 		cmocka_unit_test(test_superuser_attribute_case_sensitive),
 		cmocka_unit_test(test_conf_parses_more_than_ten_devices),
 		cmocka_unit_test(test_parse_many_devices_no_false_positive),
+		cmocka_unit_test(test_parse_xxe_file_entity_does_not_inject),
+		cmocka_unit_test(test_parse_xml_with_internal_entities_is_accepted),
 	};
 	return cmocka_run_group_tests(tests, NULL, NULL);
 }

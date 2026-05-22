@@ -214,7 +214,7 @@ int pusb_conf_parse(
 		log_error("Username \"%s\" is too long (max: %d).\n", user, CONF_USER_MAXLEN);
 		return 0;
 	}
-	if (!(doc = xmlReadFile(file, NULL, 0)))
+	if (!(doc = xmlReadFile(file, NULL, XML_PARSE_NONET | XML_PARSE_NOENT)))
 	{
 		log_error("Unable to parse \"%s\".\n", file);
 		return 0;
