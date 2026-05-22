@@ -149,12 +149,22 @@ static int pusb_pad_build_system_path(
 		if (fchown(dfd, user_ent->pw_uid, user_ent->pw_gid) != 0)
 		{
 			int err = errno;
-			log_error("Unable to chown directory %s: %s\n", dir_path, strerror(err)); /* DevSkim: ignore DS154189 */
+			if (err == EACCES || err == EPERM)
+				log_error("Unable to chown directory %s: %s (check AppArmor/SELinux policy)\n", dir_path, strerror(err)); /* DevSkim: ignore DS154189 */
+			else
+				log_error("Unable to chown directory %s: %s\n", dir_path, strerror(err)); /* DevSkim: ignore DS154189 */
+			close(dfd);
+			return 0;
 		}
 		if (fchmod(dfd, S_IRUSR | S_IWUSR | S_IXUSR) != 0)
 		{
 			int err = errno;
-			log_error("Unable to chmod directory %s: %s\n", dir_path, strerror(err)); /* DevSkim: ignore DS154189 */
+			if (err == EACCES || err == EPERM)
+				log_error("Unable to chmod directory %s: %s (check AppArmor/SELinux policy)\n", dir_path, strerror(err)); /* DevSkim: ignore DS154189 */
+			else
+				log_error("Unable to chmod directory %s: %s\n", dir_path, strerror(err)); /* DevSkim: ignore DS154189 */
+			close(dfd);
+			return 0;
 		}
 		close(dfd);
 	}
