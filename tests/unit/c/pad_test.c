@@ -29,6 +29,14 @@
 /* Include pad.c source directly to access static functions */
 #include "../../../src/pad.c"
 
+/*
+ * Path buffer sizes matching the production code in src/pad.c.
+ * Use these for all path/dir/file buffers in tests to keep sizes
+ * consistent and prevent truncation with long home-directory paths.
+ */
+#define PUSB_TEST_PATH_MAX     (1024 * 5)
+#define PUSB_TEST_TMPPATH_MAX  (1024 * 5 + 8)
+
 /* Stubs — pad.c calls these from pusb_pad_check only, which we don't test here */
 t_pusb_volume *pusb_volume_get(t_pusb_options *opts, UDisksClient *udisks)
 {
@@ -64,7 +72,7 @@ static void test_device_pad_dir_symlink_rejected(void **state)
 	assert_non_null(mkdtemp(mnt_dir));
 
 	/* Place a symlink where the .pamusb dir should be */
-	char link_path[512];
+	char link_path[PUSB_TEST_PATH_MAX];
 	snprintf(link_path, sizeof(link_path), "%s/.pamusb", mnt_dir);
 	assert_int_equal(0, symlink("/tmp", link_path));
 
@@ -72,7 +80,7 @@ static void test_device_pad_dir_symlink_rejected(void **state)
 	pusb_conf_init(&opts);
 	snprintf(opts.device.name, sizeof(opts.device.name), "testdev");
 
-	char path_out[1024 * 5];
+	char path_out[PUSB_TEST_PATH_MAX];
 	int result = pusb_pad_build_device_path(&opts, mnt_dir, "testuser", path_out, sizeof(path_out));
 	assert_int_equal(0, result);
 
@@ -88,7 +96,7 @@ static void test_system_pad_dir_symlink_rejected(void **state)
 	assert_non_null(pw);
 
 	/* Build path for the system pad dir */
-	char sys_pad_dir[512];
+	char sys_pad_dir[PUSB_TEST_PATH_MAX];
 	snprintf(sys_pad_dir, sizeof(sys_pad_dir), "%s/.pamusb_h2_test_symlink", pw->pw_dir);
 
 	/* Replace dir with a symlink */
@@ -103,7 +111,7 @@ static void test_system_pad_dir_symlink_rejected(void **state)
 	         ".pamusb_h2_test_symlink");
 	snprintf(opts.device.name, sizeof(opts.device.name), "testdev");
 
-	char path_out[1024 * 5];
+	char path_out[PUSB_TEST_PATH_MAX];
 	int result = pusb_pad_build_system_path(&opts, pw->pw_name, path_out, sizeof(path_out));
 	assert_int_equal(0, result);
 
@@ -118,7 +126,7 @@ static void test_device_pad_file_symlink_rejected(void **state)
 	char mnt_dir[] = "/tmp/pamusb_h4_XXXXXX";
 	assert_non_null(mkdtemp(mnt_dir));
 
-	char pad_dir[512];
+	char pad_dir[PUSB_TEST_PATH_MAX];
 	snprintf(pad_dir, sizeof(pad_dir), "%s/.pamusb", mnt_dir);
 	mkdir_p(pad_dir);
 
@@ -127,7 +135,7 @@ static void test_device_pad_file_symlink_rejected(void **state)
 	snprintf(opts.device.name, sizeof(opts.device.name), "testdev");
 
 	/* Create symlink at the expected pad file path */
-	char symlink_path[1024];
+	char symlink_path[PUSB_TEST_PATH_MAX];
 	snprintf(symlink_path, sizeof(symlink_path), "%s/testuser.%s.pad",
 	         pad_dir, opts.hostname);
 	assert_int_equal(0, symlink("/etc/passwd", symlink_path));
@@ -161,11 +169,11 @@ static void test_truncated_device_pad_denied(void **state)
 	         ".pamusb_h3_unit");
 
 	/* Create device pad dir and a 512-byte (truncated) pad file */
-	char dev_pad_dir[512];
+	char dev_pad_dir[PUSB_TEST_PATH_MAX];
 	snprintf(dev_pad_dir, sizeof(dev_pad_dir), "%s/.pamusb", mnt_dir);
 	mkdir_p(dev_pad_dir);
 
-	char dev_pad_path[1024];
+	char dev_pad_path[PUSB_TEST_PATH_MAX];
 	snprintf(dev_pad_path, sizeof(dev_pad_path), "%s/%s.%s.pad",
 	         dev_pad_dir, pw->pw_name, opts.hostname);
 
@@ -174,11 +182,11 @@ static void test_truncated_device_pad_denied(void **state)
 	write_file(dev_pad_path, buf_512, sizeof(buf_512));
 
 	/* Create system pad dir and a valid 1024-byte pad file */
-	char sys_pad_dir[512];
+	char sys_pad_dir[PUSB_TEST_PATH_MAX];
 	snprintf(sys_pad_dir, sizeof(sys_pad_dir), "%s/.pamusb_h3_unit", pw->pw_dir);
 	mkdir_p(sys_pad_dir);
 
-	char sys_pad_path[1024];
+	char sys_pad_path[PUSB_TEST_PATH_MAX];
 	snprintf(sys_pad_path, sizeof(sys_pad_path), "%s/pamusb_h3test.pad", sys_pad_dir);
 	char buf_1024[1024];
 	memset(buf_1024, 0xAB, sizeof(buf_1024));
@@ -212,11 +220,11 @@ static void test_pad_expired(void **state)
 	opts.pad_expiration = 3600;
 
 	/* Create system pad dir and file */
-	char sys_pad_dir[512];
+	char sys_pad_dir[PUSB_TEST_PATH_MAX];
 	snprintf(sys_pad_dir, sizeof(sys_pad_dir), "%s/.pamusb_exp_unit", pw->pw_dir);
 	mkdir_p(sys_pad_dir);
 
-	char sys_pad_path[1024];
+	char sys_pad_path[PUSB_TEST_PATH_MAX];
 	snprintf(sys_pad_path, sizeof(sys_pad_path), "%s/pamusb_exptest.pad", sys_pad_dir);
 	char dummy[8] = {0};
 	write_file(sys_pad_path, dummy, sizeof(dummy));
@@ -247,11 +255,11 @@ static void test_pad_fresh(void **state)
 	         ".pamusb_fresh_unit");
 	opts.pad_expiration = 3600;
 
-	char sys_pad_dir[512];
+	char sys_pad_dir[PUSB_TEST_PATH_MAX];
 	snprintf(sys_pad_dir, sizeof(sys_pad_dir), "%s/.pamusb_fresh_unit", pw->pw_dir);
 	mkdir_p(sys_pad_dir);
 
-	char sys_pad_path[1024];
+	char sys_pad_path[PUSB_TEST_PATH_MAX];
 	snprintf(sys_pad_path, sizeof(sys_pad_path), "%s/pamusb_freshtest.pad", sys_pad_dir);
 	char dummy[8] = {0};
 	write_file(sys_pad_path, dummy, sizeof(dummy));
@@ -282,11 +290,11 @@ static void test_pad_missing(void **state)
 	         ".pamusb_miss_unit");
 
 	/* Ensure the pad dir exists but the pad file does not */
-	char sys_pad_dir[512];
+	char sys_pad_dir[PUSB_TEST_PATH_MAX];
 	snprintf(sys_pad_dir, sizeof(sys_pad_dir), "%s/.pamusb_miss_unit", pw->pw_dir);
 	mkdir_p(sys_pad_dir);
 
-	char sys_pad_path[1024];
+	char sys_pad_path[PUSB_TEST_PATH_MAX];
 	snprintf(sys_pad_path, sizeof(sys_pad_path), "%s/pamusb_missing_pad.pad", sys_pad_dir);
 	unlink(sys_pad_path); /* make sure it doesn't exist */
 
@@ -314,17 +322,17 @@ static void test_missing_system_pad_denied(void **state)
 	snprintf(opts.system_pad_directory, sizeof(opts.system_pad_directory),
 	         ".pamusb_f3_unit_NONEXISTENT");
 
-	char sys_pad_dir[1024*5];
+	char sys_pad_dir[PUSB_TEST_PATH_MAX];
 	snprintf(sys_pad_dir, sizeof(sys_pad_dir), "%s/%s", pw->pw_dir,
 	         opts.system_pad_directory);
 	rmdir(sys_pad_dir);
 
 	/* Create a valid device pad so the test isolates the missing-system-pad branch */
-	char dev_pad_dir[512];
+	char dev_pad_dir[PUSB_TEST_PATH_MAX];
 	snprintf(dev_pad_dir, sizeof(dev_pad_dir), "%s/.pamusb", mnt_dir);
 	mkdir_p(dev_pad_dir);
 
-	char dev_pad_path[1024];
+	char dev_pad_path[PUSB_TEST_PATH_MAX];
 	snprintf(dev_pad_path, sizeof(dev_pad_path), "%s/%s.%s.pad",
 	         dev_pad_dir, pw->pw_name, opts.hostname);
 	uint8_t buf[PUSB_PAD_SIZE];
@@ -359,7 +367,7 @@ static void test_first_run_no_pads_allowed(void **state)
 	         ".pamusb_firstrun_unit");
 
 	/* Ensure system pad directory does not exist */
-	char sys_pad_dir[1024*5];
+	char sys_pad_dir[PUSB_TEST_PATH_MAX];
 	snprintf(sys_pad_dir, sizeof(sys_pad_dir), "%s/%s", pw->pw_dir,
 	         opts.system_pad_directory);
 	rmdir(sys_pad_dir);
@@ -370,7 +378,7 @@ static void test_first_run_no_pads_allowed(void **state)
 	int result = pusb_pad_compare(&opts, mnt_dir, pw->pw_name);
 	assert_int_equal(1, result);
 
-	char mnt_pamusb[PATH_MAX];
+	char mnt_pamusb[PUSB_TEST_PATH_MAX];
 	snprintf(mnt_pamusb, sizeof(mnt_pamusb), "%s/.pamusb", mnt_dir);
 	rmdir(mnt_pamusb);
 	rmdir(mnt_dir);
@@ -404,19 +412,19 @@ static void test_open_pad_file_in_dir_rejects_dir_symlink(void **state)
 	/* A real directory containing a real file */
 	char real_dir[] = "/tmp/pamusb_f6real_XXXXXX";
 	assert_non_null(mkdtemp(real_dir));
-	char real_file[512];
+	char real_file[PUSB_TEST_PATH_MAX];
 	snprintf(real_file, sizeof(real_file), "%s/test.pad", real_dir);
 	write_file(real_file, "x", 1);
 
 	/* A temp dir containing a symlink that points at real_dir */
 	char base_dir[] = "/tmp/pamusb_f6base_XXXXXX";
 	assert_non_null(mkdtemp(base_dir));
-	char sym_dir[512];
+	char sym_dir[PUSB_TEST_PATH_MAX];
 	snprintf(sym_dir, sizeof(sym_dir), "%s/pads", base_dir);
 	assert_int_equal(0, symlink(real_dir, sym_dir));
 
 	/* Path whose parent component is a symlink */
-	char path[1024];
+	char path[PUSB_TEST_PATH_MAX];
 	snprintf(path, sizeof(path), "%s/test.pad", sym_dir);
 
 	/* open_pad_file_in_dir must fail: O_NOFOLLOW rejects symlink as directory */
@@ -447,7 +455,7 @@ static void test_device_pad_path_too_long_denied(void **state)
 	memset(long_mnt, 'b', sizeof(long_mnt) - 1);
 	long_mnt[sizeof(long_mnt) - 1] = '\0';
 
-	char path_out[1024 * 5];
+	char path_out[PUSB_TEST_PATH_MAX];
 	int result = pusb_pad_build_device_path(&opts, long_mnt, "user", path_out, sizeof(path_out));
 	assert_int_equal(0, result);
 }
@@ -491,17 +499,17 @@ static void test_pad_update_rejected_on_stale_tmp(void **state)
 	         ".pamusb_oexcl_unit");
 
 	/* Create system pad dir but no pad file — makes pusb_pad_should_update return 1 */
-	char sys_pad_dir[512];
+	char sys_pad_dir[PUSB_TEST_PATH_MAX];
 	snprintf(sys_pad_dir, sizeof(sys_pad_dir), "%s/.pamusb_oexcl_unit", pw->pw_dir);
 	mkdir_p(sys_pad_dir);
 
 	/* Create device pad dir */
-	char dev_pad_dir[512];
+	char dev_pad_dir[PUSB_TEST_PATH_MAX];
 	snprintf(dev_pad_dir, sizeof(dev_pad_dir), "%s/.pamusb", mnt_dir);
 	mkdir_p(dev_pad_dir);
 
 	/* Pre-create a stale device pad temp file to simulate a leftover from a prior crash */
-	char dev_tmp_path[1024];
+	char dev_tmp_path[PUSB_TEST_TMPPATH_MAX];
 	snprintf(dev_tmp_path, sizeof(dev_tmp_path), "%s/%s.%s.pad.tmp",
 	         dev_pad_dir, pw->pw_name, opts.hostname);
 	write_file(dev_tmp_path, "stale", 5);
