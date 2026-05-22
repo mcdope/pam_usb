@@ -37,7 +37,7 @@ static int pusb_conf_xpath_id_is_safe(const char *name, const char *value)
 
 	for (cursor = (const unsigned char *)value; *cursor != '\0'; ++cursor)
 	{
-		if (*cursor == '\'' || *cursor == '"' || *cursor < 0x20)
+		if (*cursor == '\'' || *cursor == '"' || *cursor < 0x20 || *cursor == 0x7f)
 		{
 			log_error("%s contains an unsafe character for XPath lookup.\n", name);
 			return 0;
