@@ -207,6 +207,53 @@ static void test_parse_rejects_xpath_device_id_injection(void **state)
 	unlink(tmpfile);
 }
 
+static void test_parse_rejects_double_quote_in_user(void **state)
+{
+	(void)state;
+	t_pusb_options opts;
+	pusb_conf_init(&opts);
+	assert_int_equal(0, pusb_conf_parse(FIXTURE_CONF, &opts,
+		"user\" or \"1\"=\"1", "login"));
+}
+
+static void test_parse_rejects_double_quote_in_service(void **state)
+{
+	(void)state;
+	t_pusb_options opts;
+	pusb_conf_init(&opts);
+	assert_int_equal(0, pusb_conf_parse(FIXTURE_CONF, &opts,
+		"user_mixed", "login\" or \"1\"=\"1"));
+}
+
+static void test_parse_rejects_double_quote_in_device_id(void **state)
+{
+	(void)state;
+	char tmpfile[] = "/tmp/pamusb_test_dquote_device_XXXXXX";
+	int fd = mkstemp(tmpfile);
+	assert_true(fd >= 0);
+	FILE *f = fdopen(fd, "w");
+	assert_non_null(f);
+	fputs("<?xml version=\"1.0\"?>"
+		"<configuration>"
+		"  <devices>"
+		"    <device id=\"victim\"><vendor>V</vendor><model>M</model>"
+		"      <serial>S001</serial><volume_uuid>UUID-A</volume_uuid></device>"
+		"  </devices>"
+		"  <users>"
+		"    <user id=\"testuser\"><device>victim\" or @id=\"victim</device></user>"
+		"  </users>"
+		"  <services>"
+		"    <service id=\"login\"></service>"
+		"  </services>"
+		"</configuration>", f);
+	fclose(f);
+
+	t_pusb_options opts;
+	pusb_conf_init(&opts);
+	assert_int_equal(0, pusb_conf_parse(tmpfile, &opts, "testuser", "login"));
+	unlink(tmpfile);
+}
+
 static void test_parse_user_not_in_conf(void **state)
 {
 	(void)state;
@@ -341,6 +388,9 @@ int main(void)
 		cmocka_unit_test(test_parse_rejects_xpath_user_injection),
 		cmocka_unit_test(test_parse_rejects_xpath_service_injection),
 		cmocka_unit_test(test_parse_rejects_xpath_device_id_injection),
+		cmocka_unit_test(test_parse_rejects_double_quote_in_user),
+		cmocka_unit_test(test_parse_rejects_double_quote_in_service),
+		cmocka_unit_test(test_parse_rejects_double_quote_in_device_id),
 		cmocka_unit_test(test_parse_user_not_in_conf),
 		cmocka_unit_test(test_superuser_attribute_case_sensitive),
 		cmocka_unit_test(test_conf_parses_more_than_ten_devices),
