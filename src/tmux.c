@@ -67,7 +67,7 @@ static void pusb_tmux_escape_for_regex(const char *src, char *dst, size_t dstlen
 
 char *pusb_tmux_get_client_tty(pid_t env_pid)
 {
-    char *tmux_details_raw = getenv("TMUX");
+    char *tmux_details_raw = secure_getenv("TMUX");
     int from_env = (tmux_details_raw != NULL);
     if (!from_env)
     {

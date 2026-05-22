@@ -118,6 +118,52 @@ static void test_local_login_denies_xrdp_session(void **state)
 	assert_int_equal(0, result);
 }
 
+static void test_local_login_display_env_null(void **state)
+{
+	(void)state;
+	t_pusb_options opts;
+	memset(&opts, 0, sizeof(opts));
+	opts.deny_remote = 1;
+
+	const char *raw = getenv("DISPLAY"); /* DevSkim: ignore DS154189 - saving for restore, xstrdup'd immediately */
+	char *saved = raw ? xstrdup(raw) : NULL;
+	unsetenv("DISPLAY");
+	int result = pusb_local_login(&opts, "testuser", "testservice");
+	if (saved)
+	{
+		setenv("DISPLAY", saved, 1);
+		xfree(saved);
+	}
+
+	/* NULL DISPLAY must not crash; result depends on environment (loginctl, utmp) */
+	assert_true(result >= -1 && result <= 1);
+}
+
+static void test_local_login_display_env_set(void **state)
+{
+	(void)state;
+	t_pusb_options opts;
+	memset(&opts, 0, sizeof(opts));
+	opts.deny_remote = 1;
+
+	const char *raw = getenv("DISPLAY"); /* DevSkim: ignore DS154189 - saving for restore, xstrdup'd immediately */
+	char *saved = raw ? xstrdup(raw) : NULL;
+	setenv("DISPLAY", ":0", 1);
+	int result = pusb_local_login(&opts, "testuser", "testservice");
+	if (saved)
+	{
+		setenv("DISPLAY", saved, 1);
+		xfree(saved);
+	}
+	else
+	{
+		unsetenv("DISPLAY");
+	}
+
+	/* DISPLAY=:0 must not crash; result depends on environment (loginctl, utmp) */
+	assert_true(result >= -1 && result <= 1);
+}
+
 int main(void)
 {
 	const struct CMUnitTest tests[] = {
@@ -132,6 +178,8 @@ int main(void)
 		cmocka_unit_test(test_utmpx_field_starts_with_full_width_field),
 		cmocka_unit_test(test_utmpx_field_starts_with_rejects_long_prefix),
 		cmocka_unit_test(test_local_login_denies_xrdp_session),
+		cmocka_unit_test(test_local_login_display_env_null),
+		cmocka_unit_test(test_local_login_display_env_set),
 	};
 	return cmocka_run_group_tests(tests, NULL, NULL);
 }

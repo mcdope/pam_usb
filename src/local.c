@@ -35,6 +35,8 @@
 #include "rmsvc.h"
 #include "evdev.h"
 
+#define PUSB_DISPLAY_MAX 256
+
 static int pusb_utmpx_field_equals(const char *field, size_t field_len, const char *value)
 {
 	size_t value_len;
@@ -387,7 +389,7 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 	}
 
 	const char *session_tty;
-	const char *display_env = getenv("DISPLAY");
+	const char *display_env = secure_getenv("DISPLAY");
 
 	if (local_request == 0 && tmux_pid != 0)
 	{
@@ -411,7 +413,7 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 
 	if (local_request == 0 && display_env != NULL)
 	{
-		char display[256];
+		char display[PUSB_DISPLAY_MAX];
 		snprintf(display, sizeof(display), "%s", display_env);
 		log_debug("	Using DISPLAY %s for utmp search\n", display);
 
