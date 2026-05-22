@@ -52,8 +52,8 @@ static int pusb_mkdir_safe(const char *path, const char *context)
 			log_debug("Unable to create directory %s: %s\n", path, strerror(err));
 		return -1;
 	}
-	/* O_DIRECTORY|O_NOFOLLOW rejects symlinks (ELOOP) and non-directories (ENOTDIR) */
-	int fd = open(path, O_RDONLY | O_DIRECTORY | O_NOFOLLOW);
+	/* O_DIRECTORY|O_NOFOLLOW|O_CLOEXEC: rejects symlinks (ELOOP), non-directories (ENOTDIR), prevents fd leak */
+	int fd = open(path, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC);
 	if (fd < 0)
 	{
 		log_error("%s directory %s is a symlink or not a directory, refusing to use it.\n", context, path);
@@ -135,18 +135,24 @@ static int pusb_pad_build_system_path(
 	if (rc > 0)
 	{
 		/* Open the directory we just created via fd to avoid path-based TOCTOU on chown/chmod */
-		int dfd = open(dir_path, O_RDONLY | O_DIRECTORY | O_NOFOLLOW);
-		if (dfd >= 0)
+		int dfd = open(dir_path, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC);
+		if (dfd < 0)
 		{
-			if (fchown(dfd, user_ent->pw_uid, user_ent->pw_gid) != 0)
-				log_error("Unable to chown directory %s: %s\n", dir_path, strerror(errno));
-			fchmod(dfd, S_IRUSR | S_IWUSR | S_IXUSR);
-			close(dfd);
+			int err = errno;
+			log_error("Unable to open newly created directory %s: %s\n", dir_path, strerror(err));
+			return 0;
 		}
-		else
+		if (fchown(dfd, user_ent->pw_uid, user_ent->pw_gid) != 0)
 		{
-			log_error("Unable to open newly created directory %s: %s\n", dir_path, strerror(errno));
+			int err = errno;
+			log_error("Unable to chown directory %s: %s\n", dir_path, strerror(err));
 		}
+		if (fchmod(dfd, S_IRUSR | S_IWUSR | S_IXUSR) != 0)
+		{
+			int err = errno;
+			log_error("Unable to chmod directory %s: %s\n", dir_path, strerror(err));
+		}
+		close(dfd);
 	}
 	/* change slashes in device name to underscores */
 	snprintf(device_name, sizeof(device_name), "%s", opts->device.name);
