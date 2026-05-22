@@ -379,7 +379,7 @@ static void test_parse_xxe_file_entity_does_not_inject(void **state)
 	int sfd = mkstemp(sentinel);
 	assert_true(sfd >= 0);
 	static const char marker[] = "XXE_SENTINEL_CONTENT";
-	write(sfd, marker, sizeof(marker) - 1);
+	assert_int_equal((int)(sizeof(marker) - 1), (int)write(sfd, marker, sizeof(marker) - 1));
 	close(sfd);
 
 	char tmpfile[] = "/tmp/pamusb_xxe_test_XXXXXX";
@@ -406,13 +406,9 @@ static void test_parse_xxe_file_entity_does_not_inject(void **state)
 
 	t_pusb_options opts;
 	pusb_conf_init(&opts);
-	int result = pusb_conf_parse(tmpfile, &opts, "testuser", "login");
-
-	if (result) {
-		for (int i = 0; i < opts.device_count; i++)
-			assert_string_not_equal(opts.device_list[i].name, marker);
-		pusb_conf_free(&opts);
-	}
+	/* With XML_PARSE_NONET | XML_PARSE_NOENT, libxml2 rejects external entity
+	 * references as a fatal parse error, so pusb_conf_parse must return 0. */
+	assert_int_equal(0, pusb_conf_parse(tmpfile, &opts, "testuser", "login"));
 
 	unlink(sentinel);
 	unlink(tmpfile);
