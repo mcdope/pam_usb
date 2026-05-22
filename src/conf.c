@@ -18,7 +18,6 @@
 #define _GNU_SOURCE
 #include <sys/utsname.h>
 #include <string.h>
-#include <ctype.h>
 #include <errno.h>
 #include <stdint.h>
 #include "mem.h"
@@ -38,7 +37,8 @@ static int pusb_conf_xpath_id_is_safe(const char *name, const char *value)
 
 	for (cursor = (const unsigned char *)value; *cursor != '\0'; ++cursor)
 	{
-		if (!isalnum(*cursor) && *cursor != '_' && *cursor != '-' && *cursor != '.')
+		if (!((*cursor >= 'a' && *cursor <= 'z') || (*cursor >= 'A' && *cursor <= 'Z') ||
+		      (*cursor >= '0' && *cursor <= '9') || *cursor == '_' || *cursor == '-' || *cursor == '.'))
 		{
 			log_error("%s contains an unsafe character for XPath lookup.\n", name);
 			return 0;

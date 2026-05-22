@@ -245,7 +245,7 @@ static void test_parse_rejects_double_quote_in_device_id(void **state)
 		"    <service id=\"login\"></service>"
 		"  </services>"
 		"</configuration>";
-	write(fd, xml, strlen(xml));
+	write(fd, xml, strlen(xml)); /* DevSkim: ignore DS154189 - xml is a string literal, always null-terminated */
 	close(fd);
 
 	t_pusb_options opts;
