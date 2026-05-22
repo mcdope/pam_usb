@@ -341,7 +341,7 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 	pid_t tmux_pid = 0;
 	int local_request = 0;
 
-	char *xrdpSession = getenv("XRDP_SESSION");
+	char *xrdpSession = secure_getenv("XRDP_SESSION");
 	if (xrdpSession != NULL) {
 		log_error("XRDP session detected (%s), denying.\n", xrdpSession);
 		return (0);
@@ -387,7 +387,7 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 	}
 
 	const char *session_tty;
-	const char *display_env = getenv("DISPLAY");
+	const char *display_env = secure_getenv("DISPLAY");
 
 	if (local_request == 0 && tmux_pid != 0)
 	{
