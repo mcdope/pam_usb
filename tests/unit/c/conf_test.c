@@ -378,8 +378,8 @@ static void test_parse_xxe_file_entity_does_not_inject(void **state)
 	char sentinel[] = "/tmp/pamusb_xxe_sentinel_XXXXXX";
 	int sfd = mkstemp(sentinel);
 	assert_true(sfd >= 0);
-	const char *marker = "XXE_SENTINEL_CONTENT";
-	write(sfd, marker, strlen(marker));
+	static const char marker[] = "XXE_SENTINEL_CONTENT";
+	write(sfd, marker, sizeof(marker) - 1);
 	close(sfd);
 
 	char tmpfile[] = "/tmp/pamusb_xxe_test_XXXXXX";
