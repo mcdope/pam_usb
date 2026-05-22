@@ -56,7 +56,11 @@ static int pusb_mkdir_safe(const char *path, const char *context)
 	int fd = open(path, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC);
 	if (fd < 0)
 	{
-		log_error("%s directory %s is a symlink or not a directory, refusing to use it.\n", context, path);
+		int err = errno;
+		if (err == EACCES || err == EPERM)
+			log_error("%s directory %s could not be opened safely: %s (check AppArmor/SELinux policy)\n", context, path, strerror(err)); /* DevSkim: ignore DS154189 */
+		else
+			log_error("%s directory %s could not be opened safely: %s\n", context, path, strerror(err)); /* DevSkim: ignore DS154189 */
 		return -1;
 	}
 	close(fd);
