@@ -34,7 +34,8 @@
 #include "volume.h"
 #include "pad.h"
 
-#define PUSB_PAD_SIZE 1024
+#define PUSB_PAD_SIZE     1024
+#define PUSB_PAD_PATH_MAX (1024 * 5)
 
 static int pusb_pad_build_device_path(
 	t_pusb_options *opts,
@@ -44,7 +45,7 @@ static int pusb_pad_build_device_path(
 	size_t path_size
 )
 {
-	char path_devpad[1024*5];
+	char path_devpad[PUSB_PAD_PATH_MAX];
 	struct stat sb;
 
 	int pn1 = snprintf(path_devpad, sizeof(path_devpad), "%s/%s", mnt_point, opts->device_pad_directory);
@@ -96,7 +97,7 @@ static int pusb_pad_build_system_path(
 	struct stat sb;
 	char device_name[128];
 	char *device_name_ptr = device_name;
-	char dir_path[1024*5];
+	char dir_path[PUSB_PAD_PATH_MAX];
 
 	if (!(user_ent = getpwnam(user)) || !(user_ent->pw_dir))
 	{
@@ -167,7 +168,7 @@ static int pusb_pad_build_system_path(
 
 static int open_pad_file_in_dir(const char *fullpath, int flags)
 {
-	char dirbuf[1024 * 5 + 8];
+	char dirbuf[PUSB_PAD_PATH_MAX + 8];
 	int n = snprintf(dirbuf, sizeof(dirbuf), "%s", fullpath);
 	if (n < 0 || (size_t)n >= sizeof(dirbuf))
 		return -1;
@@ -196,7 +197,7 @@ static FILE *pusb_pad_open_device(
 	const char *mode
 )
 {
-	char path[1024*5];
+	char path[PUSB_PAD_PATH_MAX];
 	int flags = (mode[0] == 'r') ? O_RDONLY : (O_WRONLY | O_CREAT | O_TRUNC);
 
 	if (!pusb_pad_build_device_path(opts, mnt_point, user, path, sizeof(path)))
@@ -225,7 +226,7 @@ static FILE *pusb_pad_open_system(
 	const char *mode
 )
 {
-	char path[1024*5];
+	char path[PUSB_PAD_PATH_MAX];
 	int flags = (mode[0] == 'r') ? O_RDONLY : (O_WRONLY | O_CREAT | O_TRUNC);
 
 	if (!pusb_pad_build_system_path(opts, user, path, sizeof(path)))
@@ -353,10 +354,10 @@ static int pusb_pad_update(
 {
 	FILE *f_device = NULL;
 	FILE *f_system = NULL;
-	char path_device[1024*5];
-	char path_system[1024*5];
-	char path_device_tmp[1024*5 + 8];
-	char path_system_tmp[1024*5 + 8];
+	char path_device[PUSB_PAD_PATH_MAX];
+	char path_system[PUSB_PAD_PATH_MAX];
+	char path_device_tmp[PUSB_PAD_PATH_MAX + 8];
+	char path_system_tmp[PUSB_PAD_PATH_MAX + 8];
 	uint8_t magic[PUSB_PAD_SIZE];
 
 	if (!pusb_pad_should_update(opts, user))
