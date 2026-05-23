@@ -206,12 +206,12 @@ int pusb_conf_parse(
 	xmlDoc *doc = NULL;
 	char device_xpath[sizeof(CONF_USER_XPATH) + CONF_USER_MAXLEN + sizeof("device")];
 
-	log_debug("Parsing settings for user \"%s\", service \"%s\"...\n", user, service);
 	if (!pusb_conf_xpath_id_is_safe("Username", user) ||
 	    !pusb_conf_xpath_id_is_safe("Service", service))
 	{
 		return 0;
 	}
+	log_debug("Parsing settings for user \"%s\", service \"%s\"...\n", user, service);
 	if (strlen(user) > CONF_USER_MAXLEN)
 	{
 		log_error("Username \"%s\" is too long (max: %d).\n", user, CONF_USER_MAXLEN);

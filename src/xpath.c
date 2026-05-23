@@ -122,9 +122,9 @@ int pusb_xpath_get_string(
 	}
 	if (!pusb_xpath_strip_string(value, (const char *)result_string, size))
 	{
+		log_debug("Result for %s (%s) is too long (max: %zu)\n", path, (const char *)result_string, size);
 		xmlFree(result_string);
 		xmlXPathFreeObject(result);
-		log_debug("Result for %s (%s) is too long (max: %zu)\n", path, (const char *)result_string, size);
 		return 0;
 	}
 	xmlFree(result_string);
@@ -166,13 +166,19 @@ int pusb_xpath_get_string_list(
 		if (!result_string || strcmp("", (char *)result_string) == 0)
 		{
 			log_debug("Empty value for %s\n", path);
+			xmlFree(result_string);
+			result_string = NULL;
 			continue;
 		}
 		if (!pusb_xpath_strip_string(values[currentResult], (char *)result_string, size))
 		{
 			log_debug("Result for %s (%s) is too long (max: %zu)\n", path, (const char *)result_string, size);
+			xmlFree(result_string);
+			result_string = NULL;
 			continue;
 		}
+		xmlFree(result_string);
+		result_string = NULL;
 	}
 
 	xmlFree(result_string);
