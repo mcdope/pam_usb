@@ -134,7 +134,7 @@ char *pusb_scan_environ_buffer(const char *buf, size_t size, const char *var)
  * @see https://man7.org/linux/man-pages/man7/environ.7.html
  * @see https://askubuntu.com/a/978715
  */
-char *pusb_get_process_envvar(pid_t pid, char *var)
+char *pusb_get_process_envvar(pid_t pid, const char *var)
 {
 	char path[64];
 	char *buffer;
