@@ -30,7 +30,12 @@ endif
 
 # compiler/linker options
 CC := gcc
-CFLAGS := $(CFLAGS) -Wall -O2 -fPIC -fstack-protector-strong -D_FORTIFY_SOURCE=2 -fstack-clash-protection -fno-plt -fzero-call-used-regs=used-gpr -Wformat=2 `pkg-config --cflags libxml-2.0` `pkg-config --cflags udisks2` `pkg-config --cflags libevdev` #cflags libxml?
+CFLAGS := $(CFLAGS) -Wall -O2 -fPIC -fstack-protector-strong -D_FORTIFY_SOURCE=2 -fstack-clash-protection -fno-plt -Wformat=2 `pkg-config --cflags libxml-2.0` `pkg-config --cflags udisks2` `pkg-config --cflags libevdev` #cflags libxml?
+# -fzero-call-used-regs requires GCC >= 11; probe at configure time
+ZERO_REGS_SUPPORTED := $(shell $(CC) -fzero-call-used-regs=used-gpr -E - < /dev/null 2>/dev/null && echo yes)
+ifeq ($(ZERO_REGS_SUPPORTED), yes)
+	CFLAGS := $(CFLAGS) -fzero-call-used-regs=used-gpr
+endif
 ifeq ($(ARCH), x86_64)
 	CFLAGS := $(CFLAGS) -fcf-protection=full
 endif
