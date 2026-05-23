@@ -8,7 +8,7 @@ Also I want to point it that this is barely audited. I've tried to raise funds f
 
 # Warning about XDMCP
 
-This warning has been **partially mitigated** in 0.9.1 but XDMCP + pam_usb is still not recommended. Read carefully.
+This warning has been **partially mitigated** since 0.9.1 but XDMCP + pam_usb is still not recommended. Read carefully.
 
 **What changed in 0.9.1 (GHSA-w38v-cw9r-x9p6):** The root cause of the original bypass was that the `PAM_RHOST` check was gated behind the `deny_remote` option. Display managers whitelisted with `deny_remote=false` (e.g. `gdm-password`, `lightdm`) also skipped the `PAM_RHOST` check entirely, so a remote XDMCP client was never identified as remote by pam_usb.
 

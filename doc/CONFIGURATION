@@ -61,10 +61,8 @@ The syntax is the following:
 > **Option precedence:** Options defined in later scopes override those in earlier scopes.
 > The order is: `<defaults>` → `<users>` → `<services>`.
 > A user-level option overrides the global default; a service-level option overrides both.
->
-> **Note:** `<option>` elements placed inside a `<device>` block are currently not applied
-> at runtime and will be ignored with a warning message. This is a known limitation — use `<defaults>`,
-> `<users>`, or `<services>` to configure options instead.
+> Device-level `<option>` elements (inside a `<device>` block) are supported from v0.9.2 and
+> apply when that specific device is used for authentication.
 
 ### Example:
 
@@ -343,7 +341,7 @@ The `superuser` option can be applied to any service name that appears in your P
 
 ### Log output
 
-If all of a user's devices are excluded by the superuser filter, pam_usb emits an error visible in the system log even without debug mode:
+If all of a user's devices are excluded by the superuser filter, pam_usb emits an error visible in the system log even without debug mode *(from v0.9.2)*:
 
 ```
 Service "sudo" for user "alex" requires a superuser-capable device but none of the registered devices have the superuser attribute.
