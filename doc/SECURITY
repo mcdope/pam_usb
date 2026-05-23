@@ -209,9 +209,15 @@ You can apply the `superuser` option to any service name that appears in your PA
 
 ---
 
-### Debug output
+### Log output
 
-With `<option name="debug">true</option>`, the filtering is logged:
+If all of a user's devices are excluded by the superuser filter, pam_usb emits an error visible in the system log even without debug mode *(from v0.9.2)*:
+
+```
+Service "sudo" for user "alex" requires a superuser-capable device but none of the registered devices have the superuser attribute.
+```
+
+With `<option name="debug">true</option>`, the per-device filtering decisions are also logged:
 
 ```
 Service "sudo" requires superuser device. Filtering device list.
