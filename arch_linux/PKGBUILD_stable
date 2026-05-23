@@ -13,7 +13,7 @@ options=(!emptydirs)
 backup=("etc/security/pam_usb.conf")
 source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/$pkgver.tar.gz"
         "pamusb-agent.service")
-sha256sums=('SKIP'
+sha256sums=('6ddd263e22dbf0c1b7321bcd257b63b1926e1e4ff2bdc07038d54efabe5ff574'
             'f5875f0669b2638f36885c305d719072798b5097b15e6c94a8a852bb896bfc5c')
 
 build() {
