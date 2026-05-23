@@ -59,8 +59,12 @@ The syntax is the following:
 > **Boolean values** are case-sensitive. Only the exact strings `true` and `false` are accepted.
 
 > **Option precedence:** Options defined in later scopes override those in earlier scopes.
-> The order is: `<defaults>` → `<devices>` → `<users>` → `<services>`.
-> A user-level option overrides a device-level option, which overrides the global default.
+> The order is: `<defaults>` → `<users>` → `<services>`.
+> A user-level option overrides the global default; a service-level option overrides both.
+>
+> **Note:** `<option>` elements placed inside a `<device>` block are currently not applied
+> at runtime and will be ignored with a warning message. This is a known limitation — use `<defaults>`,
+> `<users>`, or `<services>` to configure options instead.
 
 ### Example:
 
@@ -87,8 +91,10 @@ The syntax is the following:
 
     <devices>
         <device id="mydevice">
-            <!-- Wait 15 seconds instead of the default 10 seconds for "mydevice" to be detected -->
-            <option name="probe_timeout">15</option>
+            <vendor>SanDisk Corp.</vendor>
+            <model>Cruzer Titanium</model>
+            <serial>SNDKXXXXXXXXXXXXXXXX</serial>
+            <volume_uuid>6F6B-42FC</volume_uuid>
         </device>
     </devices>
 

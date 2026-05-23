@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <cmocka.h>
 #include "../../../src/conf.h"
 #include "../../../src/log.h"
@@ -457,6 +458,40 @@ static void test_parse_xml_with_internal_entities_is_accepted(void **state)
 	unlink(tmpfile);
 }
 
+/* ── per-device option isolation ── */
+
+static void test_device_options_not_applied(void **state)
+{
+	t_pusb_options opts;
+	char tmpconf[] = "/tmp/pam_usb_conf_test_XXXXXX";
+	int fd;
+	const char *xml =
+		"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+		"<configuration>\n"
+		"  <devices>\n"
+		"    <device id=\"stick1\">\n"
+		"      <vendor>TV</vendor><model>TM</model>\n"
+		"      <serial>S1</serial><volume_uuid>1111-AAAA</volume_uuid>\n"
+		"      <option name=\"debug\">true</option>\n"
+		"    </device>\n"
+		"  </devices>\n"
+		"  <users><user id=\"user1\"><device>stick1</device></user></users>\n"
+		"</configuration>\n";
+
+	(void)state;
+	pusb_conf_init(&opts);
+	fd = mkostemp(tmpconf, O_CLOEXEC);
+	assert_true(fd >= 0);
+	assert_int_equal((ssize_t)strlen(xml), write(fd, xml, strlen(xml))); /* DevSkim: ignore DS140021 - xml is a string literal, always null-terminated */
+	close(fd);
+	int parse_result = pusb_conf_parse(tmpconf, &opts, "user1", "login");
+	int debug_val = opts.debug;
+	pusb_conf_free(&opts);
+	unlink(tmpconf);
+	assert_int_equal(1, parse_result);
+	assert_int_equal(0, debug_val); /* per-device options are not applied at parse time */
+}
+
 /* ── main ── */
 
 int main(void)
@@ -488,6 +523,7 @@ int main(void)
 		cmocka_unit_test(test_parse_many_devices_no_false_positive),
 		cmocka_unit_test(test_parse_nonet_blocks_network_entity),
 		cmocka_unit_test(test_parse_xml_with_internal_entities_is_accepted),
+		cmocka_unit_test(test_device_options_not_applied),
 	};
 	return cmocka_run_group_tests(tests, NULL, NULL);
 }
