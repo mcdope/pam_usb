@@ -276,6 +276,7 @@ int pusb_xpath_get_time(xmlDocPtr doc, const char *path, time_t *value)
 	char *last;
 	char *endptr;
 	int coef;
+	int errsv;
 	long numeric;
 
 	if (!pusb_xpath_get_string(doc, path, ret, sizeof(ret)))
@@ -315,7 +316,9 @@ int pusb_xpath_get_time(xmlDocPtr doc, const char *path, time_t *value)
 	numeric = strtol(ret, &endptr, 10);
 	if (endptr == ret || *endptr != '\0' || errno != 0 || numeric < 0)
 	{
+		errsv = errno;
 		log_debug("Invalid or out-of-range time value: %s\n", ret);
+		errno = errsv;
 		return 0;
 	}
 	if (coef > 0 && numeric > LONG_MAX / coef)
@@ -357,6 +360,7 @@ int pusb_xpath_get_int(xmlDocPtr doc, const char *path, int *value)
 {
 	char ret[64];
 	char *endptr;
+	int errsv;
 	long numeric;
 
 	if (!pusb_xpath_get_string(doc, path, ret, sizeof(ret)))
@@ -368,7 +372,9 @@ int pusb_xpath_get_int(xmlDocPtr doc, const char *path, int *value)
 	numeric = strtol(ret, &endptr, 10);
 	if (endptr == ret || *endptr != '\0' || errno != 0 || numeric < INT_MIN || numeric > INT_MAX)
 	{
+		errsv = errno;
 		log_debug("Invalid or out-of-range int value: %s\n", ret);
+		errno = errsv;
 		return 0;
 	}
 	*value = (int)numeric;
