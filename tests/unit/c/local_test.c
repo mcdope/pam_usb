@@ -104,6 +104,38 @@ static void test_utmpx_field_starts_with_rejects_long_prefix(void **state)
 	assert_int_equal(0, pusb_utmpx_field_starts_with(field, sizeof(field), "pts/"));
 }
 
+static void test_loginctl_parse_output_newline_only(void **state)
+{
+	(void)state;
+	char buf[] = "\n";
+	assert_null(pusb_loginctl_parse_output(buf));
+}
+
+static void test_loginctl_parse_output_empty(void **state)
+{
+	(void)state;
+	char buf[] = "";
+	assert_null(pusb_loginctl_parse_output(buf));
+}
+
+static void test_loginctl_parse_output_valid_with_newline(void **state)
+{
+	(void)state;
+	char buf[] = "no\n";
+	const char *result = pusb_loginctl_parse_output(buf);
+	assert_non_null(result);
+	assert_string_equal("no", result);
+}
+
+static void test_loginctl_parse_output_valid_without_newline(void **state)
+{
+	(void)state;
+	char buf[] = "yes";
+	const char *result = pusb_loginctl_parse_output(buf);
+	assert_non_null(result);
+	assert_string_equal("yes", result);
+}
+
 static void test_local_login_denies_xrdp_session(void **state)
 {
 	(void)state;
@@ -177,6 +209,10 @@ int main(void)
 		cmocka_unit_test(test_utmpx_field_starts_with_pts_slave),
 		cmocka_unit_test(test_utmpx_field_starts_with_full_width_field),
 		cmocka_unit_test(test_utmpx_field_starts_with_rejects_long_prefix),
+		cmocka_unit_test(test_loginctl_parse_output_newline_only),
+		cmocka_unit_test(test_loginctl_parse_output_empty),
+		cmocka_unit_test(test_loginctl_parse_output_valid_with_newline),
+		cmocka_unit_test(test_loginctl_parse_output_valid_without_newline),
 		cmocka_unit_test(test_local_login_denies_xrdp_session),
 		cmocka_unit_test(test_local_login_display_env_null),
 		cmocka_unit_test(test_local_login_display_env_set),
