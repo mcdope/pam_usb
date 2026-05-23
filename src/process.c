@@ -102,7 +102,7 @@ char *pusb_scan_environ_buffer(const char *buf, size_t size, const char *var)
 	{
 		return NULL;
 	}
-	var_len = strlen(var); /* DevSkim: ignore DS176209 - var is a NUL-terminated C string, not a raw buffer */
+	var_len = strlen(var); /* DevSkim: ignore DS140021 - var is a NUL-terminated C string, not a raw buffer */
 	i = 0;
 
 	while (i < size)
@@ -150,7 +150,7 @@ char *pusb_get_process_envvar(pid_t pid, char *var)
 	{
 		return NULL;
 	}
-	fp = fopen(path, "r"); /* DevSkim: ignore DS185832 - path constructed from numeric PID only */
+	fp = fopen(path, "r"); /* DevSkim: ignore DS154189 - path constructed from numeric PID only */
 	if (!fp)
 	{
 		return NULL;
