@@ -79,10 +79,45 @@ void pusb_get_process_parent_id(const pid_t pid, pid_t *ppid)
 	}
 }
 
+/* Hard cap for /proc/PID/environ reads — well above /proc/sys/kernel/arg_max
+ * (typically 128 KB) while bounding heap use to a known maximum. */
+#define PUSB_ENVIRON_CAP (256 * 1024)
+
 /**
- * Read environment variable of another process via its /proc/processId/environ file. To so so
- * it replaces the zero bytes by # to be able to use strtok on its content. When the requested variable 
- * is found its name and the equals/assign character will be cut off and the result then returned.
+ * Scan a NUL-delimited environ buffer for a variable value.
+ *
+ * @param buf  Buffer of NUL-separated KEY=value pairs (as from /proc/PID/environ).
+ *             buf[size] must be '\0' (the caller ensures this) so that the last
+ *             entry's value is always NUL-terminated for xstrdup.
+ * @param size Number of data bytes in buf (not counting the sentinel NUL).
+ * @param var  Variable name to find (without trailing '=').
+ * @return Heap-allocated copy of the value, or NULL if not found.
+ */
+char *pusb_scan_environ_buffer(const char *buf, size_t size, const char *var)
+{
+	size_t var_len = strlen(var);
+	size_t i = 0;
+
+	while (i < size)
+	{
+		const char *entry = buf + i;
+		size_t entry_len = strnlen(entry, size - i);
+
+		if (entry_len > var_len &&
+		    memcmp(var, entry, var_len) == 0 &&
+		    entry[var_len] == '=')
+		{
+			return xstrdup(entry + var_len + 1);
+		}
+
+		i += entry_len + 1;
+	}
+
+	return NULL;
+}
+
+/**
+ * Read environment variable of another process via its /proc/processId/environ file.
  *
  * @param pid pid of process to read the environment of
  * @param var envvar to look up
@@ -94,39 +129,22 @@ void pusb_get_process_parent_id(const pid_t pid, pid_t *ppid)
  */
 char *pusb_get_process_envvar(pid_t pid, char *var)
 {
-	char buffer[BUFSIZ];
-	char *output = NULL;
+	char path[64];
+	char *buffer;
+	char *output;
 
-	snprintf(buffer, sizeof(buffer), "/proc/%d/environ", pid);
-	FILE* fp = fopen(buffer, "r");
-	if (fp)
-	{
-		size_t size = fread(buffer, sizeof(char), sizeof(buffer) - 1, fp);
-		buffer[size] = '\0'; // Ensure null-termination
-		fclose(fp);
+	snprintf(path, sizeof(path), "/proc/%d/environ", pid);
+	FILE *fp = fopen(path, "r");
+	if (!fp)
+		return NULL;
 
-		for (size_t i = 0; i < size; i++)
-		{
-			if (buffer[i] == '\0') buffer[i] = '#'; // replace \0 with "#" since strtok uses \0 internally
-		}
+	buffer = xmalloc(PUSB_ENVIRON_CAP);
+	size_t size = fread(buffer, sizeof(char), PUSB_ENVIRON_CAP - 1, fp);
+	buffer[size] = '\0';
+	fclose(fp);
 
-		if (size > 0)
-		{
-			char *saveptr = NULL;
-			char *variable_content = strtok_r(buffer, "#", &saveptr);
-			while (variable_content != NULL)
-			{
-				if (strncmp(var, variable_content, strlen(var)) == 0 && variable_content[strlen(var)] == '=')
-				{
-					output = xstrdup(variable_content + strlen(var) + 1);
-					break;
-				}
-
-				variable_content = strtok_r(NULL, "#", &saveptr);
-			}
-		}
-	}
-
+	output = pusb_scan_environ_buffer(buffer, size, var);
+	xfree(buffer);
 	return output;
 }
 
