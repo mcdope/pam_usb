@@ -91,15 +91,11 @@ static void test_plain_user_all_filtered_superuser_service_error_path(void **sta
 	(void)state;
 	t_pusb_options opts;
 	pusb_conf_init(&opts);
+	/* user_plain has only stick1 (no superuser attr); sudo requires superuser.
+	   All devices must be zeroed out and log_error must fire (covered by code path). */
 	assert_int_equal(1, pusb_conf_parse(FIXTURE_CONF, &opts, "user_plain", "sudo"));
-
-	int remaining = 0;
-	for (int i = 0; i < opts.device_count; i++)
-	{
-		if (opts.device_list[i].name[0] != '\0')
-			remaining++;
-	}
-	assert_int_equal(0, remaining);
+	assert_int_equal(1, opts.device_count);
+	assert_int_equal('\0', opts.device_list[0].name[0]);
 	pusb_conf_free(&opts);
 }
 

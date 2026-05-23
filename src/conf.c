@@ -390,6 +390,7 @@ int pusb_conf_parse(
 	/* If the service requires a superuser device, remove non-superuser devices. */
 	if (opts->superuser)
 	{
+		int remaining = 0;
 		log_debug("Service \"%s\" requires superuser device. Filtering device list.\n", service);
 		for (int i = 0; i < n_devices; i++)
 		{
@@ -400,13 +401,10 @@ int pusb_conf_parse(
 				          opts->device_list[i].name, service);
 				memset(&opts->device_list[i], 0, sizeof(t_pusb_device));
 			}
-		}
-
-		int remaining = 0;
-		for (int i = 0; i < n_devices; i++)
-		{
-			if (opts->device_list[i].name[0] != '\0')
+			else
+			{
 				remaining++;
+			}
 		}
 		if (remaining == 0)
 			log_error("Access denied: service \"%s\" requires a superuser-capable device but none of your registered devices have the superuser attribute.\n", service);
