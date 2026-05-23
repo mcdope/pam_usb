@@ -1,7 +1,7 @@
 %define _topdir         /usr/local/src/pam_usb/fedora
 %define name            pam_usb 
 %define release         1
-%define version         0.9.1
+%define version         0.9.2
 %define buildroot       %{_topdir}/%{name}‑%{version}‑root
 
 BuildRoot: %{buildroot}
@@ -61,6 +61,23 @@ rm -rf %{buildroot}/usr/share/pam-configs
 %doc %attr(0644,root,root) /usr/share/doc/pam_usb/TROUBLESHOOTING
 
 %changelog
+
+* Sat May 23 2026 Tobias Bäumer <tobiasbaeumer@gmail.com> - 0.9.2
+- [Enhancement] Emit log_error when superuser device filtering removes all devices (#399)
+- [Security] Fixed GHSA-rmp6-wfrq-wrrc (xfree() heap memory not cleared before free) (#374)
+- [Security] Fixed GHSA-64g7-3jrm-4jc3 (O_NOFOLLOW missing in evdev open, symlink following) (#376)
+- [Security] Fixed GHSA-hxh6-9574-5vp6 (O_EXCL missing on pad temp file creation) (#380)
+- [Security] Fixed GHSA-4j8q-67fq-3xc3 (TOCTOU race in pad directory creation) (#381)
+- [Security] Harden pusb_conf_xpath_id_is_safe: extend blocklist to reject double-quote and DEL (#383)
+- [Security] Fixed GHSA-qr83-mf3h-fvqr (getenv() used in PAM context, env variable injection) (#384)
+- [Security] Fixed GHSA-96vv-r4wc-28c2 (XXE in xmlReadFile via default parser flags) (#385)
+- [Security] Add compiler and linker hardening flags (#386)
+- [Security] Fixed GHSA-7j6h-wfc2-mg5q (NULL dereference crash in pusb_is_loginctl_local) (#393)
+- [Security] Fixed GHSA-h28h-9hc3-v595 (infinite loop DoS in process-tree walk) (#394)
+- [Security] Fixed GHSA-rfcg-6wgv-77hw (integer overflow UB in xpath time/int parsing) (#395)
+- [Reliability] Fixed GHSA-vw5x-vxgv-fgxm (BUFSIZ truncation in pusb_get_process_envvar) (#396)
+- [Security] Fixed GHSA-xgfj-3wm2-gvx8 (fopen without O_CLOEXEC in process.c) (#397)
+- [Security] Fixed GHSA-chgp-j28w-mx9q (per-device config options silently never applied) (#398)
 
 * Wed May 20 2026 Tobias Bäumer <tobiasbaeumer@gmail.com> - 0.9.1
 - [Bugfix] Restore debug output suppressed before config parsing; fix XRDP detection log message (#355)
