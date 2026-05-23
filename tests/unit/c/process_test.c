@@ -177,7 +177,7 @@ static void test_scan_buffer_var_beyond_bufsiz(void **state)
 	(void)state;
 	/* Build a buffer that pushes PUSB_TEST past the old 8 192-byte (BUFSIZ) limit,
 	   verifying the dynamic-allocation fix works for large environ files. */
-	buf = malloc(cap); /* DevSkim: ignore DS154189 - cap is BUFSIZ+4096, a compile-time constant */
+	buf = malloc(cap); /* DevSkim: ignore DS154189,DS161085 - cap is BUFSIZ+4096, a compile-time constant */
 	assert_non_null(buf);
 	pos = 0;
 
