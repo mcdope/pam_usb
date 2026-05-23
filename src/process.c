@@ -44,7 +44,7 @@ void pusb_get_process_name(const pid_t pid, char *name, size_t name_len)
 {
 	char procfile[BUFSIZ];
 	snprintf(procfile, sizeof(procfile), "/proc/%d/cmdline", pid);
-	FILE* f = fopen(procfile, "r");
+	FILE* f = fopen(procfile, "re"); /* DevSkim: ignore DS154189 - path constructed from numeric PID only */
 	if (f)
 	{
 		size_t size = fread(name, sizeof(char), name_len - 1, f);
@@ -69,7 +69,7 @@ void pusb_get_process_parent_id(const pid_t pid, pid_t *ppid)
 	}
 	*ppid = 0;
 	snprintf(buffer, sizeof(buffer), "/proc/%d/stat", pid);
-	FILE* fp = fopen(buffer, "r");
+	FILE* fp = fopen(buffer, "re"); /* DevSkim: ignore DS154189 - path constructed from numeric PID only */
 	if (fp)
 	{
 		if (fgets(buffer, sizeof(buffer), fp) != NULL)
