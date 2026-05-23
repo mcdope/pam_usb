@@ -216,8 +216,8 @@ int pusb_conf_parse(
 	}
 	// XML_PARSE_NONET blocks all network-URI entity fetches (http://, ftp://). // DevSkim: ignore DS137138 - false positive, this is a comment not a URL
 	// XML_PARSE_NOENT forces eager substitution so that a NONET-blocked entity
-	// reference fails the parse immediately rather than being silently left as
-	// an unexpanded node in the document tree (which could be consumed by callers).
+	// reference is expanded to empty content during parsing (where NONET is active)
+	// rather than being left as an unexpanded node that could be fetched later.
 	// file:// entities bypass NONET; exploiting them requires write access to the
 	// root-owned config file, which implies full system compromise already.
 	// Thread-safe per-context entity blocking (xmlCtxtSetExternalEntityLoader)
