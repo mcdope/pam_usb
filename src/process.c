@@ -30,6 +30,7 @@
 #include <sys/types.h>
 #include <errno.h>
 #include "process.h"
+#include "log.h"
 #include "mem.h"
 
 /**
@@ -79,10 +80,52 @@ void pusb_get_process_parent_id(const pid_t pid, pid_t *ppid)
 	}
 }
 
+/* Hard cap for /proc/PID/environ reads — well above /proc/sys/kernel/arg_max
+ * (typically 128 KB) while bounding heap use to a known maximum. */
+#define PUSB_ENVIRON_CAP (256 * 1024)
+
 /**
- * Read environment variable of another process via its /proc/processId/environ file. To so so
- * it replaces the zero bytes by # to be able to use strtok on its content. When the requested variable 
- * is found its name and the equals/assign character will be cut off and the result then returned.
+ * Scan a NUL-delimited environ buffer for a variable value.
+ *
+ * @param buf  Buffer of NUL-separated KEY=value pairs (as from /proc/PID/environ).
+ *             buf[size] must be '\0' (the caller ensures this) so that the last
+ *             entry's value is always NUL-terminated for xstrdup.
+ * @param size Number of data bytes in buf (not counting the sentinel NUL).
+ * @param var  Variable name to find (without trailing '=').
+ * @return Heap-allocated copy of the value, or NULL if not found.
+ */
+char *pusb_scan_environ_buffer(const char *buf, size_t size, const char *var)
+{
+	size_t var_len;
+	size_t i;
+
+	if (buf == NULL || var == NULL)
+	{
+		return NULL;
+	}
+	var_len = strlen(var); /* DevSkim: ignore DS140021 - var is a NUL-terminated C string, not a raw buffer */
+	i = 0;
+
+	while (i < size)
+	{
+		const char *entry = buf + i;
+		size_t entry_len = strnlen(entry, size - i);
+
+		if (entry_len > var_len &&
+		    memcmp(var, entry, var_len) == 0 &&
+		    entry[var_len] == '=')
+		{
+			return xstrdup(entry + var_len + 1);
+		}
+
+		i += entry_len + 1;
+	}
+
+	return NULL;
+}
+
+/**
+ * Read environment variable of another process via its /proc/processId/environ file.
  *
  * @param pid pid of process to read the environment of
  * @param var envvar to look up
@@ -92,41 +135,48 @@ void pusb_get_process_parent_id(const pid_t pid, pid_t *ppid)
  * @see https://man7.org/linux/man-pages/man7/environ.7.html
  * @see https://askubuntu.com/a/978715
  */
-char *pusb_get_process_envvar(pid_t pid, char *var)
+char *pusb_get_process_envvar(pid_t pid, const char *var)
 {
-	char buffer[BUFSIZ];
-	char *output = NULL;
+	char path[64];
+	char *buffer;
+	FILE *fp;
+	size_t size;
+	char *output;
 
-	snprintf(buffer, sizeof(buffer), "/proc/%d/environ", pid);
-	FILE* fp = fopen(buffer, "r");
-	if (fp)
+	if (var == NULL)
 	{
-		size_t size = fread(buffer, sizeof(char), sizeof(buffer) - 1, fp);
-		buffer[size] = '\0'; // Ensure null-termination
-		fclose(fp);
-
-		for (size_t i = 0; i < size; i++)
-		{
-			if (buffer[i] == '\0') buffer[i] = '#'; // replace \0 with "#" since strtok uses \0 internally
-		}
-
-		if (size > 0)
-		{
-			char *saveptr = NULL;
-			char *variable_content = strtok_r(buffer, "#", &saveptr);
-			while (variable_content != NULL)
-			{
-				if (strncmp(var, variable_content, strlen(var)) == 0 && variable_content[strlen(var)] == '=')
-				{
-					output = xstrdup(variable_content + strlen(var) + 1);
-					break;
-				}
-
-				variable_content = strtok_r(NULL, "#", &saveptr);
-			}
-		}
+		return NULL;
+	}
+	if (snprintf(path, sizeof(path), "/proc/%d/environ", pid) >= (int)sizeof(path)) /* DevSkim: ignore DS185832 - path constructed from numeric PID, not user input */
+	{
+		return NULL;
+	}
+	fp = fopen(path, "re"); /* DevSkim: ignore DS154189 - path constructed from numeric PID only */
+	if (!fp)
+	{
+		return NULL;
 	}
 
+	buffer = xmalloc(PUSB_ENVIRON_CAP);
+	size = fread(buffer, sizeof(char), PUSB_ENVIRON_CAP - 1, fp);
+	if (ferror(fp))
+	{
+		int save_errno = errno;
+		fclose(fp);
+		xfree(buffer);
+		errno = save_errno;
+		return NULL;
+	}
+	if (size == PUSB_ENVIRON_CAP - 1 && !feof(fp))
+	{
+		log_error("pusb_get_process_envvar: /proc/%d/environ is truncated (>= %d bytes)\n",
+			pid, PUSB_ENVIRON_CAP - 1);
+	}
+	buffer[size] = '\0';
+	fclose(fp);
+
+	output = pusb_scan_environ_buffer(buffer, size, var);
+	xfree(buffer);
 	return output;
 }
 

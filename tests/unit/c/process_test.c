@@ -8,6 +8,7 @@
 #include <stdarg.h>
 #include <stddef.h>
 #include <setjmp.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -151,6 +152,67 @@ static void test_envvar_called_twice_no_state_bleed(void **state)
 	free(home);
 }
 
+/* ── pusb_scan_environ_buffer ── */
+
+static void test_scan_buffer_var_at_start(void **state)
+{
+	(void)state;
+	/* Variable is the very first entry in the buffer */
+	const char buf[] = "TMUX=/tmp/s,0,1\0OTHER=x";
+	char *r = pusb_scan_environ_buffer(buf, sizeof(buf) - 1, "TMUX");
+	assert_non_null(r);
+	assert_string_equal("/tmp/s,0,1", r);
+	free(r);
+}
+
+static void test_scan_buffer_var_beyond_bufsiz(void **state)
+{
+	const size_t cap = BUFSIZ + 4096;
+	char *buf;
+	size_t pos;
+	int n;
+	size_t total;
+	char *r;
+
+	(void)state;
+	/* Build a buffer that pushes PUSB_TEST past the old 8 192-byte (BUFSIZ) limit,
+	   verifying the dynamic-allocation fix works for large environ files. */
+	buf = malloc(cap); /* DevSkim: ignore DS154189,DS161085 - cap is BUFSIZ+4096, a compile-time constant */
+	assert_non_null(buf);
+	pos = 0;
+
+	while (pos < (size_t)BUFSIZ + 64)
+	{
+		n = snprintf(buf + pos, cap - pos, "DUMMY_%zu=value", pos);
+		pos += (size_t)n + 1; /* +1 skips past snprintf's NUL (the entry separator) */
+	}
+	assert_true(pos > (size_t)BUFSIZ);
+
+	n = snprintf(buf + pos, cap - pos, "PUSB_TEST=found_it");
+	total = pos + (size_t)n; /* snprintf places NUL at buf[total] — the sentinel */
+
+	r = pusb_scan_environ_buffer(buf, total, "PUSB_TEST");
+	assert_non_null(r);
+	assert_string_equal("found_it", r);
+	free(r);
+	free(buf);
+}
+
+static void test_scan_buffer_var_not_found(void **state)
+{
+	(void)state;
+	const char buf[] = "FOO=bar\0BAZ=qux";
+	char *r = pusb_scan_environ_buffer(buf, sizeof(buf) - 1, "TMUX");
+	assert_null(r);
+}
+
+static void test_scan_buffer_empty(void **state)
+{
+	(void)state;
+	char *r = pusb_scan_environ_buffer("", 0, "TMUX");
+	assert_null(r);
+}
+
 /* ── main ── */
 
 int main(void)
@@ -175,6 +237,10 @@ int main(void)
 		cmocka_unit_test(test_envvar_nonexistent),
 		cmocka_unit_test(test_envvar_invalid_pid),
 		cmocka_unit_test(test_envvar_called_twice_no_state_bleed),
+		cmocka_unit_test(test_scan_buffer_var_at_start),
+		cmocka_unit_test(test_scan_buffer_var_beyond_bufsiz),
+		cmocka_unit_test(test_scan_buffer_var_not_found),
+		cmocka_unit_test(test_scan_buffer_empty),
 	};
 	return cmocka_run_group_tests(tests, NULL, NULL);
 }

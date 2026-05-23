@@ -29,7 +29,19 @@ void pusb_get_process_name(const pid_t pid, char * name, size_t name_len);
 
 void pusb_get_process_parent_id(const pid_t pid, pid_t * ppid);
 
-char *pusb_get_process_envvar(pid_t pid, char *var);
+/**
+ * Scan a NUL-delimited environ buffer for a variable value.
+ *
+ * @param buf  Buffer of NUL-separated KEY=value pairs (as from /proc/PID/environ).
+ *             buf[size] must be '\0' (the caller ensures this) so that the last
+ *             entry's value is always NUL-terminated for xstrdup.
+ * @param size Number of data bytes in buf (not counting the sentinel NUL).
+ * @param var  Variable name to find (without trailing '=').
+ * @return Heap-allocated copy of the value, or NULL if not found.
+ */
+char *pusb_scan_environ_buffer(const char *buf, size_t size, const char *var);
+
+char *pusb_get_process_envvar(pid_t pid, const char *var);
 
 int pusb_parse_process_stat_parent_id(const char *stat_line, pid_t *ppid);
 
