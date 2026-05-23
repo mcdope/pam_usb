@@ -61,6 +61,7 @@ void pusb_get_process_name(const pid_t pid, char *name, size_t name_len)
  */
 void pusb_get_process_parent_id(const pid_t pid, pid_t *ppid)
 {
+	*ppid = 0;
 	char buffer[BUFSIZ];
 	snprintf(buffer, sizeof(buffer), "/proc/%d/stat", pid);
 	FILE* fp = fopen(buffer, "r");

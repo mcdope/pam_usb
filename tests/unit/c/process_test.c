@@ -65,8 +65,8 @@ static void test_ppid_invalid_pid(void **state)
 {
 	(void)state;
 	pid_t ppid = 42; /* preset sentinel */
-	/* Should not crash; ppid may be unchanged */
 	pusb_get_process_parent_id(-1, &ppid);
+	assert_int_equal(0, (int)ppid);
 }
 
 /* ── /proc/[pid]/stat parsing ── */
