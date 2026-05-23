@@ -214,7 +214,7 @@ int pusb_conf_parse(
 		log_error("Username \"%s\" is too long (max: %d).\n", user, CONF_USER_MAXLEN);
 		return 0;
 	}
-	// XML_PARSE_NONET blocks all network-URI entity fetches (http://, ftp://).
+	// XML_PARSE_NONET blocks all network-URI entity fetches (http://, ftp://). // DevSkim: ignore DS137138 - false positive, this is a comment not a URL
 	// XML_PARSE_NOENT forces eager substitution so that a NONET-blocked entity
 	// reference fails the parse immediately rather than being silently left as
 	// an unexpanded node in the document tree (which could be consumed by callers).
