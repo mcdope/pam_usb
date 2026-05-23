@@ -214,14 +214,15 @@ int pusb_conf_parse(
 		log_error("Username \"%s\" is too long (max: %d).\n", user, CONF_USER_MAXLEN);
 		return 0;
 	}
-	// lgtm[cpp/xxe] - XML_PARSE_NONET blocks all network-URI entity fetches
-	// (http://, ftp://). XML_PARSE_NOENT forces eager substitution so that a
-	// NONET-blocked entity reference fails the parse immediately rather than
-	// being silently left as an unexpanded node in the document tree (which
-	// could be consumed by callers). file:// entities bypass NONET; exploiting
-	// them requires write access to the root-owned config file, which implies
-	// full system compromise already. Thread-safe per-context entity blocking
-	// (xmlCtxtSetExternalEntityLoader) is available only in libxml2 >= 2.13.
+	// XML_PARSE_NONET blocks all network-URI entity fetches (http://, ftp://).
+	// XML_PARSE_NOENT forces eager substitution so that a NONET-blocked entity
+	// reference fails the parse immediately rather than being silently left as
+	// an unexpanded node in the document tree (which could be consumed by callers).
+	// file:// entities bypass NONET; exploiting them requires write access to the
+	// root-owned config file, which implies full system compromise already.
+	// Thread-safe per-context entity blocking (xmlCtxtSetExternalEntityLoader)
+	// is available only in libxml2 >= 2.13.
+	// lgtm[cpp/xxe]
 	if (!(doc = xmlReadFile(file, NULL, XML_PARSE_NONET | XML_PARSE_NOENT)))
 	{
 		log_error("Unable to parse \"%s\".\n", file);

@@ -391,7 +391,7 @@ static void test_parse_nonet_blocks_network_entity(void **state)
 	assert_true(fd >= 0);
 	FILE *f = fdopen(fd, "w");
 	assert_non_null(f);
-	fputs("<?xml version=\"1.0\"?>" /* DevSkim: ignore DS154189 */
+	assert_true(fputs("<?xml version=\"1.0\"?>" /* DevSkim: ignore DS154189 */
 		"<!DOCTYPE configuration ["
 		"  <!ENTITY device_ref SYSTEM \"http://127.0.0.1:1/real-device\">"
 		"]>"
@@ -404,7 +404,7 @@ static void test_parse_nonet_blocks_network_entity(void **state)
 		"    <user id=\"testuser\"><device>&device_ref;</device></user>"
 		"  </users>"
 		"  <services><service id=\"login\"></service></services>"
-		"</configuration>", f);
+		"</configuration>", f) != EOF);
 	fclose(f);
 
 	t_pusb_options opts;
@@ -431,7 +431,7 @@ static void test_parse_xml_with_internal_entities_is_accepted(void **state)
 	assert_true(fd >= 0);
 	FILE *f = fdopen(fd, "w");
 	assert_non_null(f);
-	fputs("<?xml version=\"1.0\"?>" /* DevSkim: ignore DS154189 */
+	assert_true(fputs("<?xml version=\"1.0\"?>" /* DevSkim: ignore DS154189 */
 		"<!DOCTYPE configuration ["
 		"  <!ENTITY vendor \"TestVendor\">"
 		"]>"
@@ -444,7 +444,7 @@ static void test_parse_xml_with_internal_entities_is_accepted(void **state)
 		"    <user id=\"testuser\"><device>dev1</device></user>"
 		"  </users>"
 		"  <services><service id=\"login\"></service></services>"
-		"</configuration>", f);
+		"</configuration>", f) != EOF);
 	fclose(f);
 
 	t_pusb_options opts;
