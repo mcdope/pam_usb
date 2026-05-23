@@ -167,25 +167,32 @@ static void test_scan_buffer_var_at_start(void **state)
 
 static void test_scan_buffer_var_beyond_bufsiz(void **state)
 {
+	/* DevSkim: ignore DS154189 - cap is a compile-time constant, no integer overflow possible */
+	const size_t cap = BUFSIZ + 4096;
+	char *buf;
+	size_t pos;
+	int n;
+	size_t total;
+	char *r;
+
 	(void)state;
 	/* Build a buffer that pushes PUSB_TEST past the old 8 192-byte (BUFSIZ) limit,
 	   verifying the dynamic-allocation fix works for large environ files. */
-	const size_t cap = BUFSIZ + 4096;
-	char *buf = malloc(cap);
+	buf = malloc(cap);
 	assert_non_null(buf);
-	size_t pos = 0;
+	pos = 0;
 
 	while (pos < (size_t)BUFSIZ + 64)
 	{
-		int n = snprintf(buf + pos, cap - pos, "DUMMY_%zu=value", pos);
+		n = snprintf(buf + pos, cap - pos, "DUMMY_%zu=value", pos);
 		pos += (size_t)n + 1; /* +1 skips past snprintf's NUL (the entry separator) */
 	}
 	assert_true(pos > (size_t)BUFSIZ);
 
-	int n = snprintf(buf + pos, cap - pos, "PUSB_TEST=found_it");
-	size_t total = pos + (size_t)n; /* snprintf places NUL at buf[total] — the sentinel */
+	n = snprintf(buf + pos, cap - pos, "PUSB_TEST=found_it");
+	total = pos + (size_t)n; /* snprintf places NUL at buf[total] — the sentinel */
 
-	char *r = pusb_scan_environ_buffer(buf, total, "PUSB_TEST");
+	r = pusb_scan_environ_buffer(buf, total, "PUSB_TEST");
 	assert_non_null(r);
 	assert_string_equal("found_it", r);
 	free(r);

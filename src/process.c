@@ -95,8 +95,15 @@ void pusb_get_process_parent_id(const pid_t pid, pid_t *ppid)
  */
 char *pusb_scan_environ_buffer(const char *buf, size_t size, const char *var)
 {
-	size_t var_len = strlen(var);
-	size_t i = 0;
+	size_t var_len;
+	size_t i;
+
+	if (buf == NULL || var == NULL)
+	{
+		return NULL;
+	}
+	var_len = strlen(var); /* DevSkim: ignore DS176209 - var is a NUL-terminated C string, not a raw buffer */
+	i = 0;
 
 	while (i < size)
 	{
@@ -131,15 +138,26 @@ char *pusb_get_process_envvar(pid_t pid, char *var)
 {
 	char path[64];
 	char *buffer;
+	FILE *fp;
+	size_t size;
 	char *output;
 
-	snprintf(path, sizeof(path), "/proc/%d/environ", pid);
-	FILE *fp = fopen(path, "r");
-	if (!fp)
+	if (var == NULL)
+	{
 		return NULL;
+	}
+	if (snprintf(path, sizeof(path), "/proc/%d/environ", pid) >= (int)sizeof(path)) /* DevSkim: ignore DS185832 - path constructed from numeric PID, not user input */
+	{
+		return NULL;
+	}
+	fp = fopen(path, "r"); /* DevSkim: ignore DS185832 - path constructed from numeric PID only */
+	if (!fp)
+	{
+		return NULL;
+	}
 
 	buffer = xmalloc(PUSB_ENVIRON_CAP);
-	size_t size = fread(buffer, sizeof(char), PUSB_ENVIRON_CAP - 1, fp);
+	size = fread(buffer, sizeof(char), PUSB_ENVIRON_CAP - 1, fp);
 	buffer[size] = '\0';
 	fclose(fp);
 
