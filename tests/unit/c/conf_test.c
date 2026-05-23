@@ -413,6 +413,7 @@ static void test_parse_nonet_blocks_network_entity(void **state)
 	 * entity content. The device lookup for id="" finds nothing, so all
 	 * device_list entries must have blank names. */
 	assert_int_equal(1, pusb_conf_parse(tmpfile, &opts, "testuser", "login"));
+	assert_int_equal(1, opts.device_count);
 	for (int i = 0; i < opts.device_count; i++)
 		assert_true(opts.device_list[i].name[0] == '\0');
 	pusb_conf_free(&opts);
@@ -450,6 +451,8 @@ static void test_parse_xml_with_internal_entities_is_accepted(void **state)
 	t_pusb_options opts;
 	pusb_conf_init(&opts);
 	assert_int_equal(1, pusb_conf_parse(tmpfile, &opts, "testuser", "login"));
+	assert_int_equal(1, opts.device_count);
+	assert_string_equal("TestVendor", opts.device_list[0].vendor);
 	pusb_conf_free(&opts);
 	unlink(tmpfile);
 }
