@@ -40,7 +40,7 @@ ifeq ($(ARCH), x86_64)
 	CFLAGS := $(CFLAGS) -fcf-protection=full
 endif
 ifeq (yes, ${DEBUG})
-	CFLAGS := ${CFLAGS} -O0 -ggdb
+	CFLAGS := ${CFLAGS} -O0 -U_FORTIFY_SOURCE -ggdb
 endif
 
 HARDENING_LDFLAGS := -Wl,-z,relro -Wl,-z,now -Wl,-z,noexecstack
