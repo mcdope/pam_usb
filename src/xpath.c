@@ -18,6 +18,9 @@
 #define _GNU_SOURCE
 #include <libxml/xpath.h>
 #include <ctype.h>
+#include <errno.h>
+#include <limits.h>
+#include <stdlib.h>
 #include <string.h>
 #include "mem.h"
 #include "xpath.h"
@@ -271,7 +274,10 @@ int pusb_xpath_get_time(xmlDocPtr doc, const char *path, time_t *value)
 {
 	char ret[64];
 	char *last;
+	char *endptr;
 	int coef;
+	int errsv;
+	long numeric;
 
 	if (!pusb_xpath_get_string(doc, path, ret, sizeof(ret)))
 	{
@@ -306,7 +312,21 @@ int pusb_xpath_get_time(xmlDocPtr doc, const char *path, time_t *value)
 		*last = '\0';
 	}
 
-	*value = (time_t)atoi(ret) * coef;
+	errno = 0;
+	numeric = strtol(ret, &endptr, 10);
+	if (endptr == ret || *endptr != '\0' || errno != 0 || numeric < 0)
+	{
+		errsv = errno;
+		log_debug("Invalid or out-of-range time value: %s\n", ret);
+		errno = errsv;
+		return 0;
+	}
+	if (coef > 0 && numeric > LONG_MAX / coef)
+	{
+		log_debug("Time value overflow: %ld * %d\n", numeric, coef);
+		return 0;
+	}
+	*value = (time_t)(numeric * coef);
 
 	return 1;
 }
@@ -339,13 +359,25 @@ int pusb_xpath_get_time_from(
 int pusb_xpath_get_int(xmlDocPtr doc, const char *path, int *value)
 {
 	char ret[64];
+	char *endptr;
+	int errsv;
+	long numeric;
 
 	if (!pusb_xpath_get_string(doc, path, ret, sizeof(ret)))
 	{
 		return 0;
 	}
 
-	*value = atoi(ret);
+	errno = 0;
+	numeric = strtol(ret, &endptr, 10);
+	if (endptr == ret || *endptr != '\0' || errno != 0 || numeric < INT_MIN || numeric > INT_MAX)
+	{
+		errsv = errno;
+		log_debug("Invalid or out-of-range int value: %s\n", ret);
+		errno = errsv;
+		return 0;
+	}
+	*value = (int)numeric;
 	return 1;
 }
 
