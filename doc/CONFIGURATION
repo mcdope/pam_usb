@@ -346,7 +346,7 @@ The `superuser` option can be applied to any service name that appears in your P
 If all of a user's devices are excluded by the superuser filter, pam_usb emits an error visible in the system log even without debug mode:
 
 ```
-Access denied: service "sudo" for user "alex" requires a superuser-capable device but none of the registered devices have the superuser attribute.
+Service "sudo" for user "alex" requires a superuser-capable device but none of the registered devices have the superuser attribute.
 ```
 
 With `<option name="debug">true</option>`, the per-device filtering decisions are also logged:
