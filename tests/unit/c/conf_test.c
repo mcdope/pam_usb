@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <cmocka.h>
 #include "../../../src/conf.h"
 #include "../../../src/log.h"
@@ -479,7 +480,7 @@ static void test_device_options_not_applied(void **state)
 
 	(void)state;
 	pusb_conf_init(&opts);
-	fd = mkstemp(tmpconf);
+	fd = mkostemp(tmpconf, O_CLOEXEC);
 	assert_true(fd >= 0);
 	assert_int_equal((ssize_t)strlen(xml), write(fd, xml, strlen(xml))); /* DevSkim: ignore DS140021 - xml is a string literal, always null-terminated */
 	close(fd);
