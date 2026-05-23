@@ -30,6 +30,7 @@
 #include <sys/types.h>
 #include <errno.h>
 #include "process.h"
+#include "log.h"
 #include "mem.h"
 
 /**
@@ -165,6 +166,11 @@ char *pusb_get_process_envvar(pid_t pid, const char *var)
 		xfree(buffer);
 		errno = save_errno;
 		return NULL;
+	}
+	if (size == PUSB_ENVIRON_CAP - 1)
+	{
+		log_error("pusb_get_process_envvar: /proc/%d/environ may be truncated (>= %d bytes)\n",
+			pid, PUSB_ENVIRON_CAP - 1);
 	}
 	buffer[size] = '\0';
 	fclose(fp);
