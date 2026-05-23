@@ -326,7 +326,7 @@ int pusb_xpath_get_time(xmlDocPtr doc, const char *path, time_t *value)
 		log_debug("Time value overflow: %ld * %d\n", numeric, coef);
 		return 0;
 	}
-	*value = (time_t)numeric * coef;
+	*value = (time_t)(numeric * coef);
 
 	return 1;
 }
