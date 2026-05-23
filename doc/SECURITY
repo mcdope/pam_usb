@@ -4,15 +4,21 @@
 
 Make sure you are aware of how it works and what you combine it with (see other warnings).
 
-Also I want to point it that this isn't audited. I've tried to raise funds for it but there was literally no interest in it seemingly...
+Also I want to point it that this is barely audited. I've tried to raise funds for it but there was literally no interest in it seemingly...
 
 # Warning about XDMCP
 
-You should under no circumstances enable pamusb and XDMCP at the same time. Most graphical login managers are whitelisted and will not be checked for "remoteness" since issue #51 was fixed. This means if you enable XDMCP and have a usb device for an already configured user attached anyone connecting to your X-Server could login as that user!
+This warning has been **partially mitigated** in 0.9.1 but XDMCP + pam_usb is still not recommended. Read carefully.
 
-I repeat, UNDER NO CIRCUMSTANCES ENABLE PAMUSB AND XDMCP AT THE SAME TIME! Don't say you haven't be warned if someone "hacks" your system because of this.
+**What changed in 0.9.1 (GHSA-w38v-cw9r-x9p6):** The root cause of the original bypass was that the `PAM_RHOST` check was gated behind the `deny_remote` option. Display managers whitelisted with `deny_remote=false` (e.g. `gdm-password`, `lightdm`) also skipped the `PAM_RHOST` check entirely, so a remote XDMCP client was never identified as remote by pam_usb.
 
-Note: you shouldn't use XDMCP these days anyway...
+Since 0.9.1, the `PAM_RHOST` check runs unconditionally regardless of `deny_remote`. When a display manager correctly sets `PAM_RHOST` to the remote client's IP for XDMCP connections, pam_usb will detect it and return `PAM_IGNORE`.
+
+**Why this is still not a guarantee:** `PAM_RHOST` is set by the display manager, not by the kernel or PAM itself. Whether a given DM sets it correctly for XDMCP depends on its implementation. Major display managers (GDM, LightDM) do set `PAM_RHOST` for remote sessions; less common or older DMs may not. If your DM does not set `PAM_RHOST` for XDMCP connections, the 0.9.1 fix offers no protection.
+
+The `remote_desktop_check` option (enabled by default since 0.9.0) provides an additional layer via evdev virtual device detection, which XDMCP sessions typically trigger. However this too is not a guaranteed catch-all.
+
+**Recommendation:** XDMCP is an unencrypted, largely deprecated protocol that should be avoided on general security grounds regardless of pam_usb. If you must use it, ensure you are on 0.9.1+ and verify that your specific display manager sets `PAM_RHOST` for XDMCP connections before relying on pam_usb as a meaningful security control.
 
 # Warning about remote desktop tools
 
