@@ -483,10 +483,12 @@ static void test_device_options_not_applied(void **state)
 	assert_true(fd >= 0);
 	assert_int_equal((ssize_t)strlen(xml), write(fd, xml, strlen(xml))); /* DevSkim: ignore DS140021 - xml is a string literal, always null-terminated */
 	close(fd);
-	assert_int_equal(1, pusb_conf_parse(tmpconf, &opts, "user1", "login"));
-	assert_int_equal(0, opts.debug); /* per-device options are not applied at parse time */
+	int parse_result = pusb_conf_parse(tmpconf, &opts, "user1", "login");
+	int debug_val = opts.debug;
 	pusb_conf_free(&opts);
 	unlink(tmpconf);
+	assert_int_equal(1, parse_result);
+	assert_int_equal(0, debug_val); /* per-device options are not applied at parse time */
 }
 
 /* ── main ── */
