@@ -366,6 +366,97 @@ static void test_parse_many_devices_no_false_positive(void **state)
 	unlink(tmpfile);
 }
 
+/* ── XXE prevention ── */
+
+static void test_parse_nonet_blocks_network_entity(void **state)
+{
+	(void)state;
+	/*
+	 * Regression: XML_PARSE_NONET must prevent a network-URI entity from being
+	 * loaded and injected into the device list used for authentication.
+	 *
+	 * The entity reference is placed in the user's <device> element — the
+	 * canonical auth-bypass attack vector. If the entity were resolved,
+	 * it would expand to "real-device" and match the declared device, granting
+	 * access. With XML_PARSE_NONET the http:// load is blocked; the entity
+	 * expands to empty, so no real device is matched and device_list entries
+	 * remain blank (name[0] == '\0').
+	 *
+	 * Note: file:// entities bypass XML_PARSE_NONET; exploiting them requires
+	 * write access to the root-owned config file (already full system compromise).
+	 * Thread-safe per-context entity blocking needs libxml2 >= 2.13.
+	 */
+	char tmpfile[] = "/tmp/pamusb_xxe_net_XXXXXX";
+	int fd = mkstemp(tmpfile);
+	assert_true(fd >= 0);
+	FILE *f = fdopen(fd, "w");
+	assert_non_null(f);
+	assert_true(fputs("<?xml version=\"1.0\"?>" /* DevSkim: ignore DS154189 */
+		"<!DOCTYPE configuration ["
+		"  <!ENTITY device_ref SYSTEM \"http://127.0.0.1:1/real-device\">"
+		"]>"
+		"<configuration>"
+		"  <devices>"
+		"    <device id=\"real-device\"><vendor>V</vendor><model>M</model>"
+		"      <serial>S1</serial><volume_uuid>UUID-1</volume_uuid></device>"
+		"  </devices>"
+		"  <users>"
+		"    <user id=\"testuser\"><device>&device_ref;</device></user>"
+		"  </users>"
+		"  <services><service id=\"login\"></service></services>"
+		"</configuration>", f) != EOF);
+	fclose(f);
+
+	t_pusb_options opts;
+	pusb_conf_init(&opts);
+	/* Parse succeeds: NONET logs the blocked load but continues with empty
+	 * entity content. The device lookup for id="" finds nothing, so all
+	 * device_list entries must have blank names. */
+	assert_int_equal(1, pusb_conf_parse(tmpfile, &opts, "testuser", "login"));
+	assert_int_equal(1, opts.device_count);
+	for (int i = 0; i < opts.device_count; i++)
+		assert_true(opts.device_list[i].name[0] == '\0');
+	pusb_conf_free(&opts);
+	unlink(tmpfile);
+}
+
+static void test_parse_xml_with_internal_entities_is_accepted(void **state)
+{
+	(void)state;
+	/*
+	 * Positive regression: XML_PARSE_NOENT must not break configs that use
+	 * only safe internal entity declarations.
+	 */
+	char tmpfile[] = "/tmp/pamusb_xxe_internal_XXXXXX";
+	int fd = mkstemp(tmpfile);
+	assert_true(fd >= 0);
+	FILE *f = fdopen(fd, "w");
+	assert_non_null(f);
+	assert_true(fputs("<?xml version=\"1.0\"?>" /* DevSkim: ignore DS154189 */
+		"<!DOCTYPE configuration ["
+		"  <!ENTITY vendor \"TestVendor\">"
+		"]>"
+		"<configuration>"
+		"  <devices>"
+		"    <device id=\"dev1\"><vendor>&vendor;</vendor><model>M</model>"
+		"      <serial>S001</serial><volume_uuid>UUID-1</volume_uuid></device>"
+		"  </devices>"
+		"  <users>"
+		"    <user id=\"testuser\"><device>dev1</device></user>"
+		"  </users>"
+		"  <services><service id=\"login\"></service></services>"
+		"</configuration>", f) != EOF);
+	fclose(f);
+
+	t_pusb_options opts;
+	pusb_conf_init(&opts);
+	assert_int_equal(1, pusb_conf_parse(tmpfile, &opts, "testuser", "login"));
+	assert_int_equal(1, opts.device_count);
+	assert_string_equal("TestVendor", opts.device_list[0].vendor);
+	pusb_conf_free(&opts);
+	unlink(tmpfile);
+}
+
 /* ── main ── */
 
 int main(void)
@@ -395,6 +486,8 @@ int main(void)
 		cmocka_unit_test(test_superuser_attribute_case_sensitive),
 		cmocka_unit_test(test_conf_parses_more_than_ten_devices),
 		cmocka_unit_test(test_parse_many_devices_no_false_positive),
+		cmocka_unit_test(test_parse_nonet_blocks_network_entity),
+		cmocka_unit_test(test_parse_xml_with_internal_entities_is_accepted),
 	};
 	return cmocka_run_group_tests(tests, NULL, NULL);
 }
