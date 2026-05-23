@@ -480,6 +480,7 @@ static void test_device_options_not_applied(void **state)
 	(void)state;
 	pusb_conf_init(&opts);
 	fd = mkstemp(tmpconf);
+	assert_true(fd >= 0);
 	assert_int_equal((ssize_t)strlen(xml), write(fd, xml, strlen(xml))); /* DevSkim: ignore DS140021 - xml is a string literal, always null-terminated */
 	close(fd);
 	assert_int_equal(1, pusb_conf_parse(tmpconf, &opts, "user1", "login"));
