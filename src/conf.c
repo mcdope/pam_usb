@@ -406,11 +406,11 @@ int pusb_conf_parse(
 				remaining++;
 			}
 		}
-		if (service != NULL && remaining == 0)
+		if (service != NULL && user != NULL && remaining == 0)
 		{
-			log_error("Access denied: service \"%s\" requires a superuser-capable device "
-			          "but none of your registered devices have the superuser attribute.\n",
-			          service);
+			log_error("Access denied: service \"%s\" for user \"%s\" requires a superuser-capable device "
+			          "but none of the registered devices have the superuser attribute.\n",
+			          service, user);
 		}
 	}
 
