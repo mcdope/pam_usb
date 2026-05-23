@@ -80,7 +80,6 @@ static int pusb_conf_parse_options(
 	int i;
 
 	struct s_opt_list opt_list[] = {
-		{ CONF_DEVICE_XPATH, opts->device.name },
 		{ CONF_USER_XPATH, user },
 		{ CONF_SERVICE_XPATH, service },
 		{ NULL, NULL }
