@@ -138,9 +138,27 @@ static int pusb_conf_parse_device(
 	char *deviceId
 )
 {
+	char *opt_xpath;
+	size_t opt_xpath_len;
+
 	if (!pusb_conf_xpath_id_is_safe("Device id", deviceId))
 	{
 		return 0;
+	}
+
+	opt_xpath_len = strlen(CONF_DEVICE_XPATH) + strlen(deviceId) + strlen("option") + 1;
+	opt_xpath = xmalloc(opt_xpath_len);
+	if (opt_xpath != NULL)
+	{
+		memset(opt_xpath, 0x00, opt_xpath_len);
+		snprintf(opt_xpath, opt_xpath_len, CONF_DEVICE_XPATH, deviceId, "option");
+		if (pusb_xpath_count_nodes(doc, opt_xpath) > 0)
+		{
+			log_error("Device \"%s\": per-device <option> elements are not applied at runtime "
+			          "and will be ignored. Use <defaults>, <users>, or <services> instead.\n",
+			          deviceId);
+		}
+		xfree(opt_xpath);
 	}
 
 	pusb_conf_device_get_property(opts, doc, "vendor", opts->device_list[deviceIndex].vendor, sizeof(opts->device_list[deviceIndex].vendor), deviceId);
