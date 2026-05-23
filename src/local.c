@@ -249,6 +249,13 @@ char *pusb_get_tty_by_xorg_display(const char *display, const char *user)
 	return NULL;
 }
 
+static const char *pusb_loginctl_parse_output(char *buf)
+{
+	char *saveptr = NULL;
+	const char *val = strtok_r(buf, "\n", &saveptr);
+	return (val && *val != '\0') ? val : NULL;
+}
+
 char *pusb_get_tty_by_loginctl()
 {
 	char loginctl_cmd[BUFSIZ] = "LC_ALL=C; LOGINCTL_SESSION_ID=`/usr/bin/loginctl user-status | /usr/bin/grep -m 1  \"├─session-\" | /usr/bin/grep -o '[0-9]\\+'`; /usr/bin/loginctl show-session $LOGINCTL_SESSION_ID -p TTY | /usr/bin/awk -F= '{print $2}'";
@@ -264,8 +271,14 @@ char *pusb_get_tty_by_loginctl()
 	char *tty = NULL;
 	if (fgets(buf, BUFSIZ, fp) != NULL)
 	{
-		char *saveptr = NULL;
-		tty = strtok_r(buf, "\n", &saveptr);
+		tty = (char *)pusb_loginctl_parse_output(buf);
+		if (!tty)
+		{
+			log_debug("		'loginctl' returned empty TTY field, treating as unknown.\n");
+			if (pclose(fp))
+				log_debug("		Closing pipe for 'loginctl' failed, this is quite a wtf...\n");
+			return NULL;
+		}
 		log_debug("		Got tty: %s\n", tty);
 
 		if (pclose(fp))
@@ -273,7 +286,7 @@ char *pusb_get_tty_by_loginctl()
 			log_debug("		Closing pipe for 'loginctl' failed, this is quite a wtf...\n");
 		}
 
-		return tty ? xstrdup(tty) : NULL;
+		return xstrdup(tty);
 	}
 	else
 	{
@@ -299,11 +312,18 @@ int pusb_is_loginctl_local()
 		return 0;
 	}
 
-	char *is_remote = NULL;
+	const char *is_remote = NULL;
 	if (fgets(buf, BUFSIZ, fp) != NULL)
 	{
-		char *saveptr = NULL;
-		is_remote = strtok_r(buf, "\n", &saveptr);
+		is_remote = pusb_loginctl_parse_output(buf);
+		if (!is_remote)
+		{
+			log_debug("		loginctl returned empty Remote field, treating as unknown.\n");
+			if (pclose(fp))
+				log_debug("		Closing pipe for 'loginctl' failed, this is quite a wtf...\n");
+			return 0;
+		}
+
 		log_debug("		loginctl considers this session to be remote: %s\n", is_remote);
 
 		if (pclose(fp))
@@ -311,7 +331,7 @@ int pusb_is_loginctl_local()
 			log_debug("		Closing pipe for 'loginctl' failed, this is quite a wtf...\n");
 		}
 
-		if (strcmp(is_remote, "no") == 0) 
+		if (strcmp(is_remote, "no") == 0)
 		{
 			return 1;
 		}
