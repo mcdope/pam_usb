@@ -61,8 +61,10 @@ The syntax is the following:
 > **Option precedence:** Options defined in later scopes override those in earlier scopes.
 > The order is: `<defaults>` → `<users>` → `<services>`.
 > A user-level option overrides the global default; a service-level option overrides both.
-> Device-level `<option>` elements (inside a `<device>` block) are supported from v0.9.2 and
-> apply when that specific device is used for authentication.
+>
+> **Note:** `<option>` elements placed inside a `<device>` block are not applied
+> at runtime. From v0.9.2 an error is logged when they are found in the config.
+> Use `<defaults>`, `<users>`, or `<services>` to configure options instead.
 
 ### Example:
 
