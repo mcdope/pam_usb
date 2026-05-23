@@ -167,9 +167,9 @@ char *pusb_get_process_envvar(pid_t pid, const char *var)
 		errno = save_errno;
 		return NULL;
 	}
-	if (size == PUSB_ENVIRON_CAP - 1)
+	if (size == PUSB_ENVIRON_CAP - 1 && !feof(fp))
 	{
-		log_error("pusb_get_process_envvar: /proc/%d/environ may be truncated (>= %d bytes)\n",
+		log_error("pusb_get_process_envvar: /proc/%d/environ is truncated (>= %d bytes)\n",
 			pid, PUSB_ENVIRON_CAP - 1);
 	}
 	buffer[size] = '\0';
