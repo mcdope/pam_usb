@@ -20,9 +20,9 @@
 #define log_debug(s, ...) __log_debug(__FILE__, __LINE__, s, ##__VA_ARGS__)
 #include "conf.h"
 
-void __log_debug(const char *file, int line, const char *fmt, ...);
-void log_error(const char *fmt, ...);
-void log_info(const char *fmt, ...);
+void __log_debug(const char *file, int line, const char *fmt, ...) __attribute__((format(printf, 3, 4))); /* DevSkim: ignore DS154189 - 'printf' here is a GCC attribute keyword, not a function call */
+void log_error(const char *fmt, ...) __attribute__((format(printf, 1, 2))); /* DevSkim: ignore DS154189 - 'printf' here is a GCC attribute keyword, not a function call */
+void log_info(const char *fmt, ...) __attribute__((format(printf, 1, 2))); /* DevSkim: ignore DS154189 - 'printf' here is a GCC attribute keyword, not a function call */
 void pusb_log_init(t_pusb_options *opts);
 
 #endif /* !PUSB_LOG_H_ */
