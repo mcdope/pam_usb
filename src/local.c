@@ -268,10 +268,10 @@ char *pusb_get_tty_by_loginctl()
 		return NULL;
 	}
 
-	char *tty = NULL;
+	const char *tty = NULL;
 	if (fgets(buf, BUFSIZ, fp) != NULL)
 	{
-		tty = (char *)pusb_loginctl_parse_output(buf);
+		tty = pusb_loginctl_parse_output(buf);
 		if (!tty)
 		{
 			log_debug("		'loginctl' returned empty TTY field, treating as unknown.\n");
