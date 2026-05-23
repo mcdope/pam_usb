@@ -158,6 +158,12 @@ char *pusb_get_process_envvar(pid_t pid, char *var)
 
 	buffer = xmalloc(PUSB_ENVIRON_CAP);
 	size = fread(buffer, sizeof(char), PUSB_ENVIRON_CAP - 1, fp);
+	if (ferror(fp))
+	{
+		fclose(fp);
+		xfree(buffer);
+		return NULL;
+	}
 	buffer[size] = '\0';
 	fclose(fp);
 
