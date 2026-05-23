@@ -20,9 +20,9 @@
 #define log_debug(s, ...) __log_debug(__FILE__, __LINE__, s, ##__VA_ARGS__)
 #include "conf.h"
 
-void __log_debug(const char *file, int line, const char *fmt, ...);
-void log_error(const char *fmt, ...);
-void log_info(const char *fmt, ...);
+void __log_debug(const char *file, int line, const char *fmt, ...) __attribute__((format(printf, 3, 4)));
+void log_error(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
+void log_info(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 void pusb_log_init(t_pusb_options *opts);
 
 #endif /* !PUSB_LOG_H_ */

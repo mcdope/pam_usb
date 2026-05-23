@@ -33,6 +33,13 @@ void __wrap_explicit_bzero(void *ptr, size_t len)
 		memset(ptr, 0, len);
 }
 
+/* Fortified variant called when _FORTIFY_SOURCE >= 1 and -O1+ is active */
+void __wrap___explicit_bzero_chk(void *ptr, size_t len, size_t destlen)
+{
+	(void)destlen;
+	__wrap_explicit_bzero(ptr, len);
+}
+
 /* ── xfree(NULL) must not crash ── */
 
 static void test_xfree_null_safe(void **state)

@@ -96,7 +96,10 @@ static int pusb_conf_parse_options(
 			return 0;
 		}
 		memset(xpath, 0x00, xpath_size);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
 		snprintf(xpath, xpath_size, opt_list[i].name, opt_list[i].value, "");
+#pragma GCC diagnostic pop
 		pusb_conf_options_get_from(opts, xpath, doc);
 		xfree(xpath);
 	}
@@ -203,7 +206,7 @@ int pusb_conf_parse(
 	xmlDoc *doc = NULL;
 	char device_xpath[sizeof(CONF_USER_XPATH) + CONF_USER_MAXLEN + sizeof("device")];
 
-	log_debug("Parsing settings...\n", user, service);
+	log_debug("Parsing settings for user \"%s\", service \"%s\"...\n", user, service);
 	if (!pusb_conf_xpath_id_is_safe("Username", user) ||
 	    !pusb_conf_xpath_id_is_safe("Service", service))
 	{

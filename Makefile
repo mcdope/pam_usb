@@ -30,10 +30,15 @@ endif
 
 # compiler/linker options
 CC := gcc
-CFLAGS := $(CFLAGS) -Wall -fPIC `pkg-config --cflags libxml-2.0` `pkg-config --cflags udisks2` `pkg-config --cflags libevdev` #cflags libxml?
-ifeq (yes, ${DEBUG})
-	CFLAGS := ${CFLAGS} -ggdb
+CFLAGS := $(CFLAGS) -Wall -O2 -fPIC -fstack-protector-strong -D_FORTIFY_SOURCE=2 -fstack-clash-protection -fno-plt -fzero-call-used-regs=used-gpr -Wformat=2 `pkg-config --cflags libxml-2.0` `pkg-config --cflags udisks2` `pkg-config --cflags libevdev` #cflags libxml?
+ifeq ($(ARCH), x86_64)
+	CFLAGS := $(CFLAGS) -fcf-protection=full
 endif
+ifeq (yes, ${DEBUG})
+	CFLAGS := ${CFLAGS} -O0 -ggdb
+endif
+
+HARDENING_LDFLAGS := -Wl,-z,relro -Wl,-z,now -Wl,-z,noexecstack
 
 LIBS := `pkg-config --libs libxml-2.0` `pkg-config --libs udisks2` `pkg-config --libs libevdev`
 
@@ -56,7 +61,7 @@ OBJS := $(SRCS:.c=.o)
 PAM_USB_SRCS := src/pam.c
 PAM_USB_OBJS := $(PAM_USB_SRCS:.c=.o)
 PAM_USB	:= pam_usb.so
-PAM_USB_LDFLAGS := -shared
+PAM_USB_LDFLAGS := -shared $(HARDENING_LDFLAGS)
 PAM_USB_DEST := $(DESTDIR)/$(LIBDIR)/security
 
 # pamusb-check
@@ -168,7 +173,7 @@ test-c-log: tests/unit/c/log_test.c src/log.c
 
 test-c-mem: tests/unit/c/mem_test.c src/mem.c src/log.o
 	$(CC) $(TEST_CFLAGS) tests/unit/c/mem_test.c src/log.o \
-		-Wl,--wrap=explicit_bzero \
+		-Wl,--wrap=explicit_bzero,--wrap=__explicit_bzero_chk \
 		$(MEM_LDFLAGS) -o tests/unit/c/mem_test
 	./tests/unit/c/mem_test
 
@@ -185,7 +190,7 @@ $(PAM_USB): $(OBJS) $(PAM_USB_OBJS)
 	$(CC) -o $(PAM_USB) $(PAM_USB_LDFLAGS) $(LDFLAGS) $(OBJS) $(PAM_USB_OBJS) $(LIBS)
 
 $(PAMUSB_CHECK): $(OBJS) $(PAMUSB_CHECK_OBJS)
-	$(CC) -o $(PAMUSB_CHECK) $(LDFLAGS) $(OBJS) $(PAMUSB_CHECK_OBJS) $(LIBS)
+	$(CC) -o $(PAMUSB_CHECK) $(LDFLAGS) $(HARDENING_LDFLAGS) -pie $(OBJS) $(PAMUSB_CHECK_OBJS) $(LIBS)
 
 %.o: %.c
 	${CC} -c ${CFLAGS} $< -o $@
