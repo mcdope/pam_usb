@@ -146,7 +146,7 @@ static int pusb_conf_parse_device(
 		return 0;
 	}
 
-	opt_xpath_len = strlen(CONF_DEVICE_XPATH) + strlen(deviceId) + strlen("option") + 1; /* DevSkim: ignore DS185832 - all inputs are null-terminated: CONF_DEVICE_XPATH is a literal, deviceId validated above, "option" is a literal */
+	opt_xpath_len = strlen(CONF_DEVICE_XPATH) + strlen(deviceId) + strlen("option") + 1; /* DevSkim: ignore DS140021 - all inputs are null-terminated: CONF_DEVICE_XPATH is a literal, deviceId validated above, "option" is a literal */
 	opt_xpath = xmalloc(opt_xpath_len);
 	{
 		int ret = snprintf(opt_xpath, opt_xpath_len, CONF_DEVICE_XPATH, deviceId, "option");
