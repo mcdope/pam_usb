@@ -63,7 +63,7 @@ The syntax is the following:
 > A user-level option overrides the global default; a service-level option overrides both.
 >
 > **Note:** `<option>` elements placed inside a `<device>` block are currently not applied
-> at runtime and will be silently ignored. This is a known limitation — use `<defaults>`,
+> at runtime and will be ignored with a warning message. This is a known limitation — use `<defaults>`,
 > `<users>`, or `<services>` to configure options instead.
 
 ### Example:
