@@ -86,6 +86,23 @@ static void test_plain_user_no_superuser_device_gets_empty_list(void **state)
 	pusb_conf_free(&opts);
 }
 
+static void test_plain_user_all_filtered_superuser_service_error_path(void **state)
+{
+	(void)state;
+	t_pusb_options opts;
+	pusb_conf_init(&opts);
+	assert_int_equal(1, pusb_conf_parse(FIXTURE_CONF, &opts, "user_plain", "sudo"));
+
+	int remaining = 0;
+	for (int i = 0; i < opts.device_count; i++)
+	{
+		if (opts.device_list[i].name[0] != '\0')
+			remaining++;
+	}
+	assert_int_equal(0, remaining);
+	pusb_conf_free(&opts);
+}
+
 static void test_backward_compat_no_superuser_service(void **state)
 {
 	(void)state;
@@ -506,6 +523,7 @@ int main(void)
 		cmocka_unit_test(test_superuser_device_present_for_superuser_service),
 		cmocka_unit_test(test_nonsuperuser_device_removed_for_superuser_service),
 		cmocka_unit_test(test_plain_user_no_superuser_device_gets_empty_list),
+		cmocka_unit_test(test_plain_user_all_filtered_superuser_service_error_path),
 		cmocka_unit_test(test_backward_compat_no_superuser_service),
 		cmocka_unit_test(test_generic_vendor_model_preserved),
 		cmocka_unit_test(test_parse_nonexistent_file),

@@ -401,6 +401,15 @@ int pusb_conf_parse(
 				memset(&opts->device_list[i], 0, sizeof(t_pusb_device));
 			}
 		}
+
+		int remaining = 0;
+		for (int i = 0; i < n_devices; i++)
+		{
+			if (opts->device_list[i].name[0] != '\0')
+				remaining++;
+		}
+		if (remaining == 0)
+			log_error("Access denied: service \"%s\" requires a superuser-capable device but none of your registered devices have the superuser attribute.\n", service);
 	}
 
 	xmlFreeDoc(doc);
