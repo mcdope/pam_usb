@@ -77,22 +77,8 @@ static void test_plain_user_no_superuser_device_gets_empty_list(void **state)
 	(void)state;
 	t_pusb_options opts;
 	pusb_conf_init(&opts);
-	/* user_plain has only stick1, which is not superuser */
-	assert_int_equal(1, pusb_conf_parse(FIXTURE_CONF, &opts, "user_plain", "sudo"));
-
-	for (int i = 0; i < opts.device_count; i++) {
-		assert_true(opts.device_list[i].name[0] == '\0');
-	}
-	pusb_conf_free(&opts);
-}
-
-static void test_plain_user_all_filtered_superuser_service_error_path(void **state)
-{
-	(void)state;
-	t_pusb_options opts;
-	pusb_conf_init(&opts);
 	/* user_plain has only stick1 (no superuser attr); sudo requires superuser.
-	   All devices must be zeroed out and log_error must fire (covered by code path). */
+	   All devices must be zeroed — this also exercises the log_error path added in #365. */
 	assert_int_equal(1, pusb_conf_parse(FIXTURE_CONF, &opts, "user_plain", "sudo"));
 	assert_int_equal(1, opts.device_count);
 	assert_int_equal('\0', opts.device_list[0].name[0]);
@@ -519,7 +505,6 @@ int main(void)
 		cmocka_unit_test(test_superuser_device_present_for_superuser_service),
 		cmocka_unit_test(test_nonsuperuser_device_removed_for_superuser_service),
 		cmocka_unit_test(test_plain_user_no_superuser_device_gets_empty_list),
-		cmocka_unit_test(test_plain_user_all_filtered_superuser_service_error_path),
 		cmocka_unit_test(test_backward_compat_no_superuser_service),
 		cmocka_unit_test(test_generic_vendor_model_preserved),
 		cmocka_unit_test(test_parse_nonexistent_file),
