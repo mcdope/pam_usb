@@ -160,8 +160,10 @@ char *pusb_get_process_envvar(pid_t pid, char *var)
 	size = fread(buffer, sizeof(char), PUSB_ENVIRON_CAP - 1, fp);
 	if (ferror(fp))
 	{
+		int save_errno = errno;
 		fclose(fp);
 		xfree(buffer);
+		errno = save_errno;
 		return NULL;
 	}
 	buffer[size] = '\0';
