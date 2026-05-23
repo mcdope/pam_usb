@@ -112,6 +112,48 @@ static void test_time_invalid_suffix(void **state)
 	xmlFreeDoc(doc);
 }
 
+static void test_time_negative(void **state)
+{
+	(void)state;
+	xmlDocPtr doc = make_doc("<r><v>-5s</v></r>");
+	time_t val = 999;
+	assert_int_equal(0, pusb_xpath_get_time(doc, "//r/v", &val));
+	assert_true(val == 999);
+	xmlFreeDoc(doc);
+}
+
+static void test_time_overflow(void **state)
+{
+	(void)state;
+	xmlDocPtr doc = make_doc("<r><v>9999999999999999999d</v></r>");
+	time_t val = 999;
+	assert_int_equal(0, pusb_xpath_get_time(doc, "//r/v", &val));
+	assert_true(val == 999);
+	xmlFreeDoc(doc);
+}
+
+static void test_time_overflow_via_multiplication(void **state)
+{
+	(void)state;
+	/* 200000000000000 * 86400 > LONG_MAX; fits strtol cleanly, only the
+	   multiplication overflow guard catches it */
+	xmlDocPtr doc = make_doc("<r><v>200000000000000d</v></r>");
+	time_t val = 999;
+	assert_int_equal(0, pusb_xpath_get_time(doc, "//r/v", &val));
+	assert_true(val == 999);
+	xmlFreeDoc(doc);
+}
+
+static void test_time_empty_numeric_part(void **state)
+{
+	(void)state;
+	xmlDocPtr doc = make_doc("<r><v>d</v></r>");
+	time_t val = 999;
+	assert_int_equal(0, pusb_xpath_get_time(doc, "//r/v", &val));
+	assert_true(val == 999);
+	xmlFreeDoc(doc);
+}
+
 /* ── pusb_xpath_get_int ── */
 
 static void test_int_value(void **state)
@@ -131,6 +173,36 @@ static void test_int_zero(void **state)
 	int val = 99;
 	assert_int_equal(1, pusb_xpath_get_int(doc, "//r/v", &val));
 	assert_int_equal(0, val);
+	xmlFreeDoc(doc);
+}
+
+static void test_int_overflow(void **state)
+{
+	(void)state;
+	xmlDocPtr doc = make_doc("<r><v>9999999999</v></r>");
+	int val = 42;
+	assert_int_equal(0, pusb_xpath_get_int(doc, "//r/v", &val));
+	assert_int_equal(42, val);
+	xmlFreeDoc(doc);
+}
+
+static void test_int_underflow(void **state)
+{
+	(void)state;
+	xmlDocPtr doc = make_doc("<r><v>-9999999999</v></r>");
+	int val = 42;
+	assert_int_equal(0, pusb_xpath_get_int(doc, "//r/v", &val));
+	assert_int_equal(42, val);
+	xmlFreeDoc(doc);
+}
+
+static void test_int_invalid_chars(void **state)
+{
+	(void)state;
+	xmlDocPtr doc = make_doc("<r><v>42abc</v></r>");
+	int val = 42;
+	assert_int_equal(0, pusb_xpath_get_int(doc, "//r/v", &val));
+	assert_int_equal(42, val);
 	xmlFreeDoc(doc);
 }
 
@@ -257,8 +329,15 @@ int main(void)
 		cmocka_unit_test(test_time_hours),
 		cmocka_unit_test(test_time_days),
 		cmocka_unit_test(test_time_invalid_suffix),
+		cmocka_unit_test(test_time_negative),
+		cmocka_unit_test(test_time_overflow),
+		cmocka_unit_test(test_time_overflow_via_multiplication),
+		cmocka_unit_test(test_time_empty_numeric_part),
 		cmocka_unit_test(test_int_value),
 		cmocka_unit_test(test_int_zero),
+		cmocka_unit_test(test_int_overflow),
+		cmocka_unit_test(test_int_underflow),
+		cmocka_unit_test(test_int_invalid_chars),
 		cmocka_unit_test(test_string_value),
 		cmocka_unit_test(test_string_whitespace_stripped),
 		cmocka_unit_test(test_string_too_long),
