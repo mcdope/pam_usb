@@ -323,6 +323,11 @@ sourcegz: clean builddir
 		--exclude=".vscode" \
 		--exclude=".github" \
 		--exclude=".git" \
+		--exclude="./.claude" \
+		--exclude="./CLAUDE.md" \
+		--exclude="./AGENTS.md" \
+		--exclude="./.cursorrules" \
+		--exclude="./.pytest_cache" \
 		-zcvf .build/pam_usb-$(VERSION).tar.gz .
 
 buildenv-debian:
