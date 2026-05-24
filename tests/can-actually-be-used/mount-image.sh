@@ -21,8 +21,13 @@ for i in $(seq 1 10); do
     sleep 1
 done
 [ -z "$PRIMARY_DEV" ] && { echo "Error: no new block device appeared after loading g_mass_storage" >&2; exit 1; }
-sudo mkfs.$PUSB_FS_TYPE "/dev/${PRIMARY_DEV}1"
+case "$PUSB_FS_TYPE" in
+    ext4)  sudo mkfs.ext4 -F "/dev/${PRIMARY_DEV}1" ;;
+    exfat) sudo mkfs.exfat -f "/dev/${PRIMARY_DEV}1" ;;
+    *)     sudo mkfs.$PUSB_FS_TYPE "/dev/${PRIMARY_DEV}1" ;;
+esac
 sync
+sudo udevadm settle
 sudo modprobe -r g_mass_storage
 sudo udevadm settle
 
@@ -38,8 +43,13 @@ for i in $(seq 1 10); do
     sleep 1
 done
 [ -z "$ALT_DEV" ] && { echo "Error: no new block device appeared after loading g_mass_storage (alt)" >&2; exit 1; }
-sudo mkfs.$PUSB_FS_TYPE "/dev/${ALT_DEV}1"
+case "$PUSB_FS_TYPE" in
+    ext4)  sudo mkfs.ext4 -F "/dev/${ALT_DEV}1" ;;
+    exfat) sudo mkfs.exfat -f "/dev/${ALT_DEV}1" ;;
+    *)     sudo mkfs.$PUSB_FS_TYPE "/dev/${ALT_DEV}1" ;;
+esac
 sync
+sudo udevadm settle
 sudo modprobe -r g_mass_storage
 sudo udevadm settle
 
