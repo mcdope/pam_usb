@@ -14,8 +14,12 @@ sudo udevadm settle
 DEVS_BEFORE=$(lsblk -dno NAME | sort)
 sudo modprobe g_mass_storage file=./virtual_usb_alt.img stall=0 removable=y iSerialNumber=1234567891 iProduct=SecondStick || exit 1
 sudo udevadm settle
-DEVS_AFTER=$(lsblk -dno NAME | sort)
-CREATED_DEVICE=$(comm -13 <(echo "$DEVS_BEFORE") <(echo "$DEVS_AFTER") | grep -v '^loop' | head -1)
+CREATED_DEVICE=""
+for i in $(seq 1 10); do
+    CREATED_DEVICE=$(comm -13 <(echo "$DEVS_BEFORE") <(lsblk -dno NAME | sort) | grep -v '^loop' | head -1)
+    [ -n "$CREATED_DEVICE" ] && break
+    sleep 1
+done
 ./do-mount.sh "$PUSB_FS_TYPE" "/dev/${CREATED_DEVICE}1"
 
 echo -en "pamusb-conf --add-device output:\t" # to fake the unhideable python output as expected output :P
