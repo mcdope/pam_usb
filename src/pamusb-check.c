@@ -163,7 +163,7 @@ int main(int argc, char **argv)
 		return (1);
 	}
 
-	pusb_log_init(&opts);
+	pusb_log_init(NULL);
 	if (!pusb_conf_init(&opts))
 	{
 		return (1);
@@ -184,6 +184,7 @@ int main(int argc, char **argv)
 		opts.quiet = 0;
 		opts.debug = 1;
 	}
+	pusb_log_init(&opts);
 	if (dump)
 	{
 		pusb_check_conf_dump(&opts, user, service);
