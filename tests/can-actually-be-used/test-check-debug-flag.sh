@@ -1,4 +1,5 @@
 #!/usr/bin/bash
+set -e
 #
 # Regression test for pamusb-check.c: debug output must appear when --debug is
 # passed or when debug=true is set in the config.
