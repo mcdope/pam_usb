@@ -26,10 +26,12 @@ for PUSB_FS_TYPE in vfat ext4 exfat; do
     echo "======================================================"
 
     # Teardown previous iteration's mount (skip on first)
+    # Use || true: test-agent-properly-triggers.sh unplugs the device at the end,
+    # leaving fakestick unmounted and g_mass_storage already unloaded.
     if [ -n "$PUSB_FS_TYPE_PREV" ]; then
         sync && sync && sync
-        sudo umount /tmp/fakestick
-        sudo modprobe -r g_mass_storage
+        sudo umount /tmp/fakestick 2>/dev/null || true
+        sudo modprobe -r g_mass_storage 2>/dev/null || true
         sudo udevadm settle
     fi
 
