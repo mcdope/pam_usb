@@ -26,7 +26,7 @@ cd %{_topdir}/BUILD
 rm -rf %{name}-%{version}
 mkdir %{name}-%{version}
 shopt -s extglob
-cp -a %{_topdir}/../!(fedora|arch_linux|.build|.github|.idea|.vscode|tests|.claude|CLAUDE.md|AGENTS.md|.cursorrules|.pytest_cache) %{name}-%{version}
+cp -a %{_topdir}/../!(fedora|arch_linux|debian|.build|.github|.idea|.vscode|tests|.claude|CLAUDE.md|AGENTS.md|.cursorrules|.pytest_cache|.gitignore|.git-blame-ignore-revs) %{name}-%{version}
 cd %{name}-%{version}
 chmod -Rf a+rX,u+w,g-w,o-w .
 

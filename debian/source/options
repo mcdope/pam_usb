@@ -10,3 +10,5 @@ tar-ignore = CLAUDE.md
 tar-ignore = AGENTS.md
 tar-ignore = .cursorrules
 tar-ignore = .pytest_cache
+tar-ignore = .gitignore
+tar-ignore = .git-blame-ignore-revs
