@@ -301,6 +301,30 @@ char *pusb_get_tty_by_loginctl()
 	}
 }
 
+int pusb_is_sddm_active(void)
+{
+	const char *cmd = "LC_ALL=C /usr/bin/loginctl list-sessions --no-legend | /usr/bin/awk '$3 == \"sddm\" {print \"1\"; exit}'";
+	char buf[BUFSIZ];
+	FILE *fp;
+
+	if ((fp = popen(cmd, "r")) == NULL)
+	{
+		int errsv = errno;
+		log_debug("		Opening pipe for SDDM active check failed.\n");
+		errno = errsv;
+		return 0;
+	}
+
+	int active = (fgets(buf, BUFSIZ, fp) != NULL) ? 1 : 0;
+
+	int errsv = errno;
+	if (pclose(fp) != 0)
+		log_debug("		Closing pipe for SDDM active check failed.\n");
+	errno = errsv;
+
+	return active;
+}
+
 char *pusb_get_tty_by_sddm(void)
 {
 	const char *cmd = "LC_ALL=C /usr/bin/loginctl list-sessions --no-legend | /usr/bin/awk '$3 == \"sddm\" {print $5}'";
@@ -564,17 +588,25 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 
 			if (local_request == 0)
 			{
-				log_debug("	Trying to get tty by SDDM\n");
-				char *sddm_tty = pusb_get_tty_by_sddm();
-				if (sddm_tty != NULL)
+				log_debug("	Checking if SDDM is active\n");
+				if (pusb_is_sddm_active())
 				{
-					log_debug("	Retrying with tty %s, obtained from SDDM session, for utmp search\n", sddm_tty);
-					local_request = pusb_is_tty_local(sddm_tty);
-					xfree(sddm_tty);
+					log_debug("	SDDM is active, trying to get tty by SDDM\n");
+					char *sddm_tty = pusb_get_tty_by_sddm();
+					if (sddm_tty != NULL)
+					{
+						log_debug("	Retrying with tty %s, obtained from SDDM session, for utmp search\n", sddm_tty);
+						local_request = pusb_is_tty_local(sddm_tty);
+						xfree(sddm_tty);
+					}
+					else
+					{
+						log_debug("		Failed, could not obtain tty from SDDM check.\n");
+					}
 				}
 				else
 				{
-					log_debug("		Failed, could not obtain tty from SDDM check.\n");
+					log_debug("	SDDM is not active, skipping SDDM TTY check.\n");
 				}
 			}
 		}

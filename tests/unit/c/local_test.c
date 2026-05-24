@@ -187,6 +187,20 @@ static void test_local_login_display_env_null(void **state)
 	assert_true(result >= -1 && result <= 1);
 }
 
+static void test_is_sddm_active_returns_1_when_session_exists(void **state)
+{
+	(void)state;
+	g_popen_output = "1\n";
+	assert_int_equal(1, pusb_is_sddm_active());
+}
+
+static void test_is_sddm_active_returns_0_when_no_session(void **state)
+{
+	(void)state;
+	g_popen_output = "";
+	assert_int_equal(0, pusb_is_sddm_active());
+}
+
 static void test_get_tty_by_sddm_returns_tty_when_sddm_running(void **state)
 {
 	(void)state;
@@ -258,6 +272,8 @@ int main(void)
 		cmocka_unit_test(test_local_login_denies_xrdp_session),
 		cmocka_unit_test(test_local_login_display_env_null),
 		cmocka_unit_test(test_local_login_display_env_set),
+		cmocka_unit_test(test_is_sddm_active_returns_1_when_session_exists),
+		cmocka_unit_test(test_is_sddm_active_returns_0_when_no_session),
 		cmocka_unit_test(test_get_tty_by_sddm_returns_tty_when_sddm_running),
 		cmocka_unit_test(test_get_tty_by_sddm_returns_null_when_no_sddm_session),
 		cmocka_unit_test(test_get_tty_by_sddm_returns_null_on_empty_tty_field),
