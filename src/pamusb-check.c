@@ -163,7 +163,7 @@ int main(int argc, char **argv)
 		return (1);
 	}
 
-	pusb_log_init(&opts);
+	pusb_log_init(NULL);
 	if (!pusb_conf_init(&opts))
 	{
 		return (1);
