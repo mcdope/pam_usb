@@ -591,8 +591,9 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 				log_debug("	Checking if SDDM is active\n");
 				if (pusb_is_sddm_active())
 				{
+					char *sddm_tty;
 					log_debug("	SDDM is active, trying to get tty by SDDM\n");
-					char *sddm_tty = pusb_get_tty_by_sddm();
+					sddm_tty = pusb_get_tty_by_sddm();
 					if (sddm_tty != NULL)
 					{
 						log_debug("	Retrying with tty %s, obtained from SDDM session, for utmp search\n", sddm_tty);
