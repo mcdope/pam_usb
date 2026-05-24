@@ -292,6 +292,10 @@ rpm: clean builddir
 rpm-sign: build-fedora
 	rpm --addsign `ls -t .build/*.rpm | head -1`
 
+zst-sign: build-arch
+	@pkg=$$(ls -t .build/*.pkg.tar.zst 2>/dev/null | head -1); \
+	if [ -n "$$pkg" ]; then gpg --detach-sign "$$pkg"; else echo "No package found to sign"; exit 1; fi
+
 rpm-lint: build-fedora
 	rpmlint `ls -t .build/*.rpm | head -1`
 
