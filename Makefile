@@ -306,23 +306,22 @@ zst: clean builddir
 	rm -rf arch_linux/pam_usb arch_linux/src arch_linux/pkg arch_linux/*.tar.gz arch_linux/*.zst
 
 sourcegz: clean builddir
-	tar --exclude="debian/.debhelper" \
-		--exclude="debian/files" \
-		--exclude="debian/libpam-usb/*" \
-		--exclude="debian/libpam-usb.debhelper.log" \
-		--exclude="debian/libpam-usb.substvars" \
-		--exclude="debian/debhelper-build-stamp" \
-		--exclude="debian/libpam-usb.postinst.debhelper" \
-		--exclude="debian/libpam-usb.postrm.debhelper" \
-		--exclude="debian/libpam-usb.prerm.debhelper" \
-		--exclude="fedora/RPMS/x86_64" \
-		--exclude="fedora/BUILD/*" \
-		--exclude="tests" \
-		--exclude=".build" \
-		--exclude=".idea" \
-		--exclude=".vscode" \
-		--exclude=".github" \
-		--exclude=".git" \
+	tar --exclude="./debian" \
+		--exclude="./fedora" \
+		--exclude="./arch_linux" \
+		--exclude="./tests" \
+		--exclude="./.build" \
+		--exclude="./.idea" \
+		--exclude="./.vscode" \
+		--exclude="./.github" \
+		--exclude="./.git" \
+		--exclude="./.gitignore" \
+		--exclude="./.git-blame-ignore-revs" \
+		--exclude="./.claude" \
+		--exclude="./CLAUDE.md" \
+		--exclude="./AGENTS.md" \
+		--exclude="./.cursorrules" \
+		--exclude="./.pytest_cache" \
 		-zcvf .build/pam_usb-$(VERSION).tar.gz .
 
 buildenv-debian:
@@ -355,4 +354,4 @@ build-arch: buildenv-arch
 		--rm mcdope/pam_usb-arch-build \
 		sh -c "chown -R builduser:builduser . && sudo -u builduser make zst && chown -R $(UID):$(GID) ."
 
-build-all: buildenv-arch buildenv-debian buildenv-fedora build-arch build-debian build-fedora
+build-all: sourcegz buildenv-arch buildenv-debian buildenv-fedora build-arch build-debian build-fedora
