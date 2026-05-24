@@ -22,7 +22,7 @@ static char g_last_popen_cmd[BUFSIZ];
 FILE *__wrap_popen(const char *cmd, const char *type)
 {
 	snprintf(g_last_popen_cmd, sizeof(g_last_popen_cmd), "%s", cmd);
-	return fmemopen((void *)g_popen_output, strlen(g_popen_output), type);
+	return fmemopen((void *)g_popen_output, strlen(g_popen_output), type); /* DevSkim: ignore DS154189 - g_popen_output is always a null-terminated string literal assigned in test code */
 }
 
 int __wrap_pclose(FILE *fp)

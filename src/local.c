@@ -16,6 +16,7 @@
  */
 
 #define _GNU_SOURCE
+#include <errno.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -302,41 +303,43 @@ char *pusb_get_tty_by_loginctl()
 
 char *pusb_get_tty_by_sddm(void)
 {
-	char cmd[] = "LC_ALL=C /usr/bin/loginctl list-sessions --no-legend | /usr/bin/awk '$3 == \"sddm\" {print $5}'";
+	const char *cmd = "LC_ALL=C /usr/bin/loginctl list-sessions --no-legend | /usr/bin/awk '$3 == \"sddm\" {print $5}'";
 	char buf[BUFSIZ];
 	FILE *fp;
+	char *result = NULL;
 
 	if ((fp = popen(cmd, "r")) == NULL)
 	{
+		int errsv = errno;
 		log_debug("		Opening pipe for SDDM loginctl check failed.\n");
+		errno = errsv;
 		return NULL;
 	}
 
-	const char *tty = NULL;
 	if (fgets(buf, BUFSIZ, fp) != NULL)
 	{
-		tty = pusb_loginctl_parse_output(buf);
-		if (!tty)
+		const char *tty = pusb_loginctl_parse_output(buf);
+		if (tty)
+		{
+			log_debug("		Got SDDM tty: %s\n", tty);
+			result = xstrdup(tty);
+		}
+		else
 		{
 			log_debug("		SDDM loginctl returned empty TTY, treating as unknown.\n");
-			if (pclose(fp))
-				log_debug("		Closing pipe for SDDM loginctl check failed.\n");
-			return NULL;
 		}
-		log_debug("		Got SDDM tty: %s\n", tty);
-
-		if (pclose(fp))
-			log_debug("		Closing pipe for SDDM loginctl check failed.\n");
-
-		return xstrdup(tty);
 	}
 	else
 	{
 		log_debug("		SDDM loginctl returned nothing (SDDM not running or no session found).\n");
-		if (pclose(fp))
-			log_debug("		Closing pipe for SDDM loginctl check failed.\n");
-		return NULL;
 	}
+
+	int errsv = errno;
+	if (pclose(fp) != 0)
+		log_debug("		Closing pipe for SDDM loginctl check failed.\n");
+	errno = errsv;
+
+	return result;
 }
 
 int pusb_is_loginctl_local()
