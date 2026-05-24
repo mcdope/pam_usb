@@ -2,24 +2,43 @@
 
 set -e
 
-# Format both images offline — sfdisk and mkfs.vfat work directly on raw files
-echo "Info: preparing virtual_usb.img..."
+PUSB_FS_TYPE=${PUSB_FS_TYPE:-vfat}
+
+# Partition tables offline — sfdisk works on raw image files for all FS types
+echo "Info: preparing partition tables..."
 echo 'type=83' | sfdisk virtual_usb.img
-mkfs.vfat --offset 2048 virtual_usb.img
-
-echo "Info: preparing virtual_usb_alt.img for second device..."
 echo 'type=83' | sfdisk virtual_usb_alt.img
-mkfs.vfat --offset 2048 virtual_usb_alt.img
 
-# Load module with primary image
+# Format primary image online
+echo "Info: formatting virtual_usb.img as $PUSB_FS_TYPE..."
 sudo modprobe g_mass_storage file=./virtual_usb.img stall=0 removable=y iSerialNumber=1234567890 iProduct=FirstStick
-echo "Info: sleeping 5s to ensure kernel picks up our new device..."
-sleep 5
+sudo udevadm settle
+PRIMARY_DEV=$(lsblk | grep disk | grep 16M | awk '{ print $1 }')
+sudo mkfs.$PUSB_FS_TYPE "/dev/${PRIMARY_DEV}1"
+sudo modprobe -r g_mass_storage
+sudo udevadm settle
 
-# Determine device id and mount it
+# Format alt image online
+echo "Info: formatting virtual_usb_alt.img as $PUSB_FS_TYPE..."
+sudo modprobe g_mass_storage file=./virtual_usb_alt.img stall=0 removable=y iSerialNumber=1234567891 iProduct=SecondStick
+sudo udevadm settle
+ALT_DEV=$(lsblk | grep disk | grep 16M | awk '{ print $1 }')
+sudo mkfs.$PUSB_FS_TYPE "/dev/${ALT_DEV}1"
+sudo modprobe -r g_mass_storage
+sudo udevadm settle
+
+# Load primary image and mount it
+sudo modprobe g_mass_storage file=./virtual_usb.img stall=0 removable=y iSerialNumber=1234567890 iProduct=FirstStick
+sudo udevadm settle
+
 CREATED_DEVICE=$(lsblk | grep disk | grep 16M | awk '{ print $1 }')
 echo "Info: fake device registered as /dev/$CREATED_DEVICE"
 
-# Create mountpoint and mount fake stick
 mkdir -p /tmp/fakestick
-sudo mount -t vfat "/dev/"$CREATED_DEVICE"1" /tmp/fakestick -o rw,umask=0000
+case "$PUSB_FS_TYPE" in
+    vfat|exfat)
+        sudo mount -t "$PUSB_FS_TYPE" "/dev/${CREATED_DEVICE}1" /tmp/fakestick -o rw,umask=0000 ;;
+    ext4)
+        sudo mount -t ext4 "/dev/${CREATED_DEVICE}1" /tmp/fakestick -o rw
+        sudo chmod 777 /tmp/fakestick ;;
+esac
