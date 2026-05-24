@@ -300,6 +300,45 @@ char *pusb_get_tty_by_loginctl()
 	}
 }
 
+char *pusb_get_tty_by_sddm(void)
+{
+	char cmd[] = "LC_ALL=C /usr/bin/loginctl list-sessions --no-legend | /usr/bin/awk '$3 == \"sddm\" {print $5}'";
+	char buf[BUFSIZ];
+	FILE *fp;
+
+	if ((fp = popen(cmd, "r")) == NULL)
+	{
+		log_debug("		Opening pipe for SDDM loginctl check failed.\n");
+		return NULL;
+	}
+
+	const char *tty = NULL;
+	if (fgets(buf, BUFSIZ, fp) != NULL)
+	{
+		tty = pusb_loginctl_parse_output(buf);
+		if (!tty)
+		{
+			log_debug("		SDDM loginctl returned empty TTY, treating as unknown.\n");
+			if (pclose(fp))
+				log_debug("		Closing pipe for SDDM loginctl check failed.\n");
+			return NULL;
+		}
+		log_debug("		Got SDDM tty: %s\n", tty);
+
+		if (pclose(fp))
+			log_debug("		Closing pipe for SDDM loginctl check failed.\n");
+
+		return xstrdup(tty);
+	}
+	else
+	{
+		log_debug("		SDDM loginctl returned nothing (SDDM not running or no session found).\n");
+		if (pclose(fp))
+			log_debug("		Closing pipe for SDDM loginctl check failed.\n");
+		return NULL;
+	}
+}
+
 int pusb_is_loginctl_local()
 {
 	char loginctl_cmd[BUFSIZ] = "LC_ALL=C; LOGINCTL_SESSION_ID=`/usr/bin/loginctl user-status | /usr/bin/grep -m 1  \"├─session-\" | /usr/bin/grep -o '[0-9]\\+'`; /usr/bin/loginctl show-session $LOGINCTL_SESSION_ID -p Remote | /usr/bin/awk -F= '{print $2}'";
@@ -517,6 +556,22 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 				else
 				{
 					log_debug("		Failed, could not obtain tty from loginctl - see line before this for reason.\n");
+				}
+			}
+
+			if (local_request == 0)
+			{
+				log_debug("	Trying to get tty by SDDM\n");
+				char *sddm_tty = pusb_get_tty_by_sddm();
+				if (sddm_tty != NULL)
+				{
+					log_debug("	Retrying with tty %s, obtained from SDDM session, for utmp search\n", sddm_tty);
+					local_request = pusb_is_tty_local(sddm_tty);
+					xfree(sddm_tty);
+				}
+				else
+				{
+					log_debug("		Failed, could not obtain tty from SDDM check.\n");
 				}
 			}
 		}
