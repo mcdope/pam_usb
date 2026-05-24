@@ -162,7 +162,8 @@ char *pusb_get_tty_from_display_server(const char *display)
 
 			if ((strstr(cmdline, "Xorg") != NULL && strstr(cmdline, display) != NULL)
 				|| strstr(cmdline, "gnome-session-binary") != NULL
-				|| strstr(cmdline, "gdm-wayland-session") != NULL) //@todo: find & add other wayland hosts
+				|| strstr(cmdline, "gdm-wayland-session") != NULL
+				|| strstr(cmdline, "plasmalogin") != NULL) //@todo: find & add other wayland hosts
 			{
 				memset(fd_path, 0, PATH_MAX);
 				snprintf(fd_path, PATH_MAX, "/proc/%s/fd", dent_proc->d_name);
