@@ -2,6 +2,17 @@
 
 set -e
 
+cleanup() {
+    local exit_code=$?
+    [ $exit_code -eq 0 ] && return 0
+    echo "Error: test suite failed (exit $exit_code), cleaning up..."
+    sync 2>/dev/null || true
+    sudo umount /tmp/fakestick 2>/dev/null || true
+    sudo modprobe -r g_mass_storage 2>/dev/null || true
+    sudo udevadm settle 2>/dev/null || true
+}
+trap cleanup EXIT
+
 for PUSB_FS_TYPE in vfat ext4 exfat; do
     export PUSB_FS_TYPE
 

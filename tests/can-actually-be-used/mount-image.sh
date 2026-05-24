@@ -13,8 +13,9 @@ echo 'type=83' | sfdisk virtual_usb_alt.img
 echo "Info: formatting virtual_usb.img as $PUSB_FS_TYPE..."
 sudo modprobe g_mass_storage file=./virtual_usb.img stall=0 removable=y iSerialNumber=1234567890 iProduct=FirstStick
 sudo udevadm settle
-PRIMARY_DEV=$(lsblk | grep disk | grep 16M | awk '{ print $1 }')
+PRIMARY_DEV=$(lsblk -dno NAME,SIZE | grep '16M' | awk '{ print $1 }' | head -n 1)
 sudo mkfs.$PUSB_FS_TYPE "/dev/${PRIMARY_DEV}1"
+sync
 sudo modprobe -r g_mass_storage
 sudo udevadm settle
 
@@ -22,8 +23,9 @@ sudo udevadm settle
 echo "Info: formatting virtual_usb_alt.img as $PUSB_FS_TYPE..."
 sudo modprobe g_mass_storage file=./virtual_usb_alt.img stall=0 removable=y iSerialNumber=1234567891 iProduct=SecondStick
 sudo udevadm settle
-ALT_DEV=$(lsblk | grep disk | grep 16M | awk '{ print $1 }')
+ALT_DEV=$(lsblk -dno NAME,SIZE | grep '16M' | awk '{ print $1 }' | head -n 1)
 sudo mkfs.$PUSB_FS_TYPE "/dev/${ALT_DEV}1"
+sync
 sudo modprobe -r g_mass_storage
 sudo udevadm settle
 
@@ -31,14 +33,8 @@ sudo udevadm settle
 sudo modprobe g_mass_storage file=./virtual_usb.img stall=0 removable=y iSerialNumber=1234567890 iProduct=FirstStick
 sudo udevadm settle
 
-CREATED_DEVICE=$(lsblk | grep disk | grep 16M | awk '{ print $1 }')
+CREATED_DEVICE=$(lsblk -dno NAME,SIZE | grep '16M' | awk '{ print $1 }' | head -n 1)
 echo "Info: fake device registered as /dev/$CREATED_DEVICE"
 
 mkdir -p /tmp/fakestick
-case "$PUSB_FS_TYPE" in
-    vfat|exfat)
-        sudo mount -t "$PUSB_FS_TYPE" "/dev/${CREATED_DEVICE}1" /tmp/fakestick -o rw,umask=0000 ;;
-    ext4)
-        sudo mount -t ext4 "/dev/${CREATED_DEVICE}1" /tmp/fakestick -o rw
-        sudo chmod 777 /tmp/fakestick ;;
-esac
+./do-mount.sh "$PUSB_FS_TYPE" "/dev/${CREATED_DEVICE}1"
