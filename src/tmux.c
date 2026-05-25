@@ -182,6 +182,7 @@ char *pusb_tmux_get_client_tty(pid_t env_pid)
 int pusb_tmux_has_remote_clients(const char* username)
 {
     int status;
+    int n;
     FILE *fp;
     regex_t regex;
     char regex_raw[BUFSIZ];
@@ -206,25 +207,25 @@ int pusb_tmux_has_remote_clients(const char* username)
             return -1;
         }
 
+        n = snprintf(regex_raw, BUFSIZ, "^%s%s", escaped_username, regex_tpl[i]);
+        if (n < 0 || (size_t)n >= BUFSIZ)
+        {
+            log_debug("		regex_raw buffer overflow for pattern %d.\n", i);
+            pclose(fp);
+            return -1;
+        }
+
+        status = regcomp(&regex, regex_raw, REG_EXTENDED);
+        if (status)
+        {
+            log_debug("		Couldn't compile regex!\n");
+            regfree(&regex);
+            pclose(fp);
+            return -1;
+        }
+
         while (fgets(buf, BUFSIZ, fp) != NULL)
         {
-            int n = snprintf(regex_raw, BUFSIZ, "^%s%s", escaped_username, regex_tpl[i]);
-            if (n < 0 || (size_t)n >= BUFSIZ)
-            {
-                log_debug("		regex_raw buffer overflow for pattern %d.\n", i);
-                pclose(fp);
-                return -1;
-            }
-
-            status = regcomp(&regex, regex_raw, REG_EXTENDED);
-            if (status)
-            {
-                log_debug("		Couldn't compile regex!\n");
-                regfree(&regex);
-                pclose(fp);
-                return -1;
-            }
-
             status = regexec(&regex, buf, 0, NULL, 0);
             if (!status)
             {
@@ -241,9 +242,9 @@ int pusb_tmux_has_remote_clients(const char* username)
                 pclose(fp);
                 return -1;
             }
-
-            regfree(&regex);
         }
+
+        regfree(&regex);
 
         if (pclose(fp))
         {
