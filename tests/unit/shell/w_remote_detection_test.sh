@@ -14,7 +14,7 @@ fail=0
 # Patterns copied verbatim from src/tmux.c:191-192, prefixed with the test username.
 TESTUSER="testuser"
 PAT_IPV4="${TESTUSER}(.+)([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})(.+)tmux(.+)"
-PAT_IPV6="${TESTUSER}(.+)(([0-9A-Fa-f]{0,4}:){2,7}[0-9A-Fa-f]{0,4})(.+)tmux(.+)"
+PAT_IPV6="${TESTUSER}([[:space:]]+)([^[:space:]]+)([[:space:]]+)(([0-9A-Fa-f]{0,4}:){2,7}[0-9A-Fa-f]{0,4})([[:space:]]+)(.+)tmux(.+)"
 
 matches_pattern() {
     [[ "$2" =~ $1 ]]
@@ -50,6 +50,7 @@ LINE_IPV6_LOOPBACK="testuser pts/2    ::1              10:00    0.00s 0.01s 0.00
 LINE_IPV6_LINKLOCAL="testuser pts/3    fe80::1          10:00    0.00s 0.01s 0.00s tmux: client"
 LINE_IPV6_TYPICAL="testuser pts/4    2001:db8::1      10:00    0.00s 0.01s 0.00s tmux: client"
 LINE_LOCAL_TMUX="testuser pts/2    -                10:00    0.00s 0.01s 0.00s tmux: client"
+LINE_LOCAL_TMUX_HHMMSS="testuser pts/2    -                10:00:00 0.00s 0.01s 0.00s tmux: client"
 LINE_IPV4_SSH="testuser pts/3    192.168.1.100    10:00    0.00s 0.01s 0.00s ssh"
 LINE_X11_TMUX="testuser pts/4    :0               10:00    0.00s 0.01s 0.00s tmux: client"
 LINE_OTHER_USER="otheruser pts/0   192.168.1.100    10:00    0.00s 0.01s 0.00s tmux: client"
@@ -66,8 +67,9 @@ assert_match    "IPv6: compressed fe80::1 (link-local) + tmux → match" "$PAT_I
 assert_match    "IPv6: compressed 2001:db8::1 + tmux → match"   "$PAT_IPV6" "$LINE_IPV6_TYPICAL"
 
 # Local login (FROM='-') + tmux → no remote IP, should not match either pattern
-assert_no_match "IPv4: local TTY (FROM=-) + tmux → no match"  "$PAT_IPV4" "$LINE_LOCAL_TMUX"
-assert_no_match "IPv6: local TTY (FROM=-) + tmux → no match"  "$PAT_IPV6" "$LINE_LOCAL_TMUX"
+assert_no_match "IPv4: local TTY (FROM=-) + tmux → no match"           "$PAT_IPV4" "$LINE_LOCAL_TMUX"
+assert_no_match "IPv6: local TTY (FROM=-) + tmux → no match"           "$PAT_IPV6" "$LINE_LOCAL_TMUX"
+assert_no_match "IPv6: local TTY HH:MM:SS idle time → no false match"  "$PAT_IPV6" "$LINE_LOCAL_TMUX_HHMMSS"
 
 # IPv4 address but process is ssh, not tmux → should not match
 assert_no_match "IPv4: remote IP + ssh (not tmux) → no match" "$PAT_IPV4" "$LINE_IPV4_SSH"
