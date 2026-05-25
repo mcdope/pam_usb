@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+export LC_ALL=C
 # Tests that the loginctl session ID extraction pipeline handles both
 # alphanumeric IDs (e.g. "c2", "c6" — graphical sessions on modern systemd)
 # and pure numeric IDs (e.g. "42" — legacy/TTY sessions).
@@ -31,8 +32,10 @@ extract_with_guard() {
 # loginctl outputs "KEY=value"; pure-Bash expansion avoids the awk subshell
 # and any SIGPIPE risk from a printf|awk pipeline under set -o pipefail.
 extract_property_value() {
-    local val="${1#*=}"
-    printf '%s\n' "${val%%=*}"
+    if [[ "$1" =~ = ]]; then
+        local val="${1#*=}"
+        printf '%s\n' "${val%%=*}"
+    fi
 }
 
 assert_eq() {

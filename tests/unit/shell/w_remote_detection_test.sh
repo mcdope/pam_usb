@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+export LC_ALL=C
 # Tests the ERE patterns used by pusb_tmux_has_remote_clients() (src/tmux.c:190-192)
 # to detect remote tmux clients in `w` output.
 #
