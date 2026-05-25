@@ -16,7 +16,7 @@ PAT_IPV4="${TESTUSER}(.+)([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})(
 PAT_IPV6="${TESTUSER}(.+)([0-9A-Fa-f]{1,4}):([0-9A-Fa-f]{1,4}):([0-9A-Fa-f]{1,4}):([0-9A-Fa-f]{1,4})(.+)tmux(.+)"
 
 matches_pattern() {
-    printf '%s\n' "$2" | grep -qE "$1"
+    [[ "$2" =~ $1 ]]
 }
 
 assert_match() {

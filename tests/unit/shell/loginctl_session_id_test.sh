@@ -9,9 +9,11 @@ fail=0
 
 extract_session_id() {
     # Mirror the pipeline used in pusb_get_loginctl_session_property (via pusb_get_tty_by_loginctl /
-    # pusb_is_loginctl_local). A single sed replaces the previous grep | grep | sed chain.
-    printf '%s\n' "$1" \
-        | sed -n 's/.*session-\([a-zA-Z0-9]\+\)\.scope.*/\1/p;T;q'
+    # pusb_is_loginctl_local). Pure-Bash regex avoids the SIGPIPE risk that sed -n ...;q causes
+    # under set -o pipefail when the preceding printf is still writing.
+    if [[ "$1" =~ session-([a-zA-Z0-9]+)\.scope ]]; then
+        printf '%s\n' "${BASH_REMATCH[1]}"
+    fi
 }
 
 # Simulate the guarded show-session call: only proceeds when session ID is non-empty.
@@ -26,9 +28,11 @@ extract_with_guard() {
 
 # Mirror the awk pipeline used in pusb_get_loginctl_session_property:
 #   loginctl show-session "$ID" -p KEY | awk -F= '{print $2}'
-# loginctl outputs "KEY=value"; awk splits on '=' and returns field 2.
+# loginctl outputs "KEY=value"; pure-Bash expansion avoids the awk subshell
+# and any SIGPIPE risk from a printf|awk pipeline under set -o pipefail.
 extract_property_value() {
-    printf '%s\n' "$1" | awk -F= '{print $2}'
+    local val="${1#*=}"
+    printf '%s\n' "${val%%=*}"
 }
 
 assert_eq() {
