@@ -203,6 +203,7 @@ $(PAMUSB_CHECK): $(OBJS) $(PAMUSB_CHECK_OBJS)
 clean:
 	$(RM) -f \
 		$(MANS) \
+		doc/pamusb-pinentry.1.gz \
 		$(PAM_USB) \
 		$(PAMUSB_CHECK) \
 		$(OBJS) \
@@ -265,6 +266,7 @@ deinstall:
 		$(POLKIT_CONF_DEST)/systemd-polkit-agent-helper-pamusb.conf
 
 	$(RM) -rf $(DOCS_DEST)
+	$(RM) -f $(addprefix $(MANS_DEST)/,$(notdir $(MANS)))
 	$(RM) -f $(MANS_DEST)/pamusb-*\.1\.gz
 	$(RM) -f $(PAM_CONF_DEST)/$(PAM_CONF)
 
