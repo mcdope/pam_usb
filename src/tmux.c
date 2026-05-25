@@ -189,7 +189,7 @@ int pusb_tmux_has_remote_clients(const char* username)
     char msgbuf[100];
     const char *regex_tpl[2] = {
         "(.+)([0-9]{1,3})\\.([0-9]{1,3})\\.([0-9]{1,3})\\.([0-9]{1,3})(.+)tmux(.+)", //v4
-        "(.+)([0-9A-Fa-f]{1,4}):([0-9A-Fa-f]{1,4}):([0-9A-Fa-f]{1,4}):([0-9A-Fa-f]{1,4})(.+)tmux(.+)" // v6
+        "(.+)(([0-9A-Fa-f]{0,4}:){2,7}[0-9A-Fa-f]{0,4})(.+)tmux(.+)" // v6: {2,7} hex: groups handles both full and :: compressed addresses
     }; // ... yes, these allow invalid addresses. No, I don't care. This isn't about validation but detecting remote access. Good enough ¯\_(ツ)_/¯
 
     /* Max Linux username is 32 chars; doubled for escaping + null terminator = 65 bytes. */

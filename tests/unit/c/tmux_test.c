@@ -161,6 +161,30 @@ static void test_has_remote_ipv6(void **state)
 	assert_int_equal(1, pusb_tmux_has_remote_clients("testuser"));
 }
 
+static void test_has_remote_ipv6_compressed_loopback(void **state)
+{
+	(void)state;
+	/* ::1 is compressed IPv6 loopback — old 4-group pattern missed this */
+	g_popen_output = "testuser pts/1   ::1  10:00   0.00s  tmux attach\n";
+	assert_int_equal(1, pusb_tmux_has_remote_clients("testuser"));
+}
+
+static void test_has_remote_ipv6_compressed_linklocal(void **state)
+{
+	(void)state;
+	/* fe80::1 is a compressed link-local address — old 4-group pattern missed this */
+	g_popen_output = "testuser pts/1   fe80::1  10:00   0.00s  tmux attach\n";
+	assert_int_equal(1, pusb_tmux_has_remote_clients("testuser"));
+}
+
+static void test_has_remote_ipv6_compressed_typical(void **state)
+{
+	(void)state;
+	/* 2001:db8::1 is a typical compressed address — old 4-group pattern missed this */
+	g_popen_output = "testuser pts/1   2001:db8::1  10:00   0.00s  tmux attach\n";
+	assert_int_equal(1, pusb_tmux_has_remote_clients("testuser"));
+}
+
 static void test_has_remote_local_display(void **state)
 {
 	(void)state;
@@ -306,6 +330,9 @@ int main(void)
 		cmocka_unit_test(test_escape_empty_input),
 		cmocka_unit_test(test_has_remote_ipv4),
 		cmocka_unit_test(test_has_remote_ipv6),
+		cmocka_unit_test(test_has_remote_ipv6_compressed_loopback),
+		cmocka_unit_test(test_has_remote_ipv6_compressed_linklocal),
+		cmocka_unit_test(test_has_remote_ipv6_compressed_typical),
 		cmocka_unit_test(test_has_remote_local_display),
 		cmocka_unit_test(test_has_remote_empty_output),
 		cmocka_unit_test(test_has_remote_wrong_user_dot_regression),
