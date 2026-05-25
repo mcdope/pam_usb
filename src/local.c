@@ -258,7 +258,7 @@ static const char *pusb_loginctl_parse_output(char *buf)
 
 char *pusb_get_tty_by_loginctl()
 {
-	char loginctl_cmd[BUFSIZ] = "LC_ALL=C; LOGINCTL_SESSION_ID=`/usr/bin/loginctl user-status | /usr/bin/grep -m 1 'session-[a-zA-Z0-9]\\+\\.scope' | /usr/bin/grep -o 'session-[a-zA-Z0-9]\\+' | /usr/bin/sed 's/session-//'`; /usr/bin/loginctl show-session $LOGINCTL_SESSION_ID -p TTY | /usr/bin/awk -F= '{print $2}'";
+	char loginctl_cmd[BUFSIZ] = "LC_ALL=C; LOGINCTL_SESSION_ID=`/usr/bin/loginctl user-status | /usr/bin/grep -m 1 'session-[a-zA-Z0-9]\\+\\.scope' | /usr/bin/grep -o 'session-[a-zA-Z0-9]\\+' | /usr/bin/sed 's/session-//'`; [ -n \"$LOGINCTL_SESSION_ID\" ] && /usr/bin/loginctl show-session \"$LOGINCTL_SESSION_ID\" -p TTY | /usr/bin/awk -F= '{print $2}'";
 	char buf[BUFSIZ];
 	FILE *fp;
 
@@ -302,7 +302,7 @@ char *pusb_get_tty_by_loginctl()
 
 int pusb_is_loginctl_local()
 {
-	char loginctl_cmd[BUFSIZ] = "LC_ALL=C; LOGINCTL_SESSION_ID=`/usr/bin/loginctl user-status | /usr/bin/grep -m 1 'session-[a-zA-Z0-9]\\+\\.scope' | /usr/bin/grep -o 'session-[a-zA-Z0-9]\\+' | /usr/bin/sed 's/session-//'`; /usr/bin/loginctl show-session $LOGINCTL_SESSION_ID -p Remote | /usr/bin/awk -F= '{print $2}'";
+	char loginctl_cmd[BUFSIZ] = "LC_ALL=C; LOGINCTL_SESSION_ID=`/usr/bin/loginctl user-status | /usr/bin/grep -m 1 'session-[a-zA-Z0-9]\\+\\.scope' | /usr/bin/grep -o 'session-[a-zA-Z0-9]\\+' | /usr/bin/sed 's/session-//'`; [ -n \"$LOGINCTL_SESSION_ID\" ] && /usr/bin/loginctl show-session \"$LOGINCTL_SESSION_ID\" -p Remote | /usr/bin/awk -F= '{print $2}'";
 	char buf[BUFSIZ];
 	FILE *fp;
 

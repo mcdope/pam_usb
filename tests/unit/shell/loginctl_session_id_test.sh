@@ -14,6 +14,14 @@ extract_session_id() {
         | sed 's/session-//'
 }
 
+# Simulate the guarded show-session call: only proceeds when session ID is non-empty.
+# Mimics: [ -n "$LOGINCTL_SESSION_ID" ] && loginctl show-session "$LOGINCTL_SESSION_ID" ...
+# Here we short-circuit the actual loginctl call and just echo a canned response.
+extract_with_guard() {
+    local session_id="$1" canned_output="$2"
+    [ -n "$session_id" ] && printf '%s\n' "$canned_output"
+}
+
 assert_eq() {
     local desc="$1" expected="$2" actual="$3"
     if [ "$actual" = "$expected" ]; then
@@ -74,12 +82,17 @@ NO_SESSION='user (1002)
 
 # --- run tests ---
 
+# Session ID extraction
 assert_eq "alphanumeric c-prefix, multi-session (c2)" "c2"  "$(extract_session_id "$GRAPHICAL_C2")"
 assert_eq "pure numeric, multi-session (42)"          "42"  "$(extract_session_id "$NUMERIC_42")"
 assert_eq "pure numeric, single session (42)"         "42"  "$(extract_session_id "$NUMERIC_SINGLE")"
 assert_eq "alphanumeric, single session (c2)"         "c2"  "$(extract_session_id "$ALPHA_SINGLE")"
 assert_eq "multi-char prefix (s12)"                   "s12" "$(extract_session_id "$ALPHA_S12")"
 assert_eq "no session line → empty"                   ""    "$(extract_session_id "$NO_SESSION")"
+
+# Non-empty session ID guard: loginctl show-session is only called when ID was found
+assert_eq "guard: non-empty ID passes through"  "tty7" "$(extract_with_guard "c2"  "tty7")"
+assert_eq "guard: empty ID suppresses output"   ""     "$(extract_with_guard ""    "tty7")"
 
 # --- summary ---
 echo "---"
