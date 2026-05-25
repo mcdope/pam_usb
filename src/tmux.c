@@ -201,7 +201,7 @@ int pusb_tmux_has_remote_clients(const char* username)
     {
         log_debug("		Checking for IPv%d connections...\n", (4 + (i * 2)));
 
-        if ((fp = popen("LC_ALL=C; /usr/bin/w -i", "r")) == NULL)
+        if ((fp = popen("LC_ALL=C; /usr/bin/w -i", "re")) == NULL)
         {
             log_error("tmux detected, but couldn't get `w`. Denying since remote check for tmux impossible without it!\n");
             return -1;
@@ -219,7 +219,6 @@ int pusb_tmux_has_remote_clients(const char* username)
         if (status)
         {
             log_debug("		Couldn't compile regex!\n");
-            regfree(&regex);
             pclose(fp);
             return -1;
         }
