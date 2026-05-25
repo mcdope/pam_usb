@@ -64,6 +64,31 @@ def _minimal_doc_with_device(device_id="testdev", vendor="VendorX", model="Model
 
 # ── writeConf ────────────────────────────────────────────────────────────────
 
+def test_write_conf_consistent_indentation(tmp_conf):
+    """After writeConf, every non-empty indented line uses tabs only."""
+    doc = minidom.parse(str(tmp_conf))
+    options = {"configFile": str(tmp_conf), "yes": True}
+    _mod.writeConf(options, doc)
+    text = tmp_conf.read_text()
+    for line in text.splitlines():
+        if not line.strip():
+            continue
+        assert line == line.strip() or line.startswith('\t'), \
+            f"Line not tab-indented: {line!r}"
+
+
+def test_write_conf_idempotent(tmp_conf):
+    """Calling writeConf twice produces identical output both times."""
+    doc = minidom.parse(str(tmp_conf))
+    options = {"configFile": str(tmp_conf), "yes": True}
+    _mod.writeConf(options, doc)
+    first = tmp_conf.read_text()
+    doc2 = minidom.parse(str(tmp_conf))
+    _mod.writeConf(options, doc2)
+    second = tmp_conf.read_text()
+    assert first == second
+
+
 def test_write_conf_creates_parseable_xml(tmp_path, tmp_conf):
     doc = minidom.parse(str(tmp_conf))
     options = {"configFile": str(tmp_conf), "yes": True}

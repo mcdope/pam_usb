@@ -23,6 +23,7 @@ import subprocess
 import socket
 import getopt
 import pwd
+import tempfile
 
 gi.require_version('UDisks', '2.0')
 
@@ -91,11 +92,39 @@ def listOptions(question, options, autodetect = True):
 		except Exception: pass
 		else: break
 
+def _normalize_whitespace(node):
+	to_remove = [
+		child for child in node.childNodes
+		if child.nodeType == child.TEXT_NODE and not child.nodeValue.strip()
+	]
+	for child in to_remove:
+		node.removeChild(child)
+	for child in node.childNodes:
+		_normalize_whitespace(child)
+
 def writeConf(options, doc):
 	try:
-		f = open(options['configFile'], 'w')
-		doc.writexml(f)
-		f.close()
+		_normalize_whitespace(doc)
+		pretty = doc.toprettyxml(indent='\t')
+		lines = pretty.splitlines()
+		config_file = os.path.realpath(options['configFile'])
+		config_dir = os.path.dirname(config_file)
+		fd, tmp_path = tempfile.mkstemp(dir=config_dir, prefix='.pamusb-conf-')
+		fd_owned = True
+		try:
+			os.fchmod(fd, 0o644)
+			with os.fdopen(fd, 'w', encoding='utf-8') as f:
+				fd_owned = False
+				f.write('\n'.join(lines) + '\n')
+			os.replace(tmp_path, config_file)
+		except Exception:
+			if fd_owned:
+				os.close(fd)
+			try:
+				os.unlink(tmp_path)
+			except OSError:
+				pass
+			raise
 	except Exception as err:
 		print('Unable to save %s: %s' % (options['configFile'], err))
 		sys.exit(1)
@@ -111,9 +140,6 @@ def shouldSave(options, items):
 		if len(response) > 0 and response.lower() != 'y':
 			sys.exit(1)
 
-def prettifyElement(element):
-	tmp = minidom.parseString(element.toprettyxml())
-	return tmp.documentElement
 
 def addUser(options):
 	try:
@@ -166,9 +192,9 @@ def addUser(options):
 		user = doc.createElement('user')
 		user.attributes['id'] = options['userName']
 		user.appendChild(e)
-		users[0].appendChild(doc.importNode(prettifyElement(user), True))
+		users[0].appendChild(user)
 	else: # just add another device
-		user.appendChild(doc.importNode(prettifyElement(e), True))
+		user.appendChild(e)
 
 	writeConf(options, doc)
 
@@ -332,7 +358,7 @@ def addDevice(options):
 		e.appendChild(doc.createTextNode('false'))
 		dev.appendChild(e)
 
-	devs[0].appendChild(doc.importNode(prettifyElement(dev), True))
+	devs[0].appendChild(dev)
 	writeConf(options, doc)
 
 def resetPads():
