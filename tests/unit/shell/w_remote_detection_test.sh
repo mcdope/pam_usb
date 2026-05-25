@@ -14,7 +14,7 @@ fail=0
 # Patterns copied verbatim from src/tmux.c:191-192, prefixed with the test username.
 TESTUSER="testuser"
 PAT_IPV4="^${TESTUSER}([[:space:]]+)([^[:space:]]+)([[:space:]]+)([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})([[:space:]]+)(.+)tmux(.+)"
-PAT_IPV6="^${TESTUSER}([[:space:]]+)([^[:space:]]+)([[:space:]]+)(([0-9A-Fa-f]{0,4}:){2,7}[0-9A-Fa-f]{0,4})([[:space:]]+)(.+)tmux(.+)"
+PAT_IPV6="^${TESTUSER}([[:space:]]+)([^[:space:]]+)([[:space:]]+)(([0-9A-Fa-f]{0,4}:){2,7}[0-9A-Fa-f]{0,4})[^[:space:]]*([[:space:]]+)(.+)tmux(.+)"
 PAT_IPV4_MAPPED="^${TESTUSER}([[:space:]]+)([^[:space:]]+)([[:space:]]+)::ffff:([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})([[:space:]]+)(.+)tmux(.+)"
 
 matches_pattern() {
@@ -50,6 +50,7 @@ LINE_IPV4_MAPPED_TMUX="testuser pts/0    ::ffff:192.168.1.100 10:00    0.00s 0.0
 LINE_IPV6_TMUX="testuser pts/1    fe80:0:0:1       10:00    0.00s 0.01s 0.00s tmux: client"
 LINE_IPV6_LOOPBACK="testuser pts/2    ::1              10:00    0.00s 0.01s 0.00s tmux: client"
 LINE_IPV6_LINKLOCAL="testuser pts/3    fe80::1          10:00    0.00s 0.01s 0.00s tmux: client"
+LINE_IPV6_ZONE_INDEX="testuser pts/3    fe80::1%eth0     10:00    0.00s 0.01s 0.00s tmux: client"
 LINE_IPV6_TYPICAL="testuser pts/4    2001:db8::1      10:00    0.00s 0.01s 0.00s tmux: client"
 LINE_LOCAL_TMUX="testuser pts/2    -                10:00    0.00s 0.01s 0.00s tmux: client"
 LINE_LOCAL_TMUX_HHMMSS="testuser pts/2    -                10:00:00 0.00s 0.01s 0.00s tmux: client"
@@ -66,7 +67,8 @@ assert_match    "IPv4-mapped IPv6: ::ffff:x.x.x.x + tmux → match"  "$PAT_IPV4_
 # IPv6 remote tmux → should match (full and compressed forms)
 assert_match    "IPv6: full 4-group + tmux → match"              "$PAT_IPV6" "$LINE_IPV6_TMUX"
 assert_match    "IPv6: compressed ::1 (loopback) + tmux → match" "$PAT_IPV6" "$LINE_IPV6_LOOPBACK"
-assert_match    "IPv6: compressed fe80::1 (link-local) + tmux → match" "$PAT_IPV6" "$LINE_IPV6_LINKLOCAL"
+assert_match    "IPv6: compressed fe80::1 (link-local) + tmux → match"        "$PAT_IPV6" "$LINE_IPV6_LINKLOCAL"
+assert_match    "IPv6: fe80::1%eth0 (zone index) + tmux → match"              "$PAT_IPV6" "$LINE_IPV6_ZONE_INDEX"
 assert_match    "IPv6: compressed 2001:db8::1 + tmux → match"   "$PAT_IPV6" "$LINE_IPV6_TYPICAL"
 
 # Local login (FROM='-') + tmux → no remote IP, should not match either pattern

@@ -190,7 +190,7 @@ int pusb_tmux_has_remote_clients(const char* username)
     char msgbuf[100];
     const char *regex_tpl[3] = {
         "([[:space:]]+)([^[:space:]]+)([[:space:]]+)([0-9]{1,3})\\.([0-9]{1,3})\\.([0-9]{1,3})\\.([0-9]{1,3})([[:space:]]+)(.+)tmux(.+)", //v4: anchored to FROM field; prevents username-prefix false positives
-        "([[:space:]]+)([^[:space:]]+)([[:space:]]+)(([0-9A-Fa-f]{0,4}:){2,7}[0-9A-Fa-f]{0,4})([[:space:]]+)(.+)tmux(.+)", // v6: anchored to FROM field; prevents HH:MM:SS time fields from false-matching
+        "([[:space:]]+)([^[:space:]]+)([[:space:]]+)(([0-9A-Fa-f]{0,4}:){2,7}[0-9A-Fa-f]{0,4})[^[:space:]]*([[:space:]]+)(.+)tmux(.+)", // v6: anchored to FROM field; [^[:space:]]* absorbs zone index (e.g. %eth0)
         "([[:space:]]+)([^[:space:]]+)([[:space:]]+)::ffff:([0-9]{1,3})\\.([0-9]{1,3})\\.([0-9]{1,3})\\.([0-9]{1,3})([[:space:]]+)(.+)tmux(.+)" // v4-mapped v6 (::ffff:x.x.x.x): bypasses both above patterns without this
     }; // ... yes, these allow invalid addresses. No, I don't care. This isn't about validation but detecting remote access. Good enough ¯\_(ツ)_/¯
     const char *proto_labels[3] = {"IPv4", "IPv6", "IPv4-mapped IPv6"};

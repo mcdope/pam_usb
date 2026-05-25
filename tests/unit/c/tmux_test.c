@@ -194,6 +194,14 @@ static void test_has_remote_ipv4_mapped(void **state)
 	assert_int_equal(1, pusb_tmux_has_remote_clients("testuser"));
 }
 
+static void test_has_remote_ipv6_linklocal_zone_index(void **state)
+{
+	(void)state;
+	/* fe80::1%eth0: zone index after address must not prevent detection */
+	g_popen_output = "testuser pts/1   fe80::1%eth0  10:00   0.00s  tmux attach\n";
+	assert_int_equal(1, pusb_tmux_has_remote_clients("testuser"));
+}
+
 static void test_has_remote_ipv6_no_false_positive_hhmmss(void **state)
 {
 	(void)state;
@@ -369,6 +377,7 @@ int main(void)
 		cmocka_unit_test(test_has_remote_ipv4_mapped),
 		cmocka_unit_test(test_has_remote_ipv6_compressed_loopback),
 		cmocka_unit_test(test_has_remote_ipv6_compressed_linklocal),
+		cmocka_unit_test(test_has_remote_ipv6_linklocal_zone_index),
 		cmocka_unit_test(test_has_remote_ipv6_compressed_typical),
 		cmocka_unit_test(test_has_remote_ipv6_no_false_positive_hhmmss),
 		cmocka_unit_test(test_has_remote_local_display),
