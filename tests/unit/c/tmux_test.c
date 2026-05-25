@@ -145,6 +145,12 @@ static void test_escape_empty_input(void **state)
 
 /* ── pusb_tmux_has_remote_clients ── */
 
+static void test_has_remote_null_username(void **state)
+{
+	(void)state;
+	assert_int_equal(-1, pusb_tmux_has_remote_clients(NULL));
+}
+
 static void test_has_remote_ipv4(void **state)
 {
 	(void)state;
@@ -372,6 +378,7 @@ int main(void)
 		cmocka_unit_test(test_escape_plus),
 		cmocka_unit_test(test_escape_all_metacharacters),
 		cmocka_unit_test(test_escape_empty_input),
+		cmocka_unit_test(test_has_remote_null_username),
 		cmocka_unit_test(test_has_remote_ipv4),
 		cmocka_unit_test(test_has_remote_ipv6),
 		cmocka_unit_test(test_has_remote_ipv4_mapped),

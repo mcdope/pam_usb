@@ -181,6 +181,12 @@ char *pusb_tmux_get_client_tty(pid_t env_pid)
  */
 int pusb_tmux_has_remote_clients(const char* username)
 {
+    if (username == NULL)
+    {
+        log_error("Username is NULL, cannot check for remote tmux clients.\n");
+        return -1;
+    }
+
     int status;
     int n;
     int i;
@@ -196,8 +202,8 @@ int pusb_tmux_has_remote_clients(const char* username)
         "([[:space:]]+)([^[:space:]]+)([[:space:]]+)::ffff:([0-9]{1,3})\\.([0-9]{1,3})\\.([0-9]{1,3})\\.([0-9]{1,3})([[:space:]]+)(.+)tmux(.+)" // v4-mapped v6 (::ffff:x.x.x.x): bypasses both above patterns without this
     }; // ... yes, these allow invalid addresses. No, I don't care. This isn't about validation but detecting remote access. Good enough ¯\_(ツ)_/¯
 
-    /* Max Linux username is 32 chars; doubled for escaping + null terminator = 65 bytes. */
-    char escaped_username[65] = {0};
+    /* Up to 255-char usernames (SSSD/AD); doubled for escaping + null terminator = 511, rounded to 512. */
+    char escaped_username[512] = {0};
     pusb_tmux_escape_for_regex(username, escaped_username, sizeof(escaped_username));
 
     for (i = 0; i < 3; i++)
