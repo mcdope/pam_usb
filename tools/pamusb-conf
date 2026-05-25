@@ -107,15 +107,19 @@ def writeConf(options, doc):
 		_normalize_whitespace(doc)
 		pretty = doc.toprettyxml(indent='\t')
 		lines = pretty.splitlines()
-		config_file = options['configFile']
-		config_dir = os.path.dirname(os.path.abspath(config_file))
+		config_file = os.path.realpath(options['configFile'])
+		config_dir = os.path.dirname(config_file)
 		fd, tmp_path = tempfile.mkstemp(dir=config_dir, prefix='.pamusb-conf-')
+		fd_owned = True
 		try:
 			os.fchmod(fd, 0o644)
 			with os.fdopen(fd, 'w', encoding='utf-8') as f:
+				fd_owned = False
 				f.write('\n'.join(lines) + '\n')
 			os.replace(tmp_path, config_file)
 		except Exception:
+			if fd_owned:
+				os.close(fd)
 			try:
 				os.unlink(tmp_path)
 			except OSError:
