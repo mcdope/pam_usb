@@ -256,95 +256,73 @@ static const char *pusb_loginctl_parse_output(char *buf)
 	return (val && *val != '\0') ? val : NULL;
 }
 
-char *pusb_get_tty_by_loginctl()
+static char *pusb_get_loginctl_session_property(const char *property)
 {
-	char loginctl_cmd[BUFSIZ] = "LC_ALL=C; LOGINCTL_SESSION_ID=`/usr/bin/loginctl user-status | /usr/bin/grep -m 1  \"├─session-\" | /usr/bin/grep -o '[0-9]\\+'`; /usr/bin/loginctl show-session $LOGINCTL_SESSION_ID -p TTY | /usr/bin/awk -F= '{print $2}'";
-	char buf[BUFSIZ];
-	FILE *fp;
+	char loginctl_cmd[BUFSIZ];
+	int n = snprintf(loginctl_cmd, sizeof(loginctl_cmd),
+		"LC_ALL=C; LOGINCTL_SESSION_ID=$("
+		"/usr/bin/loginctl user-status | "
+		"/usr/bin/sed -n 's/.*session-\\([a-zA-Z0-9]\\+\\)\\.scope.*/\\1/p;T;q'"
+		"); "
+		"[ -n \"$LOGINCTL_SESSION_ID\" ] && "
+		"/usr/bin/loginctl show-session \"$LOGINCTL_SESSION_ID\" -p %s | "
+		"/usr/bin/awk -F= '{print $2}'",
+		property);
+	if (n < 0 || (size_t)n >= sizeof(loginctl_cmd))
+	{
+		log_debug("		loginctl command buffer overflow.\n");
+		return NULL;
+	}
 
-	if ((fp = popen(loginctl_cmd, "r")) == NULL)
+	FILE *fp = popen(loginctl_cmd, "r");
+	if (fp == NULL)
 	{
 		log_debug("		Opening pipe for 'loginctl' failed, this is quite a wtf...\n");
 		return NULL;
 	}
 
-	const char *tty = NULL;
-	if (fgets(buf, BUFSIZ, fp) != NULL)
+	char buf[BUFSIZ];
+	char *result = NULL;
+
+	if (fgets(buf, sizeof(buf), fp) != NULL)
 	{
-		tty = pusb_loginctl_parse_output(buf);
-		if (!tty)
+		const char *val = pusb_loginctl_parse_output(buf);
+		if (val)
 		{
-			log_debug("		'loginctl' returned empty TTY field, treating as unknown.\n");
-			if (pclose(fp))
-				log_debug("		Closing pipe for 'loginctl' failed, this is quite a wtf...\n");
-			return NULL;
+			log_debug("		loginctl '%s': %s\n", property, val);
+			result = xstrdup(val);
 		}
-		log_debug("		Got tty: %s\n", tty);
-
-		if (pclose(fp))
+		else
 		{
-			log_debug("		Closing pipe for 'loginctl' failed, this is quite a wtf...\n");
+			log_debug("		'loginctl' returned empty '%s' field, treating as unknown.\n", property);
 		}
-
-		return xstrdup(tty);
 	}
 	else
 	{
 		log_debug("		'loginctl' returned nothing.\n");
-		if (pclose(fp))
-		{
-		    log_debug("		Closing pipe for 'loginctl' failed, this is quite a wtf...\n");
-		}
-
-		return NULL;
 	}
+
+	if (pclose(fp))
+		log_debug("		Closing pipe for 'loginctl' failed, this is quite a wtf...\n");
+
+	return result;
+}
+
+char *pusb_get_tty_by_loginctl()
+{
+	return pusb_get_loginctl_session_property("TTY");
 }
 
 int pusb_is_loginctl_local()
 {
-	char loginctl_cmd[BUFSIZ] = "LC_ALL=C; LOGINCTL_SESSION_ID=`/usr/bin/loginctl user-status | /usr/bin/grep -m 1  \"├─session-\" | /usr/bin/grep -o '[0-9]\\+'`; /usr/bin/loginctl show-session $LOGINCTL_SESSION_ID -p Remote | /usr/bin/awk -F= '{print $2}'";
-	char buf[BUFSIZ];
-	FILE *fp;
-
-	if ((fp = popen(loginctl_cmd, "r")) == NULL)
-	{
-		log_debug("		Opening pipe for 'loginctl' failed, this is quite a wtf...\n");
+	char *is_remote = pusb_get_loginctl_session_property("Remote");
+	if (!is_remote)
 		return 0;
-	}
 
-	const char *is_remote = NULL;
-	if (fgets(buf, BUFSIZ, fp) != NULL)
-	{
-		is_remote = pusb_loginctl_parse_output(buf);
-		if (!is_remote)
-		{
-			log_debug("		loginctl returned empty Remote field, treating as unknown.\n");
-			if (pclose(fp))
-				log_debug("		Closing pipe for 'loginctl' failed, this is quite a wtf...\n");
-			return 0;
-		}
-
-		log_debug("		loginctl considers this session to be remote: %s\n", is_remote);
-
-		if (pclose(fp))
-		{
-			log_debug("		Closing pipe for 'loginctl' failed, this is quite a wtf...\n");
-		}
-
-		if (strcmp(is_remote, "no") == 0)
-		{
-			return 1;
-		}
-		else
-		{
-			return -1;
-		}
-	}
-	else
-	{
-		log_debug("		'loginctl' returned nothing.\n");
-		return 0;
-	}
+	log_debug("		loginctl considers this session to be remote: %s\n", is_remote);
+	int result = (strcmp(is_remote, "no") == 0) ? 1 : -1;
+	xfree(is_remote);
+	return result;
 }
 
 int pusb_local_login(t_pusb_options *opts, const char *user, const char *service)

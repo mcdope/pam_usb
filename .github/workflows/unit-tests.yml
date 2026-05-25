@@ -26,3 +26,6 @@ jobs:
 
       - name: Run Python unit tests
         run: make test-python
+
+      - name: Run shell unit tests
+        run: make test-shell
