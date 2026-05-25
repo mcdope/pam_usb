@@ -363,7 +363,7 @@ int pusb_local_login(t_pusb_options *opts, const char *user, const char *service
 	pid_t tmux_pid = 0;
 	int local_request = 0;
 
-	char *xrdpSession = secure_getenv("XRDP_SESSION"); /* DevSkim: ignore DS154189 */
+	const char *xrdpSession = secure_getenv("XRDP_SESSION"); /* DevSkim: ignore DS154189 */
 	if (xrdpSession != NULL) {
 		log_error("XRDP session detected (%s), denying.\n", xrdpSession);
 		return (0);
