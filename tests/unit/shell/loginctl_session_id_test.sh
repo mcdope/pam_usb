@@ -7,11 +7,10 @@ pass=0
 fail=0
 
 extract_session_id() {
-    # Mirror the pipeline used in pusb_get_tty_by_loginctl / pusb_is_loginctl_local
+    # Mirror the pipeline used in pusb_get_loginctl_session_property (via pusb_get_tty_by_loginctl /
+    # pusb_is_loginctl_local). A single sed replaces the previous grep | grep | sed chain.
     printf '%s\n' "$1" \
-        | grep -m 1 'session-[a-zA-Z0-9]\+\.scope' \
-        | grep -o 'session-[a-zA-Z0-9]\+' \
-        | sed 's/session-//'
+        | sed -n 's/.*session-\([a-zA-Z0-9]\+\)\.scope.*/\1/p;T;q'
 }
 
 # Simulate the guarded show-session call: only proceeds when session ID is non-empty.
