@@ -105,8 +105,8 @@ def writeConf(options, doc):
 	try:
 		_normalize_whitespace(doc)
 		pretty = doc.toprettyxml(indent='\t')
-		lines = [line for line in pretty.splitlines() if line.strip()]
-		with open(options['configFile'], 'w') as f:
+		lines = pretty.splitlines()
+		with open(options['configFile'], 'w', encoding='utf-8') as f:
 			f.write('\n'.join(lines) + '\n')
 	except Exception as err:
 		print('Unable to save %s: %s' % (options['configFile'], err))

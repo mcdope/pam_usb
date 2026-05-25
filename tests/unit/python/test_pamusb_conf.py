@@ -65,15 +65,16 @@ def _minimal_doc_with_device(device_id="testdev", vendor="VendorX", model="Model
 # ── writeConf ────────────────────────────────────────────────────────────────
 
 def test_write_conf_consistent_indentation(tmp_conf):
-    """After writeConf, every indented line uses tabs only — no blank lines."""
+    """After writeConf, every non-empty indented line uses tabs only."""
     doc = minidom.parse(str(tmp_conf))
     options = {"configFile": str(tmp_conf), "yes": True}
     _mod.writeConf(options, doc)
     text = tmp_conf.read_text()
     for line in text.splitlines():
+        if not line.strip():
+            continue
         assert line == line.strip() or line.startswith('\t'), \
             f"Line not tab-indented: {line!r}"
-    assert '\n\n' not in text, "Blank lines found in output"
 
 
 def test_write_conf_idempotent(tmp_conf):
