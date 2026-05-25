@@ -185,6 +185,15 @@ static void test_has_remote_ipv6_compressed_typical(void **state)
 	assert_int_equal(1, pusb_tmux_has_remote_clients("testuser"));
 }
 
+static void test_has_remote_ipv4_mapped(void **state)
+{
+	(void)state;
+	/* ::ffff:x.x.x.x bypasses the pure-IPv4 pattern (::ffff: prefix) and
+	 * the pure-IPv6 pattern (dotted suffix) without a dedicated template. */
+	g_popen_output = "testuser pts/1   ::ffff:192.168.1.100  10:00   0.00s  tmux attach\n";
+	assert_int_equal(1, pusb_tmux_has_remote_clients("testuser"));
+}
+
 static void test_has_remote_ipv6_no_false_positive_hhmmss(void **state)
 {
 	(void)state;
@@ -357,6 +366,7 @@ int main(void)
 		cmocka_unit_test(test_escape_empty_input),
 		cmocka_unit_test(test_has_remote_ipv4),
 		cmocka_unit_test(test_has_remote_ipv6),
+		cmocka_unit_test(test_has_remote_ipv4_mapped),
 		cmocka_unit_test(test_has_remote_ipv6_compressed_loopback),
 		cmocka_unit_test(test_has_remote_ipv6_compressed_linklocal),
 		cmocka_unit_test(test_has_remote_ipv6_compressed_typical),

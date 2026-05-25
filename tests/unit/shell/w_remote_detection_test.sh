@@ -15,6 +15,7 @@ fail=0
 TESTUSER="testuser"
 PAT_IPV4="^${TESTUSER}([[:space:]]+)([^[:space:]]+)([[:space:]]+)([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})([[:space:]]+)(.+)tmux(.+)"
 PAT_IPV6="^${TESTUSER}([[:space:]]+)([^[:space:]]+)([[:space:]]+)(([0-9A-Fa-f]{0,4}:){2,7}[0-9A-Fa-f]{0,4})([[:space:]]+)(.+)tmux(.+)"
+PAT_IPV4_MAPPED="^${TESTUSER}([[:space:]]+)([^[:space:]]+)([[:space:]]+)::ffff:([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})([[:space:]]+)(.+)tmux(.+)"
 
 matches_pattern() {
     [[ "$2" =~ $1 ]]
@@ -45,6 +46,7 @@ assert_no_match() {
 # --- test fixtures ---
 
 LINE_IPV4_TMUX="testuser pts/0    192.168.1.100    10:00    0.00s 0.01s 0.00s tmux: client"
+LINE_IPV4_MAPPED_TMUX="testuser pts/0    ::ffff:192.168.1.100 10:00    0.00s 0.01s 0.00s tmux: client"
 LINE_IPV6_TMUX="testuser pts/1    fe80:0:0:1       10:00    0.00s 0.01s 0.00s tmux: client"
 LINE_IPV6_LOOPBACK="testuser pts/2    ::1              10:00    0.00s 0.01s 0.00s tmux: client"
 LINE_IPV6_LINKLOCAL="testuser pts/3    fe80::1          10:00    0.00s 0.01s 0.00s tmux: client"
@@ -58,7 +60,8 @@ LINE_OTHER_USER="otheruser pts/0   192.168.1.100    10:00    0.00s 0.01s 0.00s t
 # --- run tests ---
 
 # IPv4 remote tmux → should match (remote client detected)
-assert_match    "IPv4: remote IP + tmux → match"          "$PAT_IPV4" "$LINE_IPV4_TMUX"
+assert_match    "IPv4: remote IP + tmux → match"                    "$PAT_IPV4"        "$LINE_IPV4_TMUX"
+assert_match    "IPv4-mapped IPv6: ::ffff:x.x.x.x + tmux → match"  "$PAT_IPV4_MAPPED" "$LINE_IPV4_MAPPED_TMUX"
 
 # IPv6 remote tmux → should match (full and compressed forms)
 assert_match    "IPv6: full 4-group + tmux → match"              "$PAT_IPV6" "$LINE_IPV6_TMUX"
