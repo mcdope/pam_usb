@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euo pipefail
 # Tests that the loginctl session ID extraction pipeline handles both
 # alphanumeric IDs (e.g. "c2", "c6" — graphical sessions on modern systemd)
 # and pure numeric IDs (e.g. "42" — legacy/TTY sessions).
@@ -18,7 +19,16 @@ extract_session_id() {
 # Here we short-circuit the actual loginctl call and just echo a canned response.
 extract_with_guard() {
     local session_id="$1" canned_output="$2"
-    [ -n "$session_id" ] && printf '%s\n' "$canned_output"
+    if [ -n "$session_id" ]; then
+        printf '%s\n' "$canned_output"
+    fi
+}
+
+# Mirror the awk pipeline used in pusb_get_loginctl_session_property:
+#   loginctl show-session "$ID" -p KEY | awk -F= '{print $2}'
+# loginctl outputs "KEY=value"; awk splits on '=' and returns field 2.
+extract_property_value() {
+    printf '%s\n' "$1" | awk -F= '{print $2}'
 }
 
 assert_eq() {
@@ -92,6 +102,12 @@ assert_eq "no session line → empty"                   ""    "$(extract_session
 # Non-empty session ID guard: loginctl show-session is only called when ID was found
 assert_eq "guard: non-empty ID passes through"  "tty7" "$(extract_with_guard "c2"  "tty7")"
 assert_eq "guard: empty ID suppresses output"   ""     "$(extract_with_guard ""    "tty7")"
+
+# loginctl show-session awk field extraction (awk -F= '{print $2}')
+assert_eq "awk: TTY field"           "tty7"       "$(extract_property_value "TTY=tty7")"
+assert_eq "awk: Remote field"        "no"         "$(extract_property_value "Remote=no")"
+assert_eq "awk: empty input"         ""           "$(extract_property_value "")"
+assert_eq "awk: multi-= value (pts)" "/dev/pts/0" "$(extract_property_value "TTY=/dev/pts/0=1")"
 
 # --- summary ---
 echo "---"
