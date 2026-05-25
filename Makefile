@@ -187,7 +187,10 @@ test-c: test-c-xpath test-c-conf test-c-tmux test-c-pad test-c-process test-c-rm
 test-python:
 	python3 -m pytest tests/unit/python/ -v
 
-test: test-c test-python
+test-shell:
+	bash tests/unit/shell/loginctl_session_id_test.sh
+
+test: test-c test-python test-shell
 
 all: manpages $(PAM_USB) $(PAMUSB_CHECK)
 
