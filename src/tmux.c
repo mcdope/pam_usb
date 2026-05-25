@@ -183,76 +183,78 @@ int pusb_tmux_has_remote_clients(const char* username)
 {
     int status;
     int n;
+    int i;
     FILE *fp;
-    regex_t regex;
+    regex_t regex[3];
     char regex_raw[BUFSIZ];
     char buf[BUFSIZ];
     char msgbuf[100];
+    int result = 0;
     const char *regex_tpl[3] = {
         "([[:space:]]+)([^[:space:]]+)([[:space:]]+)([0-9]{1,3})\\.([0-9]{1,3})\\.([0-9]{1,3})\\.([0-9]{1,3})([[:space:]]+)(.+)tmux(.+)", //v4: anchored to FROM field; prevents username-prefix false positives
         "([[:space:]]+)([^[:space:]]+)([[:space:]]+)(([0-9A-Fa-f]{0,4}:){2,7}[0-9A-Fa-f]{0,4})[^[:space:]]*([[:space:]]+)(.+)tmux(.+)", // v6: anchored to FROM field; [^[:space:]]* absorbs zone index (e.g. %eth0)
         "([[:space:]]+)([^[:space:]]+)([[:space:]]+)::ffff:([0-9]{1,3})\\.([0-9]{1,3})\\.([0-9]{1,3})\\.([0-9]{1,3})([[:space:]]+)(.+)tmux(.+)" // v4-mapped v6 (::ffff:x.x.x.x): bypasses both above patterns without this
     }; // ... yes, these allow invalid addresses. No, I don't care. This isn't about validation but detecting remote access. Good enough ¯\_(ツ)_/¯
-    const char *proto_labels[3] = {"IPv4", "IPv6", "IPv4-mapped IPv6"};
 
     /* Max Linux username is 32 chars; doubled for escaping + null terminator = 65 bytes. */
     char escaped_username[65] = {0};
     pusb_tmux_escape_for_regex(username, escaped_username, sizeof(escaped_username));
 
-    for (int i = 0; i <= 2; i++)
+    for (i = 0; i < 3; i++)
     {
-        log_debug("		Checking for %s connections...\n", proto_labels[i]);
-
-        if ((fp = popen("LC_ALL=C; /usr/bin/w -i", "re")) == NULL)
-        {
-            log_error("tmux detected, but couldn't get `w`. Denying since remote check for tmux impossible without it!\n");
-            return -1;
-        }
-
         n = snprintf(regex_raw, BUFSIZ, "^%s%s", escaped_username, regex_tpl[i]);
         if (n < 0 || (size_t)n >= BUFSIZ)
         {
             log_debug("		regex_raw buffer overflow for pattern %d.\n", i);
-            pclose(fp);
+            for (int j = 0; j < i; j++) regfree(&regex[j]);
             return -1;
         }
 
-        status = regcomp(&regex, regex_raw, REG_EXTENDED);
+        status = regcomp(&regex[i], regex_raw, REG_EXTENDED);
         if (status)
         {
-            log_debug("		Couldn't compile regex!\n");
-            pclose(fp);
+            log_debug("		Couldn't compile regex %d!\n", i);
+            for (int j = 0; j < i; j++) regfree(&regex[j]);
             return -1;
-        }
-
-        while (fgets(buf, BUFSIZ, fp) != NULL)
-        {
-            status = regexec(&regex, buf, 0, NULL, 0);
-            if (!status)
-            {
-                log_error("tmux detected and at least one remote client is connected to the session, denying!\n");
-                regfree(&regex);
-                pclose(fp);
-                return 1;
-            }
-            else if (status != REG_NOMATCH)
-            {
-                regerror(status, &regex, msgbuf, sizeof(msgbuf));
-                log_debug("		Regex match failed: %s\n", msgbuf);
-                regfree(&regex);
-                pclose(fp);
-                return -1;
-            }
-        }
-
-        regfree(&regex);
-
-        if (pclose(fp))
-        {
-            log_debug("		Closing pipe for 'w' failed, this is quite a wtf...\n");
         }
     }
 
-    // If we had detected a remote access we would have returned by now. Safe to return 0 now
-    return 0;
+    if ((fp = popen("LC_ALL=C; /usr/bin/w -i", "re")) == NULL)
+    {
+        log_error("tmux detected, but couldn't get `w`. Denying since remote check for tmux impossible without it!\n");
+        for (i = 0; i < 3; i++) regfree(&regex[i]);
+        return -1;
+    }
+
+    while (fgets(buf, BUFSIZ, fp) != NULL)
+    {
+        for (i = 0; i < 3; i++)
+        {
+            status = regexec(&regex[i], buf, 0, NULL, 0);
+            if (!status)
+            {
+                log_error("tmux detected and at least one remote client is connected to the session, denying!\n");
+                result = 1;
+                break;
+            }
+            else if (status != REG_NOMATCH)
+            {
+                regerror(status, &regex[i], msgbuf, sizeof(msgbuf));
+                log_debug("		Regex match failed: %s\n", msgbuf);
+                result = -1;
+                break;
+            }
+        }
+        if (result != 0)
+            break;
+    }
+
+    for (i = 0; i < 3; i++) regfree(&regex[i]);
+
+    if (pclose(fp))
+    {
+        log_debug("		Closing pipe for 'w' failed, this is quite a wtf...\n");
+    }
+
+    return result;
 }
