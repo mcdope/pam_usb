@@ -34,6 +34,7 @@
 #define PROC_ANYDESK       FIXTURES "/proc_anydesk"
 #define PROC_ANYDESK_ARGS  FIXTURES "/proc_anydesk_in_args"
 #define PROC_FIREFOX       FIXTURES "/proc_firefox"
+#define PROC_XRDP          FIXTURES "/proc_xrdp"
 
 /* ── pusb_proc_tcp_is_loopback_v4 ── */
 
@@ -245,6 +246,14 @@ static void test_process_teamviewerd_exists(void **state)
 	assert_int_equal(1, pusb_process_name_exists(PROC_TEAMVIEWERD, "teamviewerd"));
 }
 
+/* ── xrdp process detection ── */
+
+static void test_process_xrdp_exists(void **state)
+{
+	(void)state;
+	assert_int_equal(1, pusb_process_name_exists(PROC_XRDP, "xrdp"));
+}
+
 int main(void)
 {
 	const struct CMUnitTest tests[] = {
@@ -278,6 +287,7 @@ int main(void)
 		cmocka_unit_test(test_tcp6_established_to_tv_port),
 		cmocka_unit_test(test_tcp6_established_to_wrong_remote_port),
 		cmocka_unit_test(test_process_teamviewerd_exists),
+		cmocka_unit_test(test_process_xrdp_exists),
 	};
 	return cmocka_run_group_tests(tests, NULL, NULL);
 }

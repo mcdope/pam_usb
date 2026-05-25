@@ -255,7 +255,7 @@ int pusb_has_active_remote_service(t_pusb_options *opts)
 
 	if (rdp_external) {
 		log_debug("	Detected external RDP connection, checking for RDP server process...\n");
-		static const char *rdp_processes[] = { "gnome-remote-de", NULL };
+		static const char *rdp_processes[] = { "gnome-remote-de", "xrdp", NULL };
 		for (int i = 0; rdp_processes[i] != NULL; i++) {
 			if (pusb_process_name_exists("/proc", rdp_processes[i])) {
 				log_debug("		Found RDP remote desktop service: %s\n", rdp_processes[i]);
