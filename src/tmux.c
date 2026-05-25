@@ -208,7 +208,13 @@ int pusb_tmux_has_remote_clients(const char* username)
 
         while (fgets(buf, BUFSIZ, fp) != NULL)
         {
-            snprintf(regex_raw, BUFSIZ, "%s%s", escaped_username, regex_tpl[i]);
+            int n = snprintf(regex_raw, BUFSIZ, "^%s%s", escaped_username, regex_tpl[i]);
+            if (n < 0 || (size_t)n >= BUFSIZ)
+            {
+                log_debug("		regex_raw buffer overflow for pattern %d.\n", i);
+                pclose(fp);
+                return -1;
+            }
 
             status = regcomp(&regex, regex_raw, REG_EXTENDED);
             if (status)

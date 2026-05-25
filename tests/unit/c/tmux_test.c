@@ -209,6 +209,15 @@ static void test_has_remote_empty_output(void **state)
 	assert_int_equal(0, pusb_tmux_has_remote_clients("testuser"));
 }
 
+static void test_has_remote_ipv4_username_suffix_no_match(void **state)
+{
+	(void)state;
+	/* "mytestuser" must not match a check for "testuser": without ^ the regex
+	 * could match "testuser" as a substring at a non-zero offset. */
+	g_popen_output = "mytestuser pts/0   192.168.1.100  10:00   0.00s  tmux attach\n";
+	assert_int_equal(0, pusb_tmux_has_remote_clients("testuser"));
+}
+
 static void test_has_remote_ipv4_username_prefix_no_match(void **state)
 {
 	(void)state;
@@ -354,6 +363,7 @@ int main(void)
 		cmocka_unit_test(test_has_remote_ipv6_no_false_positive_hhmmss),
 		cmocka_unit_test(test_has_remote_local_display),
 		cmocka_unit_test(test_has_remote_empty_output),
+		cmocka_unit_test(test_has_remote_ipv4_username_suffix_no_match),
 		cmocka_unit_test(test_has_remote_ipv4_username_prefix_no_match),
 		cmocka_unit_test(test_has_remote_wrong_user_dot_regression),
 		cmocka_unit_test(test_get_client_tty_no_tmux_env),
