@@ -13,7 +13,7 @@ fail=0
 
 # Patterns copied verbatim from src/tmux.c:191-192, prefixed with the test username.
 TESTUSER="testuser"
-PAT_IPV4="${TESTUSER}(.+)([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})(.+)tmux(.+)"
+PAT_IPV4="${TESTUSER}([[:space:]]+)([^[:space:]]+)([[:space:]]+)([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})([[:space:]]+)(.+)tmux(.+)"
 PAT_IPV6="${TESTUSER}([[:space:]]+)([^[:space:]]+)([[:space:]]+)(([0-9A-Fa-f]{0,4}:){2,7}[0-9A-Fa-f]{0,4})([[:space:]]+)(.+)tmux(.+)"
 
 matches_pattern() {
@@ -80,6 +80,8 @@ assert_no_match "IPv6: X11 :0 + tmux → no match"          "$PAT_IPV6" "$LINE_X
 
 # Different username → pattern starts with "testuser", so a different user should not match
 assert_no_match "IPv4: wrong username → no match"          "$PAT_IPV4" "$LINE_OTHER_USER"
+# Username extension → "testuser2" must not match a pattern anchored for "testuser"
+assert_no_match "IPv4: username extension (testuser2) → no match" "$PAT_IPV4" "testuser2 pts/0   192.168.1.100    10:00    0.00s 0.01s 0.00s tmux: client"
 
 # --- summary ---
 echo "---"

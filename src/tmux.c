@@ -188,7 +188,7 @@ int pusb_tmux_has_remote_clients(const char* username)
     char buf[BUFSIZ];
     char msgbuf[100];
     const char *regex_tpl[2] = {
-        "(.+)([0-9]{1,3})\\.([0-9]{1,3})\\.([0-9]{1,3})\\.([0-9]{1,3})(.+)tmux(.+)", //v4
+        "([[:space:]]+)([^[:space:]]+)([[:space:]]+)([0-9]{1,3})\\.([0-9]{1,3})\\.([0-9]{1,3})\\.([0-9]{1,3})([[:space:]]+)(.+)tmux(.+)", //v4: anchored to FROM field; prevents username-prefix false positives
         "([[:space:]]+)([^[:space:]]+)([[:space:]]+)(([0-9A-Fa-f]{0,4}:){2,7}[0-9A-Fa-f]{0,4})([[:space:]]+)(.+)tmux(.+)" // v6: anchored to FROM field; prevents HH:MM:SS time fields from false-matching
     }; // ... yes, these allow invalid addresses. No, I don't care. This isn't about validation but detecting remote access. Good enough ¯\_(ツ)_/¯
 
@@ -200,7 +200,7 @@ int pusb_tmux_has_remote_clients(const char* username)
     {
         log_debug("		Checking for IPv%d connections...\n", (4 + (i * 2)));
 
-        if ((fp = popen("LC_ALL=C; /usr/bin/w", "r")) == NULL)
+        if ((fp = popen("LC_ALL=C; /usr/bin/w -i", "r")) == NULL)
         {
             log_error("tmux detected, but couldn't get `w`. Denying since remote check for tmux impossible without it!\n");
             return -1;
