@@ -144,8 +144,8 @@ static int make_memfd_with_content(const char *data, size_t len)
 {
 	int fd = memfd_create("test_cmdline", 0);
 	if (fd < 0) return -1;
-	if (write(fd, data, len) != (ssize_t)len) { close(fd); return -1; }
-	if (lseek(fd, 0, SEEK_SET) != 0) { close(fd); return -1; }
+	if (write(fd, data, len) != (ssize_t)len) { int e = errno; close(fd); errno = e; return -1; }
+	if (lseek(fd, 0, SEEK_SET) != 0) { int e = errno; close(fd); errno = e; return -1; }
 	return fd;
 }
 
