@@ -189,6 +189,7 @@ test-python:
 
 test-shell:
 	bash tests/unit/shell/loginctl_session_id_test.sh
+	bash tests/unit/shell/w_remote_detection_test.sh
 
 test: test-c test-python test-shell
 

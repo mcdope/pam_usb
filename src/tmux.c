@@ -157,7 +157,7 @@ char *pusb_tmux_get_client_tty(pid_t env_pid)
         tmux_client_tty += 5; /* strip /dev/ prefix */
         log_debug("		Got tmux_client_tty: %s\n", tmux_client_tty);
 
-        if (pclose(fp))
+        if (pclose(fp) == -1)
         {
             log_debug("		Closing pipe for 'tmux list-clients' failed, this is quite a wtf...\n");
         }
@@ -181,70 +181,102 @@ char *pusb_tmux_get_client_tty(pid_t env_pid)
  */
 int pusb_tmux_has_remote_clients(const char* username)
 {
+    if (username == NULL)
+    {
+        log_error("Username is NULL, cannot check for remote tmux clients.\n");
+        return -1;
+    }
+
+    if (strlen(username) > 255) /* DevSkim: ignore DS140021 - username is a PAM-provided NUL-terminated string */
+    {
+        log_error("Username exceeds 255 characters, denying to prevent regex bypass.\n");
+        return -1;
+    }
+
     int status;
+    int n;
+    int i;
     FILE *fp;
-    regex_t regex;
+    regex_t regex[3];
     char regex_raw[BUFSIZ];
     char buf[BUFSIZ];
     char msgbuf[100];
-    const char *regex_tpl[2] = {
-        "(.+)([0-9]{1,3})\\.([0-9]{1,3})\\.([0-9]{1,3})\\.([0-9]{1,3})(.+)tmux(.+)", //v4
-        "(.+)([0-9A-Fa-f]{1,4}):([0-9A-Fa-f]{1,4}):([0-9A-Fa-f]{1,4}):([0-9A-Fa-f]{1,4})(.+)tmux(.+)" // v6
+    int result = 0;
+    const char *regex_tpl[3] = {
+        "([[:space:]]+)([^[:space:]]+)([[:space:]]+)([0-9]{1,3})\\.([0-9]{1,3})\\.([0-9]{1,3})\\.([0-9]{1,3})([[:space:]]+)(.+)tmux(.+)", //v4: anchored to FROM field; prevents username-prefix false positives
+        "([[:space:]]+)([^[:space:]]+)([[:space:]]+)(([0-9A-Fa-f]{0,4}:){2,7}[0-9A-Fa-f]{0,4})[^[:space:]]*([[:space:]]+)(.+)tmux(.+)", // v6: anchored to FROM field; [^[:space:]]* absorbs zone index (e.g. %eth0)
+        "([[:space:]]+)([^[:space:]]+)([[:space:]]+)::ffff:([0-9]{1,3})\\.([0-9]{1,3})\\.([0-9]{1,3})\\.([0-9]{1,3})([[:space:]]+)(.+)tmux(.+)" // v4-mapped v6 (::ffff:x.x.x.x): bypasses both above patterns without this
     }; // ... yes, these allow invalid addresses. No, I don't care. This isn't about validation but detecting remote access. Good enough ¯\_(ツ)_/¯
 
-    /* Max Linux username is 32 chars; doubled for escaping + null terminator = 65 bytes. */
-    char escaped_username[65] = {0};
+    /* Up to 255-char usernames (SSSD/AD); doubled for escaping + null terminator = 511, rounded to 512. */
+    char escaped_username[512] = {0};
     pusb_tmux_escape_for_regex(username, escaped_username, sizeof(escaped_username));
 
-    for (int i = 0; i <= 1; i++)
+    for (i = 0; i < 3; i++)
     {
-        log_debug("		Checking for IPv%d connections...\n", (4 + (i * 2)));
-
-        if ((fp = popen("LC_ALL=C; /usr/bin/w", "r")) == NULL)
+        n = snprintf(regex_raw, BUFSIZ, "^%s%s", escaped_username, regex_tpl[i]);
+        if (n < 0 || (size_t)n >= BUFSIZ)
         {
-            log_error("tmux detected, but couldn't get `w`. Denying since remote check for tmux impossible without it!\n");
+            log_debug("		regex_raw buffer overflow for pattern %d.\n", i);
+            for (int j = 0; j < i; j++) regfree(&regex[j]);
             return -1;
         }
 
-        while (fgets(buf, BUFSIZ, fp) != NULL)
+        status = regcomp(&regex[i], regex_raw, REG_EXTENDED | REG_NOSUB);
+        if (status)
         {
-            snprintf(regex_raw, BUFSIZ, "%s%s", escaped_username, regex_tpl[i]);
-
-            status = regcomp(&regex, regex_raw, REG_EXTENDED);
-            if (status)
-            {
-                log_debug("		Couldn't compile regex!\n");
-                regfree(&regex);
-                pclose(fp);
-                return -1;
-            }
-
-            status = regexec(&regex, buf, 0, NULL, 0);
-            if (!status)
-            {
-                log_error("tmux detected and at least one remote client is connected to the session, denying!\n");
-                regfree(&regex);
-                pclose(fp);
-                return 1;
-            }
-            else if (status != REG_NOMATCH)
-            {
-                regerror(status, &regex, msgbuf, sizeof(msgbuf));
-                log_debug("		Regex match failed: %s\n", msgbuf);
-                regfree(&regex);
-                pclose(fp);
-                return -1;
-            }
-
-            regfree(&regex);
-        }
-
-        if (pclose(fp))
-        {
-            log_debug("		Closing pipe for 'w' failed, this is quite a wtf...\n");
+            log_debug("		Couldn't compile regex %d!\n", i);
+            for (int j = 0; j < i; j++) regfree(&regex[j]);
+            return -1;
         }
     }
 
-    // If we had detected a remote access we would have returned by now. Safe to return 0 now
-    return 0;
+    if ((fp = popen("LC_ALL=C; /usr/bin/w -i", "re")) == NULL)
+    {
+        log_error("tmux detected, but couldn't get `w`. Denying since remote check for tmux impossible without it!\n");
+        for (i = 0; i < 3; i++) regfree(&regex[i]);
+        return -1;
+    }
+
+    while (fgets(buf, BUFSIZ, fp) != NULL)
+    {
+        for (i = 0; i < 3; i++)
+        {
+            status = regexec(&regex[i], buf, 0, NULL, 0);
+            if (!status)
+            {
+                log_error("tmux detected and at least one remote client is connected to the session, denying!\n");
+                result = 1;
+                break;
+            }
+            else if (status != REG_NOMATCH)
+            {
+                regerror(status, &regex[i], msgbuf, sizeof(msgbuf));
+                log_debug("		Regex match failed: %s\n", msgbuf);
+                result = -1;
+                break;
+            }
+        }
+        if (result != 0)
+            break;
+    }
+
+    for (i = 0; i < 3; i++) regfree(&regex[i]);
+
+    int pclose_ret = pclose(fp);
+    if (pclose_ret == -1)
+    {
+        log_debug("		Closing pipe for 'w' failed, this is quite a wtf...\n");
+        if (result == 0)
+            result = -1;
+    }
+    else if (pclose_ret != 0 && result == 0)
+    {
+        /* w exited non-zero without us finding a match — command may have failed.
+         * Fail closed: treat as error rather than silently allowing access. */
+        log_error("w command exited with non-zero status, denying to be safe.\n");
+        result = -1;
+    }
+
+    return result;
 }

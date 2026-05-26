@@ -28,6 +28,7 @@
 
 static const char *g_popen_output = "";
 static char g_last_popen_cmd[BUFSIZ];
+static int g_pclose_ret = 0;
 
 FILE *__wrap_popen(const char *cmd, const char *type)
 {
@@ -38,7 +39,7 @@ FILE *__wrap_popen(const char *cmd, const char *type)
 int __wrap_pclose(FILE *fp)
 {
 	fclose(fp);
-	return 0;
+	return g_pclose_ret;
 }
 
 /* ── pusb_tmux_is_safe_socket_path ── */
@@ -145,6 +146,22 @@ static void test_escape_empty_input(void **state)
 
 /* ── pusb_tmux_has_remote_clients ── */
 
+static void test_has_remote_null_username(void **state)
+{
+	(void)state;
+	assert_int_equal(-1, pusb_tmux_has_remote_clients(NULL));
+}
+
+static void test_has_remote_username_too_long(void **state)
+{
+	(void)state;
+	/* 256-char username must be rejected to prevent silent regex truncation bypass */
+	char long_username[257];
+	memset(long_username, 'a', 256);
+	long_username[256] = '\0';
+	assert_int_equal(-1, pusb_tmux_has_remote_clients(long_username));
+}
+
 static void test_has_remote_ipv4(void **state)
 {
 	(void)state;
@@ -161,6 +178,56 @@ static void test_has_remote_ipv6(void **state)
 	assert_int_equal(1, pusb_tmux_has_remote_clients("testuser"));
 }
 
+static void test_has_remote_ipv6_compressed_loopback(void **state)
+{
+	(void)state;
+	/* ::1 is compressed IPv6 loopback — old 4-group pattern missed this */
+	g_popen_output = "testuser pts/1   ::1  10:00   0.00s  tmux attach\n";
+	assert_int_equal(1, pusb_tmux_has_remote_clients("testuser"));
+}
+
+static void test_has_remote_ipv6_compressed_linklocal(void **state)
+{
+	(void)state;
+	/* fe80::1 is a compressed link-local address — old 4-group pattern missed this */
+	g_popen_output = "testuser pts/1   fe80::1  10:00   0.00s  tmux attach\n";
+	assert_int_equal(1, pusb_tmux_has_remote_clients("testuser"));
+}
+
+static void test_has_remote_ipv6_compressed_typical(void **state)
+{
+	(void)state;
+	/* 2001:db8::1 is a typical compressed address — old 4-group pattern missed this */
+	g_popen_output = "testuser pts/1   2001:db8::1  10:00   0.00s  tmux attach\n";
+	assert_int_equal(1, pusb_tmux_has_remote_clients("testuser"));
+}
+
+static void test_has_remote_ipv4_mapped(void **state)
+{
+	(void)state;
+	/* ::ffff:x.x.x.x bypasses the pure-IPv4 pattern (::ffff: prefix) and
+	 * the pure-IPv6 pattern (dotted suffix) without a dedicated template. */
+	g_popen_output = "testuser pts/1   ::ffff:192.168.1.100  10:00   0.00s  tmux attach\n";
+	assert_int_equal(1, pusb_tmux_has_remote_clients("testuser"));
+}
+
+static void test_has_remote_ipv6_linklocal_zone_index(void **state)
+{
+	(void)state;
+	/* fe80::1%eth0: zone index after address must not prevent detection */
+	g_popen_output = "testuser pts/1   fe80::1%eth0  10:00   0.00s  tmux attach\n";
+	assert_int_equal(1, pusb_tmux_has_remote_clients("testuser"));
+}
+
+static void test_has_remote_ipv6_no_false_positive_hhmmss(void **state)
+{
+	(void)state;
+	/* Local session: FROM='-', but idle/login time contains HH:MM:SS colons.
+	 * The anchored FROM-field pattern must not mistake a time field for IPv6. */
+	g_popen_output = "testuser pts/2   -  10:00:00   0.00s  tmux attach\n";
+	assert_int_equal(0, pusb_tmux_has_remote_clients("testuser"));
+}
+
 static void test_has_remote_local_display(void **state)
 {
 	(void)state;
@@ -173,6 +240,44 @@ static void test_has_remote_empty_output(void **state)
 {
 	(void)state;
 	g_popen_output = "";
+	assert_int_equal(0, pusb_tmux_has_remote_clients("testuser"));
+}
+
+static void test_has_remote_w_nonzero_exit_denies(void **state)
+{
+	(void)state;
+	/* w exiting non-zero with no match found must deny (fail-closed), not allow */
+	g_popen_output = "";
+	g_pclose_ret = 1;
+	assert_int_equal(-1, pusb_tmux_has_remote_clients("testuser"));
+	g_pclose_ret = 0;
+}
+
+static void test_has_remote_w_nonzero_exit_does_not_override_match(void **state)
+{
+	(void)state;
+	/* If a remote client was already found, a non-zero w exit must not suppress it */
+	g_popen_output = "testuser pts/1   192.168.1.100  10:00   0.00s  tmux attach\n";
+	g_pclose_ret = 1;
+	assert_int_equal(1, pusb_tmux_has_remote_clients("testuser"));
+	g_pclose_ret = 0;
+}
+
+static void test_has_remote_ipv4_username_suffix_no_match(void **state)
+{
+	(void)state;
+	/* "mytestuser" must not match a check for "testuser": without ^ the regex
+	 * could match "testuser" as a substring at a non-zero offset. */
+	g_popen_output = "mytestuser pts/0   192.168.1.100  10:00   0.00s  tmux attach\n";
+	assert_int_equal(0, pusb_tmux_has_remote_clients("testuser"));
+}
+
+static void test_has_remote_ipv4_username_prefix_no_match(void **state)
+{
+	(void)state;
+	/* "testuser2" must not match a check for "testuser": the old (.+) prefix
+	 * allowed the regex to consume "2 pts/0" as part of the match. */
+	g_popen_output = "testuser2 pts/0   192.168.1.100  10:00   0.00s  tmux attach\n";
 	assert_int_equal(0, pusb_tmux_has_remote_clients("testuser"));
 }
 
@@ -304,10 +409,22 @@ int main(void)
 		cmocka_unit_test(test_escape_plus),
 		cmocka_unit_test(test_escape_all_metacharacters),
 		cmocka_unit_test(test_escape_empty_input),
+		cmocka_unit_test(test_has_remote_null_username),
+		cmocka_unit_test(test_has_remote_username_too_long),
 		cmocka_unit_test(test_has_remote_ipv4),
 		cmocka_unit_test(test_has_remote_ipv6),
+		cmocka_unit_test(test_has_remote_ipv4_mapped),
+		cmocka_unit_test(test_has_remote_ipv6_compressed_loopback),
+		cmocka_unit_test(test_has_remote_ipv6_compressed_linklocal),
+		cmocka_unit_test(test_has_remote_ipv6_linklocal_zone_index),
+		cmocka_unit_test(test_has_remote_ipv6_compressed_typical),
+		cmocka_unit_test(test_has_remote_ipv6_no_false_positive_hhmmss),
 		cmocka_unit_test(test_has_remote_local_display),
 		cmocka_unit_test(test_has_remote_empty_output),
+		cmocka_unit_test(test_has_remote_w_nonzero_exit_denies),
+		cmocka_unit_test(test_has_remote_w_nonzero_exit_does_not_override_match),
+		cmocka_unit_test(test_has_remote_ipv4_username_suffix_no_match),
+		cmocka_unit_test(test_has_remote_ipv4_username_prefix_no_match),
 		cmocka_unit_test(test_has_remote_wrong_user_dot_regression),
 		cmocka_unit_test(test_get_client_tty_no_tmux_env),
 		cmocka_unit_test(test_get_client_tty_injection_semicolon),
