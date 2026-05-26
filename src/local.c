@@ -129,8 +129,11 @@ int pusb_is_tty_local(char *tty)
 
 static ssize_t pusb_read_cmdline(int fd, char *buf, size_t bufmax)
 {
+	if (buf == NULL || bufmax == 0) return -1;
 	ssize_t n = read(fd, buf, bufmax);
 	if (n < 0) return -1;
+	if ((size_t)n == bufmax)
+		log_debug("cmdline read hit buffer limit (%zu bytes); entry may be truncated\n", bufmax);
 	buf[n] = '\0';
 	for (ssize_t i = 0; i < n; i++)
 		if (!buf[i]) buf[i] = ' ';
