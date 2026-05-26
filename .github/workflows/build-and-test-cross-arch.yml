@@ -65,6 +65,13 @@ jobs:
         TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
         TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
       run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "cd ~/pam_usb_qemu_arm64_$GITHUB_RUN_ID && git pull"
+    - name: Clean Docker dangling layers
+      env:
+        TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
+        TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
+        TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
+        TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "docker image prune -f"
     - name: Build arm64 .deb
       env:
         TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
@@ -86,7 +93,7 @@ jobs:
         TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
         TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
         TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
-      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -tt -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "sudo rm -rf ~/pam_usb_qemu_arm64_$GITHUB_RUN_ID"
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -tt -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "sudo rm -rf ~/pam_usb_qemu_arm64_$GITHUB_RUN_ID; docker rmi -f mcdope/pam_usb-ubuntu-arm64-build 2>/dev/null || true; docker image prune -f"
 
 
   FunctionalTest-armhf:
@@ -134,6 +141,13 @@ jobs:
         TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
         TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
       run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "cd ~/pam_usb_qemu_armhf_$GITHUB_RUN_ID && git pull"
+    - name: Clean Docker dangling layers
+      env:
+        TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
+        TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
+        TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
+        TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "docker image prune -f"
     - name: Build armhf .deb
       env:
         TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
@@ -155,4 +169,4 @@ jobs:
         TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
         TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
         TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
-      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -tt -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "sudo rm -rf ~/pam_usb_qemu_armhf_$GITHUB_RUN_ID"
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -tt -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "sudo rm -rf ~/pam_usb_qemu_armhf_$GITHUB_RUN_ID; docker rmi -f mcdope/pam_usb-ubuntu-armhf-build 2>/dev/null || true; docker image prune -f"

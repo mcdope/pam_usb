@@ -398,7 +398,7 @@ build-debian-armhf: buildenv-debian-armhf
 		sh -c "make deb && chown -R $(UID):$(GID) .build debian"
 
 buildenv-debian-i386: setup-qemu
-	DOCKER_BUILDKIT=1 $(DOCKER) build --platform linux/386 -f Dockerfile.debian -t mcdope/pam_usb-ubuntu-i386-build .
+	DOCKER_BUILDKIT=1 $(DOCKER) build --platform linux/386 -f Dockerfile.debian-i386 -t mcdope/pam_usb-ubuntu-i386-build .
 
 build-debian-i386: buildenv-debian-i386
 	$(DOCKER) run -i --platform linux/386 \
