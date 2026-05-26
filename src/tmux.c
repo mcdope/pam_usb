@@ -187,7 +187,7 @@ int pusb_tmux_has_remote_clients(const char* username)
         return -1;
     }
 
-    if (strlen(username) > 255)
+    if (strlen(username) > 255) /* DevSkim: ignore DS140021 - username is a PAM-provided NUL-terminated string */
     {
         log_error("Username exceeds 255 characters, denying to prevent regex bypass.\n");
         return -1;
@@ -222,7 +222,7 @@ int pusb_tmux_has_remote_clients(const char* username)
             return -1;
         }
 
-        status = regcomp(&regex[i], regex_raw, REG_EXTENDED);
+        status = regcomp(&regex[i], regex_raw, REG_EXTENDED | REG_NOSUB);
         if (status)
         {
             log_debug("		Couldn't compile regex %d!\n", i);
