@@ -152,12 +152,12 @@ static int make_memfd_with_content(const char *data, size_t len)
 static void test_read_cmdline_short_content(void **state)
 {
 	(void)state;
-	char buf[4096];
+	char buf[CMDLINE_BUF_SIZE];
 	memset(buf, 0xff, sizeof(buf));
 
 	int fd = make_memfd_with_content("hello", 5);
 	assert_true(fd >= 0);
-	ssize_t n = pusb_read_cmdline(fd, buf, 4095);
+	ssize_t n = pusb_read_cmdline(fd, buf, CMDLINE_BUF_SIZE);
 	close(fd);
 
 	assert_int_equal(5, n);
@@ -168,20 +168,20 @@ static void test_read_cmdline_short_content(void **state)
 static void test_read_cmdline_full_buffer(void **state)
 {
 	(void)state;
-	/* Exactly 4095 'A' bytes — the maximum the fixed code will read. */
-	char src[4095];
+	/* Exactly CMDLINE_BUF_SIZE - 1 'A' bytes — the maximum the fixed code will read. */
+	char src[CMDLINE_BUF_SIZE - 1];
 	memset(src, 'A', sizeof(src));
 
-	char buf[4096];
+	char buf[CMDLINE_BUF_SIZE];
 	memset(buf, 0xff, sizeof(buf));
 
 	int fd = make_memfd_with_content(src, sizeof(src));
 	assert_true(fd >= 0);
-	ssize_t n = pusb_read_cmdline(fd, buf, 4095);
+	ssize_t n = pusb_read_cmdline(fd, buf, CMDLINE_BUF_SIZE);
 	close(fd);
 
-	assert_int_equal(4095, n);
-	assert_int_equal('\0', buf[4095]);
+	assert_int_equal(CMDLINE_BUF_SIZE - 1, n);
+	assert_int_equal('\0', buf[CMDLINE_BUF_SIZE - 1]);
 }
 
 static void test_read_cmdline_replaces_nulls(void **state)
@@ -191,12 +191,12 @@ static void test_read_cmdline_replaces_nulls(void **state)
 	const char data[] = "Xorg\0:0\0-auth\0/tmp/auth";
 	size_t len = sizeof(data) - 1; /* drop trailing \0 added by C string literal */
 
-	char buf[4096];
+	char buf[CMDLINE_BUF_SIZE];
 	memset(buf, 0, sizeof(buf));
 
 	int fd = make_memfd_with_content(data, len);
 	assert_true(fd >= 0);
-	ssize_t n = pusb_read_cmdline(fd, buf, 4095);
+	ssize_t n = pusb_read_cmdline(fd, buf, CMDLINE_BUF_SIZE);
 	close(fd);
 
 	assert_int_equal((ssize_t)len, n);
@@ -208,9 +208,9 @@ static void test_read_cmdline_replaces_nulls(void **state)
 static void test_read_cmdline_read_error(void **state)
 {
 	(void)state;
-	char buf[4096];
+	char buf[CMDLINE_BUF_SIZE];
 	/* fd -1 is always invalid */
-	ssize_t n = pusb_read_cmdline(-1, buf, 4095);
+	ssize_t n = pusb_read_cmdline(-1, buf, CMDLINE_BUF_SIZE);
 	assert_int_equal(-1, n);
 }
 

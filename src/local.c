@@ -37,6 +37,7 @@
 #include "evdev.h"
 
 #define PUSB_DISPLAY_MAX 256
+#define CMDLINE_BUF_SIZE 4096
 
 static int pusb_utmpx_field_equals(const char *field, size_t field_len, const char *value)
 {
@@ -127,13 +128,13 @@ int pusb_is_tty_local(char *tty)
 	return (1);
 }
 
-static ssize_t pusb_read_cmdline(int fd, char *buf, size_t bufmax)
+static ssize_t pusb_read_cmdline(int fd, char *buf, size_t bufsize)
 {
-	if (buf == NULL || bufmax == 0) return -1;
-	ssize_t n = read(fd, buf, bufmax);
+	if (buf == NULL || bufsize <= 1) return -1;
+	ssize_t n = read(fd, buf, bufsize - 1);
 	if (n < 0) return -1;
-	if ((size_t)n == bufmax)
-		log_debug("cmdline read hit buffer limit (%zu bytes); entry may be truncated\n", bufmax);
+	if ((size_t)n == bufsize - 1)
+		log_debug("cmdline read hit buffer limit (%zu bytes); entry may be truncated\n", bufsize - 1);
 	buf[n] = '\0';
 	for (ssize_t i = 0; i < n; i++)
 		if (!buf[i]) buf[i] = ' ';
@@ -148,7 +149,7 @@ char *pusb_get_tty_from_display_server(const char *display)
 	}
 
 	char *cmdline_path = (char *)xmalloc(PATH_MAX);
-	char *cmdline = (char *)xmalloc(4096);
+	char *cmdline = (char *)xmalloc(CMDLINE_BUF_SIZE);
 	char *fd_path = (char *)xmalloc(PATH_MAX);
 	char *link_path = (char *)xmalloc(PATH_MAX);
 	char *fd_target = (char *)xmalloc(PATH_MAX);
@@ -161,10 +162,10 @@ char *pusb_get_tty_from_display_server(const char *display)
 			memset(cmdline_path, 0, PATH_MAX);
 			snprintf(cmdline_path, PATH_MAX, "/proc/%s/cmdline", dent_proc->d_name);
 
-			memset(cmdline, 0, 4096);
+			memset(cmdline, 0, CMDLINE_BUF_SIZE);
 			int cmdline_file = open(cmdline_path, O_RDONLY | O_CLOEXEC);
 			if (cmdline_file < 0) continue;
-			ssize_t bytes_read = pusb_read_cmdline(cmdline_file, cmdline, 4095);
+			ssize_t bytes_read = pusb_read_cmdline(cmdline_file, cmdline, CMDLINE_BUF_SIZE);
 			int saved_errno = errno;
 			close(cmdline_file);
 			errno = saved_errno;
