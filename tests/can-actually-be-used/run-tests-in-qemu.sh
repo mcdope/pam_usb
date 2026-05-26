@@ -86,8 +86,8 @@ if [ ! -f "$IMAGE_CACHE" ]; then
 fi
 
 DISK_IMG="${WORK_DIR}/disk.qcow2"
-qemu-img create -f qcow2 -b "$(realpath "$IMAGE_CACHE")" -F qcow2 "$DISK_IMG" -q
-qemu-img resize "$DISK_IMG" +8G -q
+qemu-img create -q -f qcow2 -b "$(realpath "$IMAGE_CACHE")" -F qcow2 "$DISK_IMG"
+qemu-img resize -q "$DISK_IMG" +8G
 
 ssh-keygen -t ed25519 -N '' -f "$SSH_KEY" -C 'pam_usb-qemu-test' -q
 PUBKEY="$(cat "${SSH_KEY}.pub")"

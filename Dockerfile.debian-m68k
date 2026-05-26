@@ -21,4 +21,7 @@ RUN dpkg --add-architecture m68k && \
         libglib2.0-0t64:m68k libglib2.0-dev:m68k \
         libevdev2:m68k libevdev-dev:m68k && \
     for deb in *.deb; do dpkg --force-depends --force-architecture -i "$deb"; done && \
-    rm -rf /tmp/m68k-debs
+    rm -rf /tmp/m68k-debs && \
+    printf '#!/bin/sh\nPKG_CONFIG_LIBDIR=/usr/lib/m68k-linux-gnu/pkgconfig exec pkg-config "$@"\n' \
+        > /usr/local/bin/m68k-linux-gnu-pkg-config && \
+    chmod +x /usr/local/bin/m68k-linux-gnu-pkg-config

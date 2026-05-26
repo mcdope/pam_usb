@@ -375,7 +375,7 @@ build-arch: buildenv-arch
 build-all: sourcegz buildenv-arch buildenv-debian buildenv-fedora build-arch build-debian build-fedora build-debian-arm64 build-debian-armhf build-debian-i386 build-debian-m68k build-fedora-arm64 build-arch-arm64
 
 setup-qemu:
-	$(DOCKER) run --rm --privileged multiarch/qemu-user-static --reset -p yes || true
+	$(DOCKER) run --rm --privileged multiarch/qemu-user-static -p yes || true
 
 buildenv-debian-arm64: setup-qemu
 	DOCKER_BUILDKIT=1 $(DOCKER) build --platform linux/arm64 -f Dockerfile.debian -t mcdope/pam_usb-ubuntu-arm64-build .
@@ -385,7 +385,7 @@ build-debian-arm64: buildenv-debian-arm64
 		-v`pwd`/.build:/usr/local/src \
 		-v`pwd`:/usr/local/src/pam_usb \
 		--rm mcdope/pam_usb-ubuntu-arm64-build \
-		sh -c "make deb && chown -R $(UID):$(GID) .build debian"
+		sh -c "git config --global --add safe.directory /usr/local/src/pam_usb && make deb && chown -R $(UID):$(GID) .build debian"
 
 buildenv-debian-armhf: setup-qemu
 	DOCKER_BUILDKIT=1 $(DOCKER) build --platform linux/arm/v7 -f Dockerfile.debian -t mcdope/pam_usb-ubuntu-armhf-build .
@@ -395,7 +395,7 @@ build-debian-armhf: buildenv-debian-armhf
 		-v`pwd`/.build:/usr/local/src \
 		-v`pwd`:/usr/local/src/pam_usb \
 		--rm mcdope/pam_usb-ubuntu-armhf-build \
-		sh -c "make deb && chown -R $(UID):$(GID) .build debian"
+		sh -c "git config --global --add safe.directory /usr/local/src/pam_usb && make deb && chown -R $(UID):$(GID) .build debian"
 
 buildenv-debian-i386: setup-qemu
 	DOCKER_BUILDKIT=1 $(DOCKER) build --platform linux/386 -f Dockerfile.debian-i386 -t mcdope/pam_usb-ubuntu-i386-build .
