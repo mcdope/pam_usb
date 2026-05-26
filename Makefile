@@ -375,7 +375,7 @@ build-arch: buildenv-arch
 build-all: sourcegz buildenv-arch buildenv-debian buildenv-fedora build-arch build-debian build-fedora build-debian-arm64 build-debian-armhf build-debian-i386 build-debian-m68k build-fedora-arm64 build-arch-arm64
 
 setup-qemu:
-	$(DOCKER) run --rm --privileged multiarch/qemu-user-static --reset -p yes
+	$(DOCKER) run --rm --privileged multiarch/qemu-user-static --reset -p yes || true
 
 buildenv-debian-arm64: setup-qemu
 	DOCKER_BUILDKIT=1 $(DOCKER) build --platform linux/arm64 -f Dockerfile.debian -t mcdope/pam_usb-ubuntu-arm64-build .
@@ -428,7 +428,7 @@ build-fedora-arm64: buildenv-fedora-arm64
 		sh -c "make rpm && chown -R $(UID):$(GID) .build fedora"
 
 buildenv-arch-arm64: setup-qemu
-	DOCKER_BUILDKIT=1 $(DOCKER) build --platform linux/arm64 -f Dockerfile.arch -t mcdope/pam_usb-arch-arm64-build .
+	DOCKER_BUILDKIT=1 $(DOCKER) build --platform linux/arm64 -f Dockerfile.arch-arm64 -t mcdope/pam_usb-arch-arm64-build .
 
 build-arch-arm64: buildenv-arch-arm64
 	$(DOCKER) run -i --platform linux/arm64 \

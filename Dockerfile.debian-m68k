@@ -1,5 +1,5 @@
 FROM debian:sid
-ENV DEBIAN_FRONTEND noninteractive
+ENV DEBIAN_FRONTEND=noninteractive
 ENV TERM=xterm
 WORKDIR /usr/local/src/pam_usb
 
@@ -11,7 +11,7 @@ RUN dpkg --add-architecture m68k && \
     apt-get -qqy update && \
     apt-get -qqy install \
         debhelper devscripts wget git python3 python3-gi \
-        crossbuild-essential-m68k \
+        gcc-m68k-linux-gnu g++-m68k-linux-gnu binutils-m68k-linux-gnu libc6-dev-m68k-cross \
         libxml2-dev:m68k libpam0g-dev:m68k libudisks2-dev:m68k \
         libglib2.0-dev:m68k libevdev-dev:m68k \
         gir1.2-udisks-2.0 pkg-config
