@@ -266,13 +266,12 @@ deinstall:
 		$(TOOLS_DEST)/$(PAMUSB_AGENT) \
 		$(TOOLS_DEST)/$(PAMUSB_KEYRING_GNOME) \
 		$(TOOLS_DEST)/$(PAMUSB_PINENTRY) \
-		$(PAM_CONF_DEST)/$(PAM_CONF) \
+		$(PAM_CONF_DEST)/libpam-usb \
 		$(POLKIT_CONF_DEST)/systemd-polkit-agent-helper-pamusb.conf
 
 	$(RM) -rf $(DOCS_DEST)
 	$(RM) -f $(addprefix $(MANS_DEST)/,$(notdir $(MANS)))
 	$(RM) -f $(MANS_DEST)/pamusb-*\.1\.gz
-	$(RM) -f $(PAM_CONF_DEST)/$(PAM_CONF)
 
 uninstall: deinstall
 
