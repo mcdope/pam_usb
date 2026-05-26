@@ -28,6 +28,7 @@
 
 static const char *g_popen_output = "";
 static char g_last_popen_cmd[BUFSIZ];
+static int g_pclose_ret = 0;
 
 FILE *__wrap_popen(const char *cmd, const char *type)
 {
@@ -38,7 +39,7 @@ FILE *__wrap_popen(const char *cmd, const char *type)
 int __wrap_pclose(FILE *fp)
 {
 	fclose(fp);
-	return 0;
+	return g_pclose_ret;
 }
 
 /* ── pusb_tmux_is_safe_socket_path ── */
@@ -242,6 +243,26 @@ static void test_has_remote_empty_output(void **state)
 	assert_int_equal(0, pusb_tmux_has_remote_clients("testuser"));
 }
 
+static void test_has_remote_w_nonzero_exit_denies(void **state)
+{
+	(void)state;
+	/* w exiting non-zero with no match found must deny (fail-closed), not allow */
+	g_popen_output = "";
+	g_pclose_ret = 1;
+	assert_int_equal(-1, pusb_tmux_has_remote_clients("testuser"));
+	g_pclose_ret = 0;
+}
+
+static void test_has_remote_w_nonzero_exit_does_not_override_match(void **state)
+{
+	(void)state;
+	/* If a remote client was already found, a non-zero w exit must not suppress it */
+	g_popen_output = "testuser pts/1   192.168.1.100  10:00   0.00s  tmux attach\n";
+	g_pclose_ret = 1;
+	assert_int_equal(1, pusb_tmux_has_remote_clients("testuser"));
+	g_pclose_ret = 0;
+}
+
 static void test_has_remote_ipv4_username_suffix_no_match(void **state)
 {
 	(void)state;
@@ -400,6 +421,8 @@ int main(void)
 		cmocka_unit_test(test_has_remote_ipv6_no_false_positive_hhmmss),
 		cmocka_unit_test(test_has_remote_local_display),
 		cmocka_unit_test(test_has_remote_empty_output),
+		cmocka_unit_test(test_has_remote_w_nonzero_exit_denies),
+		cmocka_unit_test(test_has_remote_w_nonzero_exit_does_not_override_match),
 		cmocka_unit_test(test_has_remote_ipv4_username_suffix_no_match),
 		cmocka_unit_test(test_has_remote_ipv4_username_prefix_no_match),
 		cmocka_unit_test(test_has_remote_wrong_user_dot_regression),

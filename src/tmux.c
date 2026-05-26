@@ -263,9 +263,19 @@ int pusb_tmux_has_remote_clients(const char* username)
 
     for (i = 0; i < 3; i++) regfree(&regex[i]);
 
-    if (pclose(fp) == -1)
+    int pclose_ret = pclose(fp);
+    if (pclose_ret == -1)
     {
         log_debug("		Closing pipe for 'w' failed, this is quite a wtf...\n");
+        if (result == 0)
+            result = -1;
+    }
+    else if (pclose_ret != 0 && result == 0)
+    {
+        /* w exited non-zero without us finding a match — command may have failed.
+         * Fail closed: treat as error rather than silently allowing access. */
+        log_error("w command exited with non-zero status, denying to be safe.\n");
+        result = -1;
     }
 
     return result;
