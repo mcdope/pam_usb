@@ -126,6 +126,16 @@ int pusb_is_tty_local(char *tty)
 	return (1);
 }
 
+static ssize_t pusb_read_cmdline(int fd, char *buf, size_t bufmax)
+{
+	ssize_t n = read(fd, buf, bufmax);
+	if (n < 0) return -1;
+	buf[n] = '\0';
+	for (ssize_t i = 0; i < n; i++)
+		if (!buf[i]) buf[i] = ' ';
+	return n;
+}
+
 char *pusb_get_tty_from_display_server(const char *display)
 {
 	DIR *d_proc = opendir("/proc");
@@ -150,15 +160,11 @@ char *pusb_get_tty_from_display_server(const char *display)
 			memset(cmdline, 0, 4096);
 			int cmdline_file = open(cmdline_path, O_RDONLY | O_CLOEXEC);
 			if (cmdline_file < 0) continue;
-			int bytes_read = read(cmdline_file, cmdline, 4096);
+			ssize_t bytes_read = pusb_read_cmdline(cmdline_file, cmdline, 4095);
+			int saved_errno = errno;
 			close(cmdline_file);
-			for (int i = 0 ; i < bytes_read; i++) 
-			{
-				if (!cmdline[i] && i != bytes_read) 
-				{
-					cmdline[i] = ' '; // replace \0 with [space]
-				}
-			}
+			errno = saved_errno;
+			if (bytes_read < 0) continue;
 
 			if ((strstr(cmdline, "Xorg") != NULL && strstr(cmdline, display) != NULL)
 				|| strstr(cmdline, "gnome-session-binary") != NULL

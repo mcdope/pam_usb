@@ -10,6 +10,10 @@
 #include <setjmp.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <sys/mman.h>
 #include <cmocka.h>
 
 /* Include source directly to access static helper functions. */
@@ -136,6 +140,80 @@ static void test_loginctl_parse_output_valid_without_newline(void **state)
 	assert_string_equal("yes", result);
 }
 
+static int make_memfd_with_content(const char *data, size_t len)
+{
+	int fd = memfd_create("test_cmdline", 0);
+	if (fd < 0) return -1;
+	if (write(fd, data, len) != (ssize_t)len) { close(fd); return -1; }
+	if (lseek(fd, 0, SEEK_SET) != 0) { close(fd); return -1; }
+	return fd;
+}
+
+static void test_read_cmdline_short_content(void **state)
+{
+	(void)state;
+	char buf[4096];
+	memset(buf, 0xff, sizeof(buf));
+
+	int fd = make_memfd_with_content("hello", 5);
+	assert_true(fd >= 0);
+	ssize_t n = pusb_read_cmdline(fd, buf, 4095);
+	close(fd);
+
+	assert_int_equal(5, n);
+	assert_string_equal("hello", buf);
+	assert_int_equal('\0', buf[5]);
+}
+
+static void test_read_cmdline_full_buffer(void **state)
+{
+	(void)state;
+	/* Exactly 4095 'A' bytes — the maximum the fixed code will read. */
+	char src[4095];
+	memset(src, 'A', sizeof(src));
+
+	char buf[4096];
+	memset(buf, 0xff, sizeof(buf));
+
+	int fd = make_memfd_with_content(src, sizeof(src));
+	assert_true(fd >= 0);
+	ssize_t n = pusb_read_cmdline(fd, buf, 4095);
+	close(fd);
+
+	assert_int_equal(4095, n);
+	assert_int_equal('\0', buf[4095]);
+}
+
+static void test_read_cmdline_replaces_nulls(void **state)
+{
+	(void)state;
+	/* cmdline format: NUL-separated argv tokens */
+	const char data[] = "Xorg\0:0\0-auth\0/tmp/auth";
+	size_t len = sizeof(data) - 1; /* drop trailing \0 added by C string literal */
+
+	char buf[4096];
+	memset(buf, 0, sizeof(buf));
+
+	int fd = make_memfd_with_content(data, len);
+	assert_true(fd >= 0);
+	ssize_t n = pusb_read_cmdline(fd, buf, 4095);
+	close(fd);
+
+	assert_int_equal((ssize_t)len, n);
+	/* All internal NULs must be replaced with spaces */
+	assert_string_equal("Xorg :0 -auth /tmp/auth", buf);
+	assert_int_equal('\0', buf[n]);
+}
+
+static void test_read_cmdline_read_error(void **state)
+{
+	(void)state;
+	char buf[4096];
+	/* fd -1 is always invalid */
+	ssize_t n = pusb_read_cmdline(-1, buf, 4095);
+	assert_int_equal(-1, n);
+}
+
 static void test_local_login_denies_xrdp_session(void **state)
 {
 	(void)state;
@@ -199,6 +277,10 @@ static void test_local_login_display_env_set(void **state)
 int main(void)
 {
 	const struct CMUnitTest tests[] = {
+		cmocka_unit_test(test_read_cmdline_short_content),
+		cmocka_unit_test(test_read_cmdline_full_buffer),
+		cmocka_unit_test(test_read_cmdline_replaces_nulls),
+		cmocka_unit_test(test_read_cmdline_read_error),
 		cmocka_unit_test(test_utmpx_field_equals_exact_nul_padded),
 		cmocka_unit_test(test_utmpx_field_equals_rejects_null_input),
 		cmocka_unit_test(test_utmpx_field_equals_rejects_prefix_match),
