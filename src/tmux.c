@@ -157,7 +157,7 @@ char *pusb_tmux_get_client_tty(pid_t env_pid)
         tmux_client_tty += 5; /* strip /dev/ prefix */
         log_debug("		Got tmux_client_tty: %s\n", tmux_client_tty);
 
-        if (pclose(fp))
+        if (pclose(fp) == -1)
         {
             log_debug("		Closing pipe for 'tmux list-clients' failed, this is quite a wtf...\n");
         }
@@ -184,6 +184,12 @@ int pusb_tmux_has_remote_clients(const char* username)
     if (username == NULL)
     {
         log_error("Username is NULL, cannot check for remote tmux clients.\n");
+        return -1;
+    }
+
+    if (strlen(username) > 255)
+    {
+        log_error("Username exceeds 255 characters, denying to prevent regex bypass.\n");
         return -1;
     }
 
@@ -257,7 +263,7 @@ int pusb_tmux_has_remote_clients(const char* username)
 
     for (i = 0; i < 3; i++) regfree(&regex[i]);
 
-    if (pclose(fp))
+    if (pclose(fp) == -1)
     {
         log_debug("		Closing pipe for 'w' failed, this is quite a wtf...\n");
     }
