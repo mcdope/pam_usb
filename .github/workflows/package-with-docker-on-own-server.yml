@@ -16,6 +16,13 @@ jobs:
       run: sudo apt install sshpass
     - name: FURTHER STEPS EXECUTED ON CONFIGURED RUNNER
       run: exit 0
+    - name: Free runner disk before build
+      env:
+        TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
+        TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
+        TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
+        TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "docker rmi -f mcdope/pam_usb-ubuntu-build 2>/dev/null || true; docker image prune -f"
     - name: git clone
       env:
         TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
@@ -73,7 +80,7 @@ jobs:
         TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
         TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
         TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
-      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -tt -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "sudo rm -rf ~/pam_usb_deb_$GITHUB_RUN_ID"
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -tt -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "sudo rm -rf ~/pam_usb_deb_$GITHUB_RUN_ID; docker rmi -f mcdope/pam_usb-ubuntu-build 2>/dev/null || true; docker image prune -f"
 
 
   Fedora:
@@ -85,6 +92,13 @@ jobs:
       run: sudo apt install sshpass
     - name: FURTHER STEPS EXECUTED ON CONFIGURED RUNNER
       run: echo 0
+    - name: Free runner disk before build
+      env:
+        TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
+        TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
+        TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
+        TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "docker rmi -f mcdope/pam_usb-fedora-build 2>/dev/null || true; docker image prune -f"
     - name: git clone
       env:
         TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
@@ -142,7 +156,7 @@ jobs:
         TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
         TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
         TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
-      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -tt -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "sudo rm -rf ~/pam_usb_rpm_$GITHUB_RUN_ID"
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -tt -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "sudo rm -rf ~/pam_usb_rpm_$GITHUB_RUN_ID; docker rmi -f mcdope/pam_usb-fedora-build 2>/dev/null || true; docker image prune -f"
 
   Arch:
 
@@ -153,6 +167,13 @@ jobs:
       run: sudo apt install sshpass
     - name: FURTHER STEPS EXECUTED ON CONFIGURED RUNNER
       run: echo 0
+    - name: Free runner disk before build
+      env:
+        TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
+        TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
+        TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
+        TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "docker rmi -f mcdope/pam_usb-arch-build 2>/dev/null || true; docker image prune -f"
     - name: git clone
       env:
         TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
@@ -210,7 +231,7 @@ jobs:
         TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
         TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
         TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
-      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -tt -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "sudo rm -rf ~/pam_usb_arch_$GITHUB_RUN_ID"
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -tt -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "sudo rm -rf ~/pam_usb_arch_$GITHUB_RUN_ID; docker rmi -f mcdope/pam_usb-arch-build 2>/dev/null || true; docker image prune -f"
 
 
   Debian-arm64:
@@ -222,6 +243,13 @@ jobs:
       run: sudo apt install sshpass
     - name: FURTHER STEPS EXECUTED ON CONFIGURED RUNNER
       run: exit 0
+    - name: Free runner disk before build
+      env:
+        TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
+        TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
+        TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
+        TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "docker rmi -f mcdope/pam_usb-ubuntu-arm64-build 2>/dev/null || true; docker image prune -f"
     - name: git clone
       env:
         TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
@@ -298,6 +326,13 @@ jobs:
       run: sudo apt install sshpass
     - name: FURTHER STEPS EXECUTED ON CONFIGURED RUNNER
       run: exit 0
+    - name: Free runner disk before build
+      env:
+        TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
+        TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
+        TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
+        TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "docker rmi -f mcdope/pam_usb-ubuntu-armhf-build 2>/dev/null || true; docker image prune -f"
     - name: git clone
       env:
         TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
@@ -374,6 +409,13 @@ jobs:
       run: sudo apt install sshpass
     - name: FURTHER STEPS EXECUTED ON CONFIGURED RUNNER
       run: exit 0
+    - name: Free runner disk before build
+      env:
+        TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
+        TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
+        TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
+        TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "docker rmi -f mcdope/pam_usb-ubuntu-i386-build 2>/dev/null || true; docker image prune -f"
     - name: git clone
       env:
         TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
@@ -450,6 +492,13 @@ jobs:
       run: sudo apt install sshpass
     - name: FURTHER STEPS EXECUTED ON CONFIGURED RUNNER
       run: exit 0
+    - name: Free runner disk before build
+      env:
+        TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
+        TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
+        TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
+        TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "docker rmi -f mcdope/pam_usb-debian-m68k-build 2>/dev/null || true; docker image prune -f"
     - name: git clone
       env:
         TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
@@ -526,6 +575,13 @@ jobs:
       run: sudo apt install sshpass
     - name: FURTHER STEPS EXECUTED ON CONFIGURED RUNNER
       run: echo 0
+    - name: Free runner disk before build
+      env:
+        TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
+        TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
+        TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
+        TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "docker rmi -f mcdope/pam_usb-fedora-arm64-build 2>/dev/null || true; docker image prune -f"
     - name: git clone
       env:
         TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
@@ -602,6 +658,13 @@ jobs:
       run: sudo apt install sshpass
     - name: FURTHER STEPS EXECUTED ON CONFIGURED RUNNER
       run: echo 0
+    - name: Free runner disk before build
+      env:
+        TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
+        TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
+        TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
+        TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "docker rmi -f mcdope/pam_usb-arch-arm64-build 2>/dev/null || true; docker image prune -f"
     - name: git clone
       env:
         TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
