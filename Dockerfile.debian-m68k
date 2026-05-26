@@ -10,7 +10,7 @@ RUN dpkg --add-architecture m68k && \
     echo 'deb [arch=m68k] http://ftp.ports.debian.org/debian-ports/ sid main' >> /etc/apt/sources.list && \
     apt-get -qqy update && \
     apt-get -qqy install --no-install-recommends \
-        debhelper devscripts wget git python3 python3-gi \
+        build-essential debhelper devscripts wget git python3 python3-gi \
         gcc-m68k-linux-gnu g++-m68k-linux-gnu binutils-m68k-linux-gnu libc6-dev-m68k-cross \
         gir1.2-udisks-2.0 pkg-config && \
     mkdir -p /tmp/m68k-debs && cd /tmp/m68k-debs && \
