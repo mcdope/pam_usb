@@ -1,0 +1,17 @@
+FROM debian:sid
+ENV DEBIAN_FRONTEND noninteractive
+ENV TERM=xterm
+WORKDIR /usr/local/src/pam_usb
+
+RUN apt-get -qqy update && \
+    apt-get -qqy install --no-install-recommends debian-ports-archive-keyring ca-certificates
+
+RUN dpkg --add-architecture m68k && \
+    echo 'deb [arch=m68k] http://ftp.ports.debian.org/debian-ports/ sid main' >> /etc/apt/sources.list && \
+    apt-get -qqy update && \
+    apt-get -qqy install \
+        debhelper devscripts wget git python3 python3-gi \
+        crossbuild-essential-m68k \
+        libxml2-dev:m68k libpam0g-dev:m68k libudisks2-dev:m68k \
+        libglib2.0-dev:m68k libevdev-dev:m68k \
+        gir1.2-udisks-2.0 pkg-config

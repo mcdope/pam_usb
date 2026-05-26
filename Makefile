@@ -2,7 +2,13 @@
 DEBUG := no
 
 PREFIX ?= /usr
-ARCH := $(shell uname -m)
+CROSS_ARCH ?=
+ifeq ($(CROSS_ARCH),)
+    ifeq ($(DEB_HOST_ARCH), m68k)
+        CROSS_ARCH := m68k-linux-gnu
+    endif
+endif
+ARCH := $(if $(CROSS_ARCH),$(CROSS_ARCH),$(shell uname -m))
 UID := $(shell id -u)
 GID := $(shell id -g)
 USE_FEDORA_LIBDIR := $(shell test -d /lib64/security && echo 1 || echo 0)
@@ -19,7 +25,11 @@ ifeq ($(ARCH), i686)
 	LIBDIR ?= lib
 endif
 ifeq ($(ARCH), aarch64) # ARM64, i.e Apple silicon and other up2date CPUs/SoCs
-	LIBDIR ?= lib/aarch64-linux-gnu
+	ifeq ($(USE_FEDORA_LIBDIR), 1)
+		LIBDIR ?= lib64
+	else
+		LIBDIR ?= lib/aarch64-linux-gnu
+	endif
 endif
 ifeq ($(ARCH), armv7l) # ARM32, i.e Raspberries
 	LIBDIR ?= lib/arm-linux-gnueabihf
@@ -29,8 +39,9 @@ ifeq ($(ARCH), m68k-linux-gnu) # Motorola 68k - Amiga forever
 endif
 
 # compiler/linker options
-CC := gcc
-CFLAGS := $(CFLAGS) -Wall -O2 -fPIC -fstack-protector-strong -D_FORTIFY_SOURCE=2 -fstack-clash-protection -fno-plt -Wformat=2 `pkg-config --cflags libxml-2.0` `pkg-config --cflags udisks2` `pkg-config --cflags libevdev` #cflags libxml?
+CC ?= gcc
+PKG_CONFIG ?= pkg-config
+CFLAGS := $(CFLAGS) -Wall -O2 -fPIC -fstack-protector-strong -D_FORTIFY_SOURCE=2 -fstack-clash-protection -fno-plt -Wformat=2 `$(PKG_CONFIG) --cflags libxml-2.0` `$(PKG_CONFIG) --cflags udisks2` `$(PKG_CONFIG) --cflags libevdev` #cflags libxml?
 # -fzero-call-used-regs requires GCC >= 11; probe at configure time
 ZERO_REGS_SUPPORTED := $(shell $(CC) -fzero-call-used-regs=used-gpr -E - < /dev/null 2>/dev/null && echo yes)
 ifeq ($(ZERO_REGS_SUPPORTED), yes)
@@ -45,7 +56,7 @@ endif
 
 HARDENING_LDFLAGS := -Wl,-z,relro -Wl,-z,now -Wl,-z,noexecstack
 
-LIBS := `pkg-config --libs libxml-2.0` `pkg-config --libs udisks2` `pkg-config --libs libevdev`
+LIBS := `$(PKG_CONFIG) --libs libxml-2.0` `$(PKG_CONFIG) --libs udisks2` `$(PKG_CONFIG) --libs libevdev`
 
 # common source files
 SRCS := src/conf.c \
@@ -106,7 +117,8 @@ POLKIT_CONF_DEST := $(DESTDIR)$(PREFIX)/lib/systemd/system/polkit-agent-helper@.
 RM  := rm
 INSTALL	:= install
 MKDIR := mkdir
-DEBUILD	:= debuild -b -uc -us --lintian-opts --profile debian
+DEBARCH ?=
+DEBUILD	:= debuild $(if $(DEBARCH),-a $(DEBARCH),) -b -uc -us --lintian-opts --profile debian
 RPMBUILD := rpmbuild -v -bb --clean fedora/SPECS/pam_usb.spec
 ZSTBUILD := cd arch_linux && makepkg -p PKGBUILD_git && cd ..
 MANCOMPILE := gzip -kf
@@ -116,14 +128,14 @@ DOCKER := docker
 
 # ── Unit test targets ──────────────────────────────────────────────────────────
 TEST_CFLAGS              := $(CFLAGS)
-XPATH_LDFLAGS            := `pkg-config --libs libxml-2.0` -lcmocka
-CONF_LDFLAGS             := `pkg-config --libs libxml-2.0` -lcmocka
+XPATH_LDFLAGS            := `$(PKG_CONFIG) --libs libxml-2.0` -lcmocka
+CONF_LDFLAGS             := `$(PKG_CONFIG) --libs libxml-2.0` -lcmocka
 TMUX_LDFLAGS             := -lcmocka
-PAD_LDFLAGS              := `pkg-config --libs libxml-2.0` -lcmocka
+PAD_LDFLAGS              := `$(PKG_CONFIG) --libs libxml-2.0` -lcmocka
 PROC_LDFLAGS             := -lcmocka
 RMSVC_LDFLAGS            := -lcmocka
 EVDEV_LDFLAGS            := -lcmocka
-LOCAL_LDFLAGS            := `pkg-config --libs libevdev` -lcmocka
+LOCAL_LDFLAGS            := `$(PKG_CONFIG) --libs libevdev` -lcmocka
 PAM_TEST_LDFLAGS         := -lcmocka
 LOG_TEST_LDFLAGS         := -lcmocka
 MEM_LDFLAGS              := -lcmocka
@@ -360,4 +372,67 @@ build-arch: buildenv-arch
 		--rm mcdope/pam_usb-arch-build \
 		sh -c "chown -R builduser:builduser . && sudo -u builduser make zst && chown -R $(UID):$(GID) ."
 
-build-all: sourcegz buildenv-arch buildenv-debian buildenv-fedora build-arch build-debian build-fedora
+build-all: sourcegz buildenv-arch buildenv-debian buildenv-fedora build-arch build-debian build-fedora build-debian-arm64 build-debian-armhf build-debian-i386 build-debian-m68k build-fedora-arm64 build-arch-arm64
+
+setup-qemu:
+	$(DOCKER) run --rm --privileged multiarch/qemu-user-static --reset -p yes
+
+buildenv-debian-arm64: setup-qemu
+	DOCKER_BUILDKIT=1 $(DOCKER) build --platform linux/arm64 -f Dockerfile.debian -t mcdope/pam_usb-ubuntu-arm64-build .
+
+build-debian-arm64: buildenv-debian-arm64
+	$(DOCKER) run -i --platform linux/arm64 \
+		-v`pwd`/.build:/usr/local/src \
+		-v`pwd`:/usr/local/src/pam_usb \
+		--rm mcdope/pam_usb-ubuntu-arm64-build \
+		sh -c "make deb && chown -R $(UID):$(GID) .build debian"
+
+buildenv-debian-armhf: setup-qemu
+	DOCKER_BUILDKIT=1 $(DOCKER) build --platform linux/arm/v7 -f Dockerfile.debian -t mcdope/pam_usb-ubuntu-armhf-build .
+
+build-debian-armhf: buildenv-debian-armhf
+	$(DOCKER) run -i --platform linux/arm/v7 \
+		-v`pwd`/.build:/usr/local/src \
+		-v`pwd`:/usr/local/src/pam_usb \
+		--rm mcdope/pam_usb-ubuntu-armhf-build \
+		sh -c "make deb && chown -R $(UID):$(GID) .build debian"
+
+buildenv-debian-i386: setup-qemu
+	DOCKER_BUILDKIT=1 $(DOCKER) build --platform linux/386 -f Dockerfile.debian -t mcdope/pam_usb-ubuntu-i386-build .
+
+build-debian-i386: buildenv-debian-i386
+	$(DOCKER) run -i --platform linux/386 \
+		-v`pwd`/.build:/usr/local/src \
+		-v`pwd`:/usr/local/src/pam_usb \
+		--rm mcdope/pam_usb-ubuntu-i386-build \
+		sh -c "make deb && chown -R $(UID):$(GID) .build debian"
+
+buildenv-debian-m68k:
+	$(DOCKER) build -f Dockerfile.debian-m68k -t mcdope/pam_usb-debian-m68k-build .
+
+build-debian-m68k: buildenv-debian-m68k
+	$(DOCKER) run -i \
+		-v`pwd`/.build:/usr/local/src \
+		-v`pwd`:/usr/local/src/pam_usb \
+		--rm mcdope/pam_usb-debian-m68k-build \
+		sh -c "DEBARCH=m68k make deb && chown -R $(UID):$(GID) .build debian"
+
+buildenv-fedora-arm64: setup-qemu
+	DOCKER_BUILDKIT=1 $(DOCKER) build --platform linux/arm64 -f Dockerfile.fedora -t mcdope/pam_usb-fedora-arm64-build .
+
+build-fedora-arm64: buildenv-fedora-arm64
+	$(DOCKER) run -i --platform linux/arm64 \
+		-v`pwd`/.build:/usr/local/src \
+		-v`pwd`:/usr/local/src/pam_usb \
+		--rm mcdope/pam_usb-fedora-arm64-build \
+		sh -c "make rpm && chown -R $(UID):$(GID) .build fedora"
+
+buildenv-arch-arm64: setup-qemu
+	DOCKER_BUILDKIT=1 $(DOCKER) build --platform linux/arm64 -f Dockerfile.arch -t mcdope/pam_usb-arch-arm64-build .
+
+build-arch-arm64: buildenv-arch-arm64
+	$(DOCKER) run -i --platform linux/arm64 \
+		-v`pwd`/.build:/usr/local/src \
+		-v`pwd`:/usr/local/src/pam_usb \
+		--rm mcdope/pam_usb-arch-arm64-build \
+		sh -c "chown -R builduser:builduser . && sudo -u builduser make zst && chown -R $(UID):$(GID) ."

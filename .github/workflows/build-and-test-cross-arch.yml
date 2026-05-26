@@ -1,0 +1,158 @@
+name: Functional tests (cross-arch, QEMU)
+
+on:
+  pull_request:
+    branches: [ master ]
+  push:
+    branches: [ master ]
+
+# arm64 and armhf are tested by booting a full Ubuntu Jammy QEMU VM on the
+# custom runner, installing the built .deb, and running the functional suite
+# (tests/can-actually-be-used/run-tests.sh) inside the VM.
+#
+# i386 does not have a QEMU functional test here: Ubuntu dropped i386 cloud
+# images after 18.04, and a 32-bit PAM module cannot be loaded by a 64-bit
+# PAM framework on the x86_64 runner host. Build correctness for i386 is
+# verified by the Debian-i386 job in package-with-docker-on-own-server.yml.
+#
+# m68k has no QEMU full-system emulation that reliably runs modern Linux;
+# build correctness is verified by the Debian-m68k packaging job.
+
+jobs:
+
+  FunctionalTest-arm64:
+
+    runs-on: ubuntu-22.04
+
+    steps:
+    - name: Install sshpass on Github runner
+      run: sudo apt install sshpass
+    - name: FURTHER STEPS EXECUTED ON CONFIGURED RUNNER
+      run: exit 0
+    - name: git clone
+      env:
+        TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
+        TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
+        TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
+        TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -tt -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "sudo rm -rf ~/pam_usb_qemu_arm64_$GITHUB_RUN_ID; mkdir ~/pam_usb_qemu_arm64_$GITHUB_RUN_ID; cd ~/pam_usb_qemu_arm64_$GITHUB_RUN_ID && git clone https://github.com/mcdope/pam_usb.git ."
+    - name: git fetch --all
+      env:
+        TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
+        TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
+        TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
+        TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "cd ~/pam_usb_qemu_arm64_$GITHUB_RUN_ID && git fetch --all"
+    - name: git reset --hard
+      env:
+        TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
+        TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
+        TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
+        TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "cd ~/pam_usb_qemu_arm64_$GITHUB_RUN_ID && git reset --hard"
+    - name: git switch -f
+      env:
+        TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
+        TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
+        TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
+        TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
+        REF_TO_CHECKOUT: ${{ github.head_ref }}
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "cd ~/pam_usb_qemu_arm64_$GITHUB_RUN_ID && git switch -f $REF_TO_CHECKOUT || git switch -f master"
+    - name: git pull
+      env:
+        TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
+        TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
+        TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
+        TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "cd ~/pam_usb_qemu_arm64_$GITHUB_RUN_ID && git pull"
+    - name: Build arm64 .deb
+      env:
+        TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
+        TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
+        TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
+        TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "cd ~/pam_usb_qemu_arm64_$GITHUB_RUN_ID && make build-debian-arm64"
+    - name: Run functional test suite in arm64 QEMU VM
+      env:
+        TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
+        TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
+        TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
+        TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW 'cd ~/pam_usb_qemu_arm64_'"$GITHUB_RUN_ID"' && tests/can-actually-be-used/run-tests-in-qemu.sh arm64 $(ls .build/libpam-usb_*_arm64.deb | head -1)'
+    - name: Cleanup
+      if: always()
+      env:
+        TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
+        TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
+        TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
+        TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -tt -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "sudo rm -rf ~/pam_usb_qemu_arm64_$GITHUB_RUN_ID"
+
+
+  FunctionalTest-armhf:
+
+    runs-on: ubuntu-22.04
+
+    steps:
+    - name: Install sshpass on Github runner
+      run: sudo apt install sshpass
+    - name: FURTHER STEPS EXECUTED ON CONFIGURED RUNNER
+      run: exit 0
+    - name: git clone
+      env:
+        TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
+        TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
+        TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
+        TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -tt -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "sudo rm -rf ~/pam_usb_qemu_armhf_$GITHUB_RUN_ID; mkdir ~/pam_usb_qemu_armhf_$GITHUB_RUN_ID; cd ~/pam_usb_qemu_armhf_$GITHUB_RUN_ID && git clone https://github.com/mcdope/pam_usb.git ."
+    - name: git fetch --all
+      env:
+        TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
+        TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
+        TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
+        TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "cd ~/pam_usb_qemu_armhf_$GITHUB_RUN_ID && git fetch --all"
+    - name: git reset --hard
+      env:
+        TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
+        TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
+        TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
+        TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "cd ~/pam_usb_qemu_armhf_$GITHUB_RUN_ID && git reset --hard"
+    - name: git switch -f
+      env:
+        TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
+        TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
+        TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
+        TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
+        REF_TO_CHECKOUT: ${{ github.head_ref }}
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "cd ~/pam_usb_qemu_armhf_$GITHUB_RUN_ID && git switch -f $REF_TO_CHECKOUT || git switch -f master"
+    - name: git pull
+      env:
+        TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
+        TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
+        TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
+        TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "cd ~/pam_usb_qemu_armhf_$GITHUB_RUN_ID && git pull"
+    - name: Build armhf .deb
+      env:
+        TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
+        TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
+        TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
+        TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "cd ~/pam_usb_qemu_armhf_$GITHUB_RUN_ID && make build-debian-armhf"
+    - name: Run functional test suite in armhf QEMU VM
+      env:
+        TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
+        TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
+        TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
+        TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW 'cd ~/pam_usb_qemu_armhf_'"$GITHUB_RUN_ID"' && tests/can-actually-be-used/run-tests-in-qemu.sh armhf $(ls .build/libpam-usb_*_armhf.deb | head -1)'
+    - name: Cleanup
+      if: always()
+      env:
+        TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
+        TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
+        TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
+        TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -tt -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "sudo rm -rf ~/pam_usb_qemu_armhf_$GITHUB_RUN_ID"
