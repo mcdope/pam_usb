@@ -36,9 +36,21 @@ TEST_USER="tester"
 mkdir -p "$CACHE_DIR"
 
 cleanup() {
-    if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
-        kill "$(cat "$PIDFILE")" 2>/dev/null || true
-        sleep 2
+    if [ -f "$PIDFILE" ]; then
+        local pid
+        pid=$(cat "$PIDFILE")
+        if kill -0 "$pid" 2>/dev/null; then
+            kill "$pid" 2>/dev/null || true
+            for i in $(seq 1 10); do
+                if ! kill -0 "$pid" 2>/dev/null; then
+                    break
+                fi
+                sleep 1
+            done
+            if kill -0 "$pid" 2>/dev/null; then
+                kill -9 "$pid" 2>/dev/null || true
+            fi
+        fi
     fi
     rm -rf "$WORK_DIR"
 }
@@ -134,8 +146,8 @@ $QEMU_BIN \
     -daemonize \
     -pidfile "$PIDFILE"
 
-SSH_CMD="ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 -p $SSH_PORT -i $SSH_KEY ${TEST_USER}@localhost"
-SCP_CMD="scp -o StrictHostKeyChecking=no -P $SSH_PORT -i $SSH_KEY"
+SSH_CMD="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5 -p $SSH_PORT -i $SSH_KEY ${TEST_USER}@localhost"
+SCP_CMD="scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -P $SSH_PORT -i $SSH_KEY"
 
 echo "Waiting for VM to boot (max 10 minutes)..."
 BOOTED=0
@@ -165,7 +177,8 @@ $SSH_CMD "sudo DEBIAN_FRONTEND=noninteractive apt install --reinstall -yq /tmp/l
 # Tests run inside an SSH session so deny_remote would block authentication
 $SSH_CMD "sudo sed -i 's/<defaults>/<defaults><option name=\"deny_remote\">false<\/option>/g' /etc/security/pam_usb.conf"
 
-$SCP_CMD -r "$SCRIPT_DIR" "${TEST_USER}@localhost:/tmp/pam_usb_tests"
+$SSH_CMD "mkdir -p /tmp/pam_usb_tests"
+$SCP_CMD -r "$SCRIPT_DIR/." "${TEST_USER}@localhost:/tmp/pam_usb_tests/"
 
 $SSH_CMD "cd /tmp/pam_usb_tests && ./setup-dummyhcd.sh"
 $SSH_CMD "cd /tmp/pam_usb_tests && ./prepare-mounting.sh"
