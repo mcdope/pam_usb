@@ -415,7 +415,7 @@ build-debian-m68k: buildenv-debian-m68k
 		-v`pwd`/.build:/usr/local/src \
 		-v`pwd`:/usr/local/src/pam_usb \
 		--rm mcdope/pam_usb-debian-m68k-build \
-		sh -c "DEBARCH=m68k make deb && chown -R $(UID):$(GID) .build debian"
+		sh -c "git config --global --add safe.directory /usr/local/src/pam_usb && DEBARCH=m68k make deb && chown -R $(UID):$(GID) .build debian"
 
 buildenv-fedora-arm64: setup-qemu
 	DOCKER_BUILDKIT=1 $(DOCKER) build --platform linux/arm64 -f Dockerfile.fedora -t mcdope/pam_usb-fedora-arm64-build .
