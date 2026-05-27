@@ -20,8 +20,15 @@ RUN dpkg --add-architecture m68k && \
         libudisks2-0:m68k libudisks2-dev:m68k \
         libglib2.0-0t64:m68k libglib2.0-dev:m68k \
         libgio-2.0-dev:m68k \
-        libevdev2:m68k libevdev-dev:m68k && \
+        libevdev2:m68k libevdev-dev:m68k \
+        zlib1g:m68k zlib1g-dev:m68k && \
     for deb in *.deb; do dpkg --force-depends --force-architecture -i "$deb"; done && \
+    for f in /usr/lib/m68k-linux-gnu/*.so.*.*; do \
+        [ -f "$f" ] || continue; \
+        d=$(dirname "$f"); b=$(basename "$f"); \
+        so=$(echo "$b" | sed 's/\(.*\.so\.[0-9][0-9]*\)\..*/\1/'); \
+        [ "$so" != "$b" ] && [ ! -e "$d/$so" ] && ln -sf "$b" "$d/$so" || true; \
+    done && \
     rm -rf /tmp/m68k-debs && \
     printf '#!/bin/sh\nPKG_CONFIG_LIBDIR=/usr/lib/m68k-linux-gnu/pkgconfig:/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig exec pkg-config "$@"\n' \
         > /usr/bin/m68k-linux-gnu-pkg-config && \
