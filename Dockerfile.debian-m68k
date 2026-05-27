@@ -19,6 +19,7 @@ RUN dpkg --add-architecture m68k && \
         libpam0g:m68k libpam0g-dev:m68k \
         libudisks2-0:m68k libudisks2-dev:m68k \
         libglib2.0-0t64:m68k libglib2.0-dev:m68k \
+        libgio-2.0-0t64:m68k libgio-2.0-dev:m68k \
         libevdev2:m68k libevdev-dev:m68k && \
     for deb in *.deb; do dpkg --force-depends --force-architecture -i "$deb"; done && \
     rm -rf /tmp/m68k-debs && \
