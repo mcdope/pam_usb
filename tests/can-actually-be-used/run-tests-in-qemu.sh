@@ -58,20 +58,45 @@ trap cleanup EXIT
 
 SSH_PORT=$(python3 -c "import socket; s=socket.socket(); s.bind(('',0)); print(s.getsockname()[1]); s.close()")
 
+find_bios() {
+    for path in "$@"; do
+        if [ -f "$path" ]; then
+            echo "$path"
+            return 0
+        fi
+    done
+    return 1
+}
+
 case "$ARCH" in
     arm64)
         QEMU_BIN="qemu-system-aarch64"
         IMAGE_URL="https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-arm64.img"
         IMAGE_CACHE="${CACHE_DIR}/jammy-arm64.img"
-        QEMU_MACHINE="-M virt -cpu cortex-a57 -m 2048"
-        QEMU_BIOS="-bios /usr/share/qemu-efi-aarch64/QEMU_EFI.fd"
+        QEMU_MACHINE="-M virt -cpu cortex-a57 -smp 8 -m 2048"
+        BIOS_PATH="$(find_bios \
+            /usr/share/qemu-efi-aarch64/QEMU_EFI.fd \
+            /usr/share/AAVMF/AAVMF_CODE.fd \
+            /usr/share/qemu-efi/QEMU_EFI.fd)" || true
+        if [ -z "$BIOS_PATH" ]; then
+            echo "Error: cannot find arm64 EFI firmware" >&2; exit 1
+        fi
+        QEMU_BIOS="-bios ${BIOS_PATH}"
         ;;
     armhf)
         QEMU_BIN="qemu-system-arm"
         IMAGE_URL="https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-armhf.img"
         IMAGE_CACHE="${CACHE_DIR}/jammy-armhf.img"
-        QEMU_MACHINE="-M virt -cpu cortex-a15 -m 2048"
-        QEMU_BIOS="-bios /usr/share/qemu-efi-arm/QEMU_EFI.fd"
+        QEMU_MACHINE="-M virt -cpu cortex-a15 -smp 8 -m 2048"
+        BIOS_PATH="$(find_bios \
+            /usr/share/qemu-efi-arm/QEMU_EFI.fd \
+            /usr/share/qemu-efi/QEMU32_EFI.fd \
+            /usr/share/AAVMF/AAVMF32_CODE.fd \
+            /usr/lib/u-boot/qemu_arm/u-boot.bin)" || true
+        if [ -z "$BIOS_PATH" ]; then
+            echo "Error: cannot find armhf EFI/U-Boot firmware" >&2; exit 1
+        fi
+        QEMU_BIOS="-bios ${BIOS_PATH}"
         ;;
     *)
         echo "Unsupported arch: $ARCH (supported: arm64, armhf)" >&2
@@ -149,9 +174,9 @@ $QEMU_BIN \
 SSH_CMD="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5 -p $SSH_PORT -i $SSH_KEY ${TEST_USER}@localhost"
 SCP_CMD="scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -P $SSH_PORT -i $SSH_KEY"
 
-echo "Waiting for VM to boot (max 10 minutes)..."
+echo "Waiting for VM to boot (max 20 minutes)..."
 BOOTED=0
-for i in $(seq 1 60); do
+for i in $(seq 1 120); do
     if $SSH_CMD "true" 2>/dev/null; then
         BOOTED=1
         break
@@ -160,7 +185,7 @@ for i in $(seq 1 60); do
 done
 
 if [ $BOOTED -eq 0 ]; then
-    echo "Error: VM did not become reachable within 10 minutes" >&2
+    echo "Error: VM did not become reachable within 20 minutes" >&2
     exit 1
 fi
 echo "VM is reachable."
