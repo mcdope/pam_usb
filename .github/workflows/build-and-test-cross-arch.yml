@@ -92,14 +92,14 @@ jobs:
         TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
         TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
         TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
-      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "which qemu-img >/dev/null 2>&1 || sudo apt-get install -y qemu-utils"
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "sudo apt-get install -y qemu-utils qemu-efi-aarch64 qemu-system-arm cloud-image-utils 2>/dev/null || true"
     - name: Run functional test suite in arm64 QEMU VM
       env:
         TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
         TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
         TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
         TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
-      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW 'cd ~/pam_usb_qemu_arm64_'"$GITHUB_RUN_ID"' && tests/can-actually-be-used/run-tests-in-qemu.sh arm64 $(ls .build/libpam-usb_*_arm64.deb | head -1)'
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ServerAliveCountMax=20 -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW 'cd ~/pam_usb_qemu_arm64_'"$GITHUB_RUN_ID"' && tests/can-actually-be-used/run-tests-in-qemu.sh arm64 $(ls .build/libpam-usb_*_arm64.deb | head -1)'
     - name: Cleanup
       if: always()
       env:
@@ -182,14 +182,14 @@ jobs:
         TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
         TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
         TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
-      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "which qemu-img >/dev/null 2>&1 || sudo apt-get install -y qemu-utils"
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "sudo apt-get install -y qemu-utils qemu-efi-arm qemu-system-arm cloud-image-utils 2>/dev/null || true"
     - name: Run functional test suite in armhf QEMU VM
       env:
         TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
         TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
         TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
         TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
-      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW 'cd ~/pam_usb_qemu_armhf_'"$GITHUB_RUN_ID"' && tests/can-actually-be-used/run-tests-in-qemu.sh armhf $(ls .build/libpam-usb_*_armhf.deb | head -1)'
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ServerAliveCountMax=20 -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW 'cd ~/pam_usb_qemu_armhf_'"$GITHUB_RUN_ID"' && tests/can-actually-be-used/run-tests-in-qemu.sh armhf $(ls .build/libpam-usb_*_armhf.deb | head -1)'
     - name: Cleanup
       if: always()
       env:

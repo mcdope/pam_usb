@@ -6,5 +6,5 @@ RUN --mount=type=tmpfs,target=/var/cache/pacman/pkg \
     useradd -m builduser && \
     pacman-key --init && \
     pacman --noconfirm -Sy archlinux-keyring && \
-    pacman --noconfirm -Syu && \
+    pacman --noconfirm -S --needed --overwrite '*' glibc linux-api-headers libgcc libstdc++ libasan liblsan libtsan libubsan && \
     pacman --noconfirm -S --needed sudo git pkgconf gcc make patch pam dbus python python-dbus python-lxml python-gobject udisks2 libevdev base-devel pacman-contrib

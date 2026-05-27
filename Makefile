@@ -57,6 +57,9 @@ endif
 HARDENING_LDFLAGS := -Wl,-z,relro -Wl,-z,now -Wl,-z,noexecstack
 
 LIBS := `$(PKG_CONFIG) --libs libxml-2.0` `$(PKG_CONFIG) --libs udisks2` `$(PKG_CONFIG) --libs libevdev`
+ifeq ($(ARCH), m68k-linux-gnu)
+    LIBS += -lm
+endif
 
 # common source files
 SRCS := src/conf.c \
