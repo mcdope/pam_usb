@@ -12,7 +12,7 @@ RUN dpkg --add-architecture m68k && \
     apt-get -qqy install --no-install-recommends \
         build-essential debhelper devscripts wget git python3 python3-gi \
         gcc-m68k-linux-gnu g++-m68k-linux-gnu binutils-m68k-linux-gnu libc6-dev-m68k-cross \
-        gir1.2-udisks-2.0 pkg-config zlib1g-dev && \
+        gir1.2-udisks-2.0 pkg-config zlib1g-dev libglib2.0-dev && \
     mkdir -p /tmp/m68k-debs && cd /tmp/m68k-debs && \
     apt-get -qqy download \
         libxml2:m68k libxml2-dev:m68k \
