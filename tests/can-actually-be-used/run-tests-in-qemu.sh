@@ -142,7 +142,7 @@ $QEMU_BIN \
     -device virtio-blk-device,drive=cloud \
     -netdev user,id=net0,hostfwd=tcp::${SSH_PORT}-:22 \
     -device virtio-net-device,netdev=net0 \
-    -nographic \
+    -display none \
     -daemonize \
     -pidfile "$PIDFILE"
 
