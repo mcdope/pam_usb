@@ -3,10 +3,14 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV TERM=xterm
 WORKDIR /usr/local/src/pam_usb
 
-RUN apt-get -qqy update && \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get -qqy update && \
     apt-get -qqy install --no-install-recommends debian-ports-archive-keyring ca-certificates
 
-RUN dpkg --add-architecture m68k && \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    dpkg --add-architecture m68k && \
     echo 'deb [arch=m68k] http://ftp.ports.debian.org/debian-ports/ sid main' >> /etc/apt/sources.list && \
     apt-get -qqy update && \
     apt-get -qqy install --no-install-recommends \

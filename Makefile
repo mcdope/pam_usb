@@ -347,13 +347,13 @@ sourcegz: clean builddir
 		-zcvf .build/pam_usb-$(VERSION).tar.gz .
 
 buildenv-debian:
-	$(DOCKER) build -f Dockerfile.debian -t mcdope/pam_usb-ubuntu-build .
+	DOCKER_BUILDKIT=1 $(DOCKER) build -f Dockerfile.debian -t mcdope/pam_usb-ubuntu-build .
 
 buildenv-fedora:
-	$(DOCKER) build -f Dockerfile.fedora -t mcdope/pam_usb-fedora-build .
+	DOCKER_BUILDKIT=1 $(DOCKER) build -f Dockerfile.fedora -t mcdope/pam_usb-fedora-build .
 
 buildenv-arch:
-	$(DOCKER) build -f Dockerfile.arch -t mcdope/pam_usb-arch-build .
+	DOCKER_BUILDKIT=1 $(DOCKER) build -f Dockerfile.arch -t mcdope/pam_usb-arch-build .
 
 build-debian: buildenv-debian
 	$(DOCKER) run -i \
@@ -412,7 +412,7 @@ build-debian-i386: buildenv-debian-i386
 		sh -c "make deb && chown -R $(UID):$(GID) .build debian"
 
 buildenv-debian-m68k:
-	$(DOCKER) build -f Dockerfile.debian-m68k -t mcdope/pam_usb-debian-m68k-build .
+	DOCKER_BUILDKIT=1 $(DOCKER) build -f Dockerfile.debian-m68k -t mcdope/pam_usb-debian-m68k-build .
 
 build-debian-m68k: buildenv-debian-m68k
 	$(DOCKER) run -i \
