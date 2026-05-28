@@ -133,24 +133,14 @@ users:
       - ${PUBKEY}
 packages:
   - fdisk
-  - libudisks2-dev
-  - libxml2-dev
   - python-is-python3
   - python3-gi
-  - python3-dotenv
-  - libpam0g-dev
-  - devscripts
-  - debhelper
   - dkms
-  - pkg-config
   - gir1.2-glib-2.0
-  - libglib2.0-dev
-  - libevdev-dev
   - exfatprogs
   - git
   - make
   - gcc
-  - wget
 package_update: true
 package_upgrade: false
 CLOUDINIT
