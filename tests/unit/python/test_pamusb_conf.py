@@ -404,3 +404,164 @@ def test_uuid_path_traversal_rejected():
 def test_uuid_valid_accepted():
     """C-2 regression: a valid UUID must be accepted."""
     assert _uuid_is_valid("965C-86CF")
+
+
+# ── whitelistService ─────────────────────────────────────────────────────────
+
+_SERVICES_XML = (
+    '<?xml version="1.0"?>'
+    "<configuration>"
+    "  <devices/>"
+    "  <users/>"
+    "  <services/>"
+    "</configuration>"
+)
+
+_SERVICES_WITH_EXISTING_XML = (
+    '<?xml version="1.0"?>'
+    "<configuration>"
+    "  <devices/>"
+    "  <users/>"
+    "  <services>"
+    '    <service id="gdm-password"><option name="quiet">true</option></service>'
+    "  </services>"
+    "</configuration>"
+)
+
+_SERVICES_ALREADY_WHITELISTED_XML = (
+    '<?xml version="1.0"?>'
+    "<configuration>"
+    "  <devices/>"
+    "  <users/>"
+    "  <services>"
+    '    <service id="gdm-password"><option name="deny_remote">false</option></service>'
+    "  </services>"
+    "</configuration>"
+)
+
+
+def test_whitelist_creates_new_service_element(tmp_conf):
+    """whitelistService creates a new <service> element when it does not exist."""
+    doc = minidom.parseString(_SERVICES_XML)
+    options = {
+        "configFile": str(tmp_conf),
+        "whitelistService": "lightdm",
+        "yes": True,
+    }
+    with patch.object(_mod, "minidom") as mock_mini, \
+         patch.object(_mod, "writeConf"):
+        mock_mini.parse.return_value = doc
+        _mod.whitelistService(options)
+
+    services = doc.getElementsByTagName("service")
+    found = [s for s in services if s.getAttribute("id") == "lightdm"]
+    assert len(found) == 1
+    opts = found[0].getElementsByTagName("option")
+    assert len(opts) == 1
+    assert opts[0].getAttribute("name") == "deny_remote"
+    assert opts[0].firstChild.nodeValue == "false"
+
+
+def test_whitelist_appends_to_existing_service(tmp_conf):
+    """whitelistService appends deny_remote option to existing service without touching other options."""
+    doc = minidom.parseString(_SERVICES_WITH_EXISTING_XML)
+    options = {
+        "configFile": str(tmp_conf),
+        "whitelistService": "gdm-password",
+        "yes": True,
+    }
+    with patch.object(_mod, "minidom") as mock_mini, \
+         patch.object(_mod, "writeConf"):
+        mock_mini.parse.return_value = doc
+        _mod.whitelistService(options)
+
+    svc = doc.getElementsByTagName("service")[0]
+    assert svc.getAttribute("id") == "gdm-password"
+    opts = svc.getElementsByTagName("option")
+    assert len(opts) == 2
+    names = [o.getAttribute("name") for o in opts]
+    assert "quiet" in names
+    assert "deny_remote" in names
+
+
+def test_whitelist_noop_when_already_whitelisted():
+    """whitelistService exits cleanly when service is already whitelisted."""
+    doc = minidom.parseString(_SERVICES_ALREADY_WHITELISTED_XML)
+    options = {
+        "configFile": "/fake/conf",
+        "whitelistService": "gdm-password",
+        "yes": True,
+    }
+    with patch.object(_mod, "minidom") as mock_mini, \
+         patch.object(_mod, "writeConf"):
+        mock_mini.parse.return_value = doc
+        with pytest.raises(SystemExit):
+            _mod.whitelistService(options)
+    mock_mini.writeConf.assert_not_called() if hasattr(mock_mini, 'writeConf') else None
+
+
+# ── unwhitelistService ───────────────────────────────────────────────────────
+
+_WHITELISTED_SERVICES_XML = (
+    '<?xml version="1.0"?>'
+    "<configuration>"
+    "  <devices/>"
+    "  <users/>"
+    "  <services>"
+    '    <service id="lightdm"><option name="deny_remote">false</option></service>'
+    '    <service id="gdm-password"><option name="deny_remote">false</option><option name="quiet">true</option></service>'
+    "  </services>"
+    "</configuration>"
+)
+
+
+def test_unwhitelist_removes_option_only_when_other_options_remain(tmp_conf):
+    """unwhitelistService removes deny_remote option but keeps service if other options exist."""
+    doc = minidom.parseString(_WHITELISTED_SERVICES_XML)
+    options = {
+        "configFile": str(tmp_conf),
+        "unwhitelistService": "gdm-password",
+        "yes": True,
+    }
+    with patch.object(_mod, "minidom") as mock_mini, \
+         patch.object(_mod, "writeConf"):
+        mock_mini.parse.return_value = doc
+        _mod.unwhitelistService(options)
+
+    svc = [s for s in doc.getElementsByTagName("service") if s.getAttribute("id") == "gdm-password"]
+    assert len(svc) == 1
+    opts = svc[0].getElementsByTagName("option")
+    assert len(opts) == 1
+    assert opts[0].getAttribute("name") == "quiet"
+
+
+def test_unwhitelist_removes_entire_service_when_no_options_remain(tmp_conf):
+    """unwhitelistService removes the entire service element when no other options remain."""
+    doc = minidom.parseString(_WHITELISTED_SERVICES_XML)
+    options = {
+        "configFile": str(tmp_conf),
+        "unwhitelistService": "lightdm",
+        "yes": True,
+    }
+    with patch.object(_mod, "minidom") as mock_mini, \
+         patch.object(_mod, "writeConf"):
+        mock_mini.parse.return_value = doc
+        _mod.unwhitelistService(options)
+
+    svc = [s for s in doc.getElementsByTagName("service") if s.getAttribute("id") == "lightdm"]
+    assert len(svc) == 0
+
+
+def test_unwhitelist_noop_when_not_whitelisted():
+    """unwhitelistService exits cleanly when service is not whitelisted."""
+    doc = minidom.parseString(_SERVICES_XML)
+    options = {
+        "configFile": "/fake/conf",
+        "unwhitelistService": "nonexistent",
+        "yes": True,
+    }
+    with patch.object(_mod, "minidom") as mock_mini, \
+         patch.object(_mod, "writeConf"):
+        mock_mini.parse.return_value = doc
+        with pytest.raises(SystemExit):
+            _mod.unwhitelistService(options)

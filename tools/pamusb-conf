@@ -361,6 +361,85 @@ def addDevice(options):
 	devs[0].appendChild(dev)
 	writeConf(options, doc)
 
+def whitelistService(options):
+	service_name = options['whitelistService']
+	try:
+		doc = minidom.parse(options['configFile'])
+	except Exception as err:
+		print('Unable to read %s: %s' % (options['configFile'], err))
+		sys.exit(1)
+
+	services_list = doc.getElementsByTagName('services')
+	if len(services_list) == 0:
+		print('Malformed configuration file: No <services> section found.')
+		sys.exit(1)
+	services = services_list[0]
+
+	for svc in services.getElementsByTagName('service'):
+		if svc.getAttribute('id') == service_name:
+			for opt in svc.getElementsByTagName('option'):
+				if opt.getAttribute('name') == 'deny_remote' and opt.firstChild and opt.firstChild.nodeValue == 'false':
+					print('Service "%s" is already in the deny_remote whitelist.' % service_name)
+					sys.exit(0)
+
+	items = [('Service', service_name), ('Action', 'add to deny_remote whitelist')]
+	shouldSave(options, items)
+
+	for svc in services.getElementsByTagName('service'):
+		if svc.getAttribute('id') == service_name:
+			opt = doc.createElement('option')
+			opt.setAttribute('name', 'deny_remote')
+			opt.appendChild(doc.createTextNode('false'))
+			svc.appendChild(opt)
+			writeConf(options, doc)
+			return
+
+	svc = doc.createElement('service')
+	svc.setAttribute('id', service_name)
+	opt = doc.createElement('option')
+	opt.setAttribute('name', 'deny_remote')
+	opt.appendChild(doc.createTextNode('false'))
+	svc.appendChild(opt)
+	services.appendChild(svc)
+	writeConf(options, doc)
+
+
+def unwhitelistService(options):
+	service_name = options['unwhitelistService']
+	try:
+		doc = minidom.parse(options['configFile'])
+	except Exception as err:
+		print('Unable to read %s: %s' % (options['configFile'], err))
+		sys.exit(1)
+
+	services_list = doc.getElementsByTagName('services')
+	if len(services_list) == 0:
+		print('Malformed configuration file: No <services> section found.')
+		sys.exit(1)
+	services = services_list[0]
+
+	found = False
+	for svc in services.getElementsByTagName('service'):
+		if svc.getAttribute('id') == service_name:
+			for opt in svc.getElementsByTagName('option'):
+				if opt.getAttribute('name') == 'deny_remote':
+					svc.removeChild(opt)
+					found = True
+					break
+			if found:
+				if svc.childNodes.length == 0:
+					services.removeChild(svc)
+				break
+
+	if not found:
+		print('Service "%s" is not in the deny_remote whitelist.' % service_name)
+		sys.exit(0)
+
+	items = [('Service', service_name), ('Action', 'remove from deny_remote whitelist')]
+	shouldSave(options, items)
+	writeConf(options, doc)
+
+
 def resetPads():
 	padFiles = []
 	skippedDevices = []
@@ -448,8 +527,10 @@ def resetPads():
 
 def usage():
 	print('Version 0.9.2')
-	print('Usage: %s [--help] [--verbose] [--yes] [--config=path] [--reset-pads=username]' % os.path.basename(__file__))
+	print('Usage: %s [--help] [--verbose] [--yes] [--config=path]' % os.path.basename(__file__))
 	print('                [[--add-user=name [--superuser]] | [--add-device=name [[--device=number] [--volume=number]]]]')
+	print('                [--whitelist-service=name | --unwhitelist-service=name]')
+	print('                [--reset-pads=username]')
 	sys.exit(1)
 
 if __name__ == '__main__':
@@ -457,7 +538,7 @@ if __name__ == '__main__':
 		opts, args = getopt.getopt(
 			sys.argv[1:],
 			"hvd:nu:c:y",
-			["help", "verbose", "add-device=", "add-user=", "config=", "reset-pads=", "yes", "device=", "volume=", "list-devices", "list-volumes", "superuser"]
+			["help", "verbose", "add-device=", "add-user=", "config=", "reset-pads=", "yes", "device=", "volume=", "list-devices", "list-volumes", "superuser", "whitelist-service=", "unwhitelist-service="]
 		)
 	except getopt.GetoptError:
 		usage()
@@ -476,7 +557,9 @@ if __name__ == '__main__':
 		'listDevices': False,
 		'listVolumes': False,
 		'resetPads': None,
-		'superuser': False
+		'superuser': False,
+		'whitelistService': None,
+		'unwhitelistService': None
 	}
 
 	for o, a in opts:
@@ -504,10 +587,26 @@ if __name__ == '__main__':
 			options['resetPads'] = a
 		if o == "--superuser":
 			options['superuser'] = True
+		if o == "--whitelist-service":
+			options['whitelistService'] = a
+		if o == "--unwhitelist-service":
+			options['unwhitelistService'] = a
 
 	if options['superuser'] and options['userName'] is None:
 		print('--superuser can only be used with --add-user')
 		usage()
+
+	if options['whitelistService'] is not None and options['unwhitelistService'] is not None:
+		print('You cannot use both --whitelist-service and --unwhitelist-service')
+		usage()
+
+	if options['whitelistService'] is not None:
+		whitelistService(options)
+		sys.exit(0)
+
+	if options['unwhitelistService'] is not None:
+		unwhitelistService(options)
+		sys.exit(0)
 
 	if options['resetPads'] is not None:
 		resetPads()
