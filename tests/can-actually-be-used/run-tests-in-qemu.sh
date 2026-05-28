@@ -157,6 +157,9 @@ EOF
 SEED_IMG="${WORK_DIR}/seed.img"
 cloud-localds "$SEED_IMG" "${WORK_DIR}/user-data" "${WORK_DIR}/meta-data"
 
+SERIAL_LOG="${WORK_DIR}/serial.log"
+QEMU_LOG="${WORK_DIR}/qemu.log"
+
 echo "Starting QEMU $ARCH VM on SSH port $SSH_PORT..."
 $QEMU_BIN \
     $QEMU_MACHINE \
@@ -167,25 +170,53 @@ $QEMU_BIN \
     -device virtio-blk-device,drive=cloud \
     -netdev user,id=net0,hostfwd=tcp::${SSH_PORT}-:22 \
     -device virtio-net-device,netdev=net0 \
+    -serial "file:${SERIAL_LOG}" \
+    -D "$QEMU_LOG" \
     -display none \
     -daemonize \
     -pidfile "$PIDFILE"
 
+sleep 3
+if [ ! -f "$PIDFILE" ] || ! kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
+    echo "Error: QEMU failed to start" >&2
+    echo "--- QEMU log ---" >&2
+    cat "$QEMU_LOG" 2>/dev/null >&2 || true
+    echo "--- Serial output ---" >&2
+    cat "$SERIAL_LOG" 2>/dev/null >&2 || true
+    exit 1
+fi
+echo "QEMU PID: $(cat "$PIDFILE")"
+
 SSH_CMD="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5 -p $SSH_PORT -i $SSH_KEY ${TEST_USER}@localhost"
 SCP_CMD="scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -P $SSH_PORT -i $SSH_KEY"
 
-echo "Waiting for VM to boot (max 20 minutes)..."
+echo "Waiting for VM to boot (max 40 minutes)..."
 BOOTED=0
-for i in $(seq 1 120); do
+for i in $(seq 1 240); do
+    if ! kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
+        echo "Error: QEMU process died unexpectedly" >&2
+        echo "--- Last 80 lines of serial console ---" >&2
+        tail -80 "$SERIAL_LOG" 2>/dev/null >&2 || true
+        echo "--- QEMU log ---" >&2
+        cat "$QEMU_LOG" 2>/dev/null >&2 || true
+        exit 1
+    fi
     if $SSH_CMD "true" 2>/dev/null; then
         BOOTED=1
         break
+    fi
+    if [ $((i % 12)) -eq 0 ]; then
+        echo "  Still waiting... ($(( i * 10 / 60 )) min elapsed, last serial line: $(tail -1 "$SERIAL_LOG" 2>/dev/null | tr -d '\r' || echo '(none)'))"
     fi
     sleep 10 || true
 done
 
 if [ $BOOTED -eq 0 ]; then
-    echo "Error: VM did not become reachable within 20 minutes" >&2
+    echo "Error: VM did not become reachable within 40 minutes" >&2
+    echo "--- Last 80 lines of serial console ---" >&2
+    tail -80 "$SERIAL_LOG" 2>/dev/null >&2 || true
+    echo "--- QEMU log ---" >&2
+    cat "$QEMU_LOG" 2>/dev/null >&2 || true
     exit 1
 fi
 echo "VM is reachable."
