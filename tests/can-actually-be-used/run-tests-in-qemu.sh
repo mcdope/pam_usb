@@ -104,10 +104,16 @@ case "$ARCH" in
         ;;
 esac
 
+DOWNLOAD_LOCK="${CACHE_DIR}/download-${ARCH}.lock"
 if [ ! -f "$IMAGE_CACHE" ]; then
     echo "Downloading Ubuntu Jammy cloud image for $ARCH..."
-    wget -q --show-progress -O "${IMAGE_CACHE}.tmp" "$IMAGE_URL"
-    mv "${IMAGE_CACHE}.tmp" "$IMAGE_CACHE"
+    (
+        flock -x 9
+        if [ ! -f "$IMAGE_CACHE" ]; then
+            wget -q --show-progress -O "${IMAGE_CACHE}.tmp" "$IMAGE_URL"
+            mv "${IMAGE_CACHE}.tmp" "$IMAGE_CACHE"
+        fi
+    ) 9>"$DOWNLOAD_LOCK"
 fi
 
 DISK_IMG="${WORK_DIR}/disk.qcow2"
