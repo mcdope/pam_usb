@@ -246,19 +246,29 @@ EOF
     $PROV_SSH "sudo touch /etc/cloud/cloud-init.disabled"
 
     echo "Shutting down provisioning VM..."
+    QEMU_PID="$(cat "$PROV_PIDFILE" 2>/dev/null || true)"
     $PROV_SSH "sudo shutdown -h now" 2>/dev/null || true
 
     for i in $(seq 1 60); do
-        if ! kill -0 "$(cat "$PROV_PIDFILE")" 2>/dev/null; then break; fi
+        if [ -z "$QEMU_PID" ] || ! kill -0 "$QEMU_PID" 2>/dev/null; then break; fi
         sleep 5
     done
-    if kill -0 "$(cat "$PROV_PIDFILE")" 2>/dev/null; then
-        kill "$(cat "$PROV_PIDFILE")" 2>/dev/null || true
+    if [ -n "$QEMU_PID" ] && kill -0 "$QEMU_PID" 2>/dev/null; then
+        kill "$QEMU_PID" 2>/dev/null || true
         sleep 3
     fi
 
+    if [ ! -f "$PROV_DISK" ]; then
+        echo "Error: provisioned disk image missing: $PROV_DISK" >&2
+        exit 1
+    fi
+    echo "Provisioned disk size: $(du -sh "$PROV_DISK" | cut -f1), free space: $(df -h "$CACHE_DIR" | awk 'NR==2{print $4}')"
+
     echo "Compressing provisioned image..."
-    qemu-img convert -c -O qcow2 "$PROV_DISK" "${PROVISIONED_CACHE}.tmp"
+    qemu-img convert -c -O qcow2 "$PROV_DISK" "${PROVISIONED_CACHE}.tmp" || {
+        echo "Error: qemu-img convert failed (exit $?)" >&2
+        exit 1
+    }
     mv "${PROVISIONED_CACHE}.tmp" "$PROVISIONED_CACHE"
     cp "$PROV_KEY" "${SSH_KEY_CACHE}.tmp"
     mv "${SSH_KEY_CACHE}.tmp" "$SSH_KEY_CACHE"
