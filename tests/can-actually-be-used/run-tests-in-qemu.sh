@@ -234,8 +234,10 @@ EOF
     echo "Waiting for cloud-init to finish installing packages..."
     $PROV_SSH "sudo cloud-init status --wait" || true
 
-    echo "Installing kernel headers and extra modules (includes g_mass_storage)..."
-    $PROV_SSH "sudo apt install -y linux-headers-\$(uname -r) linux-modules-extra-\$(uname -r) 2>/dev/null || sudo apt install -y linux-headers-virtual"
+    echo "Installing kernel headers..."
+    $PROV_SSH "sudo apt install -y linux-headers-\$(uname -r) 2>/dev/null || sudo apt install -y linux-headers-virtual"
+    echo "Installing extra kernel modules (g_mass_storage etc, optional)..."
+    $PROV_SSH "sudo apt install -y linux-modules-extra-\$(uname -r) 2>/dev/null || true"
 
     echo "Pre-building dummy_hcd kernel module..."
     $PROV_SSH "mkdir -p /tmp/src/dummy-hcd && git clone -b main https://github.com/0prichnik/dummy-hcd.git /tmp/src/dummy-hcd/master/ && cd /tmp/src/dummy-hcd/master/ && make update && make dkms" || true
