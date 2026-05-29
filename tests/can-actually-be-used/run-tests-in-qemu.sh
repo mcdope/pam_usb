@@ -10,15 +10,17 @@
 #   arch     : arm64 | armhf
 #   deb_path : path to the libpam-usb .deb package to test
 #
-# On first run for a given arch, a pre-provisioned golden image is built and
-# cached in ~/.cache/pam_usb-qemu/.  Subsequent runs skip apt/cloud-init
-# package installation and boot directly from the golden image.  Bump
-# PROVISION_VERSION when the package list changes to force a rebuild.
+# Golden image strategy:
+#   First run: provisions a golden qcow2 image with all packages, kernel
+#   modules (including g_mass_storage via linux-modules-extra), and
+#   dummy_hcd pre-built. A fixed SSH keypair is embedded; cloud-init is
+#   disabled so test boots need no seed disk and no cloud-init wait.
+#   Bump PROVISION_VERSION when the provisioned environment changes.
 
 set -e
 
-# Bump when the provisioned package list changes to force a rebuild.
-PROVISION_VERSION="1"
+# Bump when the provisioned environment changes (packages, modules, key).
+PROVISION_VERSION="2"
 
 # --- argument parsing ---
 if [ "$1" = "--provision" ]; then
@@ -99,9 +101,10 @@ case "$ARCH" in
 esac
 
 PROVISIONED_CACHE="${CACHE_DIR}/jammy-${ARCH}-provisioned-v${PROVISION_VERSION}.qcow2"
+SSH_KEY_CACHE="${CACHE_DIR}/jammy-${ARCH}-key-v${PROVISION_VERSION}"
 PROVISION_LOCK="${CACHE_DIR}/provision-${ARCH}.lock"
 
-# --- download base cloud image (shared by both modes) ---
+# --- download base cloud image ---
 DOWNLOAD_LOCK="${CACHE_DIR}/download-${ARCH}.lock"
 if [ ! -f "$IMAGE_CACHE" ]; then
     echo "Downloading Ubuntu Jammy cloud image for $ARCH..."
@@ -116,8 +119,9 @@ fi
 
 # =============================================================================
 # PROVISIONING MODE
-# Builds a golden qcow2 with all packages pre-installed and saves it to cache.
-# Triggered automatically from test mode when PROVISIONED_CACHE is missing.
+# Builds a golden qcow2 with all packages, kernel modules, and dummy_hcd
+# pre-built. Embeds a fixed SSH key and disables cloud-init so test boots
+# need no seed disk and start testing immediately after VM is reachable.
 # =============================================================================
 if [ "$_PROVISION_MODE" -eq 1 ]; then
     PROV_DIR="$(mktemp -d /tmp/pam_usb_qemu_provision_XXXXXX)"
@@ -136,7 +140,7 @@ if [ "$_PROVISION_MODE" -eq 1 ]; then
             kill -9 "$pid" 2>/dev/null || true
         fi
         rm -rf "$PROV_DIR"
-        rm -f "${PROVISIONED_CACHE}.tmp"
+        rm -f "${PROVISIONED_CACHE}.tmp" "${SSH_KEY_CACHE}.tmp"
     }
     trap prov_cleanup EXIT
 
@@ -146,7 +150,8 @@ if [ "$_PROVISION_MODE" -eq 1 ]; then
     qemu-img create -q -f qcow2 -b "$(realpath "$IMAGE_CACHE")" -F qcow2 "$PROV_DISK"
     qemu-img resize -q "$PROV_DISK" +8G
 
-    ssh-keygen -t ed25519 -N '' -f "$PROV_KEY" -C 'pam_usb-qemu-provision' -q
+    # Generate the permanent SSH key that will be embedded in the golden image
+    ssh-keygen -t ed25519 -N '' -f "$PROV_KEY" -C "pam_usb-qemu-${ARCH}-v${PROVISION_VERSION}" -q
     PROV_PUBKEY="$(cat "${PROV_KEY}.pub")"
 
     cat > "${PROV_DIR}/user-data" <<CLOUDINIT
@@ -172,7 +177,7 @@ package_upgrade: false
 CLOUDINIT
 
     cat > "${PROV_DIR}/meta-data" <<EOF
-instance-id: pam-usb-provision-${ARCH}
+instance-id: pam-usb-provision-${ARCH}-v${PROVISION_VERSION}
 local-hostname: pam-usb-provision
 EOF
 
@@ -229,53 +234,55 @@ EOF
     echo "Waiting for cloud-init to finish installing packages..."
     $PROV_SSH "sudo cloud-init status --wait" || true
 
-    echo "Installing kernel headers..."
-    $PROV_SSH "sudo apt install -y linux-headers-\$(uname -r) 2>/dev/null || sudo apt install -y linux-headers-virtual"
+    echo "Installing kernel headers and extra modules (includes g_mass_storage)..."
+    $PROV_SSH "sudo apt install -y linux-headers-\$(uname -r) linux-modules-extra-\$(uname -r) 2>/dev/null || sudo apt install -y linux-headers-virtual"
 
-    echo "Resetting cloud-init state so it runs fresh on next boot..."
-    $PROV_SSH "sudo cloud-init clean --logs"
+    echo "Pre-building dummy_hcd kernel module..."
+    $PROV_SSH "mkdir -p /tmp/src/dummy-hcd && git clone -b main https://github.com/0prichnik/dummy-hcd.git /tmp/src/dummy-hcd/master/ && cd /tmp/src/dummy-hcd/master/ && make update && make dkms" || true
+
+    echo "Disabling cloud-init for test boots (fixed SSH key embedded)..."
+    $PROV_SSH "sudo touch /etc/cloud/cloud-init.disabled"
 
     echo "Shutting down provisioning VM..."
     $PROV_SSH "sudo shutdown -h now" 2>/dev/null || true
 
-    # Wait for QEMU to exit on its own (graceful VM shutdown)
     for i in $(seq 1 60); do
         if ! kill -0 "$(cat "$PROV_PIDFILE")" 2>/dev/null; then break; fi
         sleep 5
     done
-    # Force kill if still running
     if kill -0 "$(cat "$PROV_PIDFILE")" 2>/dev/null; then
         kill "$(cat "$PROV_PIDFILE")" 2>/dev/null || true
         sleep 3
     fi
 
-    echo "Compressing provisioned image to ${PROVISIONED_CACHE}..."
+    echo "Compressing provisioned image..."
     qemu-img convert -c -O qcow2 "$PROV_DISK" "${PROVISIONED_CACHE}.tmp"
     mv "${PROVISIONED_CACHE}.tmp" "$PROVISIONED_CACHE"
+    cp "$PROV_KEY" "${SSH_KEY_CACHE}.tmp"
+    mv "${SSH_KEY_CACHE}.tmp" "$SSH_KEY_CACHE"
+    chmod 600 "$SSH_KEY_CACHE"
     echo "=== Provisioned image saved ($(du -sh "$PROVISIONED_CACHE" | cut -f1)) ==="
 
-    # Disarm the cleanup trap — image is saved, temp dir will be removed normally
     trap 'rm -rf "$PROV_DIR"' EXIT
     exit 0
 fi
 
 # =============================================================================
 # TEST MODE (default)
-# Uses the pre-provisioned golden image; cloud-init only injects the SSH key.
+# Boots from the pre-provisioned golden image — no seed disk, no cloud-init,
+# fixed SSH key. VM is ready to test as soon as sshd accepts connections.
 # =============================================================================
 
-# Ensure provisioned image exists (build it if not, serialised with flock)
-if [ ! -f "$PROVISIONED_CACHE" ]; then
+if [ ! -f "$PROVISIONED_CACHE" ] || [ ! -f "$SSH_KEY_CACHE" ]; then
     (
         flock -x 9
-        if [ ! -f "$PROVISIONED_CACHE" ]; then
+        if [ ! -f "$PROVISIONED_CACHE" ] || [ ! -f "$SSH_KEY_CACHE" ]; then
             bash "$0" --provision "$ARCH"
         fi
     ) 9>"$PROVISION_LOCK"
 fi
 
 WORK_DIR="$(mktemp -d /tmp/pam_usb_qemu_XXXXXX)"
-SSH_KEY="${WORK_DIR}/id_ed25519"
 PIDFILE="${WORK_DIR}/qemu.pid"
 SSH_PORT="$(free_port)"
 
@@ -296,33 +303,9 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# Create CoW overlay on top of the pre-provisioned golden image
+# CoW overlay on the pre-provisioned golden image — no seed disk needed
 DISK_IMG="${WORK_DIR}/disk.qcow2"
 qemu-img create -q -f qcow2 -b "$(realpath "$PROVISIONED_CACHE")" -F qcow2 "$DISK_IMG"
-
-ssh-keygen -t ed25519 -N '' -f "$SSH_KEY" -C 'pam_usb-qemu-test' -q
-PUBKEY="$(cat "${SSH_KEY}.pub")"
-
-# Minimal cloud-init: user + SSH key injection only — no package installation
-cat > "${WORK_DIR}/user-data" <<CLOUDINIT
-#cloud-config
-users:
-  - name: ${TEST_USER}
-    sudo: ALL=(ALL) NOPASSWD:ALL
-    shell: /bin/bash
-    ssh_authorized_keys:
-      - ${PUBKEY}
-package_update: false
-package_upgrade: false
-CLOUDINIT
-
-cat > "${WORK_DIR}/meta-data" <<EOF
-instance-id: pam-usb-qemu-test-${ARCH}-$$
-local-hostname: pam-usb-qemu
-EOF
-
-SEED_IMG="${WORK_DIR}/seed.img"
-cloud-localds "$SEED_IMG" "${WORK_DIR}/user-data" "${WORK_DIR}/meta-data"
 
 SERIAL_LOG="${WORK_DIR}/serial.log"
 QEMU_LOG="${WORK_DIR}/qemu.log"
@@ -333,8 +316,6 @@ $QEMU_BIN \
     $QEMU_BIOS \
     -drive if=none,id=hd0,format=qcow2,file="$DISK_IMG" \
     -device virtio-blk-device,drive=hd0 \
-    -drive if=none,id=cloud,format=raw,file="$SEED_IMG" \
-    -device virtio-blk-device,drive=cloud \
     -netdev user,id=net0,hostfwd=tcp::${SSH_PORT}-:22 \
     -device virtio-net-device,netdev=net0 \
     -serial "file:${SERIAL_LOG}" \
@@ -346,25 +327,21 @@ $QEMU_BIN \
 sleep 3
 if [ ! -f "$PIDFILE" ] || ! kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
     echo "Error: QEMU failed to start" >&2
-    echo "--- QEMU log ---" >&2
     cat "$QEMU_LOG" 2>/dev/null >&2 || true
-    echo "--- Serial output ---" >&2
     cat "$SERIAL_LOG" 2>/dev/null >&2 || true
     exit 1
 fi
 echo "QEMU PID: $(cat "$PIDFILE")"
 
-SSH_CMD="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5 -p $SSH_PORT -i $SSH_KEY ${TEST_USER}@localhost"
-SCP_CMD="scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -P $SSH_PORT -i $SSH_KEY"
+SSH_CMD="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5 -p $SSH_PORT -i $SSH_KEY_CACHE ${TEST_USER}@localhost"
+SCP_CMD="scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -P $SSH_PORT -i $SSH_KEY_CACHE"
 
 echo "Waiting for VM to boot (max 40 minutes)..."
 BOOTED=0
 for i in $(seq 1 240); do
     if ! kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
         echo "Error: QEMU process died unexpectedly" >&2
-        echo "--- Last 80 lines of serial console ---" >&2
         tail -80 "$SERIAL_LOG" 2>/dev/null >&2 || true
-        echo "--- QEMU log ---" >&2
         cat "$QEMU_LOG" 2>/dev/null >&2 || true
         exit 1
     fi
@@ -380,17 +357,11 @@ done
 
 if [ $BOOTED -eq 0 ]; then
     echo "Error: VM did not become reachable within 40 minutes" >&2
-    echo "--- Last 80 lines of serial console ---" >&2
     tail -80 "$SERIAL_LOG" 2>/dev/null >&2 || true
-    echo "--- QEMU log ---" >&2
     cat "$QEMU_LOG" 2>/dev/null >&2 || true
     exit 1
 fi
 echo "VM is reachable."
-
-# Cloud-init only injects the SSH key now — should complete in under 2 minutes
-echo "Waiting for cloud-init (SSH key injection only)..."
-$SSH_CMD "sudo cloud-init status --wait" || true
 
 $SCP_CMD "$DEB_PATH" "${TEST_USER}@localhost:/tmp/libpam-usb.deb"
 $SSH_CMD "sudo DEBIAN_FRONTEND=noninteractive apt install --reinstall -yq /tmp/libpam-usb.deb"
