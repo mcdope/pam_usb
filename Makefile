@@ -155,7 +155,7 @@ test-c-rmsvc: src/mem.o src/log.o
 
 test-c-local: src/process.o src/tmux.o src/rmsvc.o src/evdev.o src/mem.o src/log.o
 	$(CC) $(TEST_CFLAGS) tests/unit/c/local_test.c $^ \
-		$(LOCAL_LDFLAGS) -o tests/unit/c/local_test
+		-Wl,--wrap=popen,--wrap=pclose $(LOCAL_LDFLAGS) -o tests/unit/c/local_test
 	./tests/unit/c/local_test
 
 test-c-evdev: src/mem.o src/log.o

@@ -19,6 +19,22 @@
 /* Include source directly to access static helper functions. */
 #include "../../../src/local.c"
 
+/* popen/pclose wrapped at link time with --wrap=popen,--wrap=pclose */
+static const char *g_popen_output = "";
+static char g_last_popen_cmd[BUFSIZ];
+
+FILE *__wrap_popen(const char *cmd, const char *type)
+{
+	snprintf(g_last_popen_cmd, sizeof(g_last_popen_cmd), "%s", cmd);
+	return fmemopen((void *)g_popen_output, strlen(g_popen_output), type); /* DevSkim: ignore DS154189 - g_popen_output is always a null-terminated string literal assigned in test code */
+}
+
+int __wrap_pclose(FILE *fp)
+{
+	fclose(fp);
+	return 0;
+}
+
 static void test_utmpx_field_equals_exact_nul_padded(void **state)
 {
 	(void)state;
@@ -249,6 +265,46 @@ static void test_local_login_display_env_null(void **state)
 	assert_true(result >= -1 && result <= 1);
 }
 
+static void test_is_sddm_active_returns_1_when_session_exists(void **state)
+{
+	(void)state;
+	g_popen_output = "1\n";
+	assert_int_equal(1, pusb_is_sddm_active());
+}
+
+static void test_is_sddm_active_returns_0_when_no_session(void **state)
+{
+	(void)state;
+	g_popen_output = "";
+	assert_int_equal(0, pusb_is_sddm_active());
+}
+
+static void test_get_tty_by_sddm_returns_tty_when_sddm_running(void **state)
+{
+	(void)state;
+	g_popen_output = "tty1\n";
+	char *result = pusb_get_tty_by_sddm();
+	assert_non_null(result);
+	assert_string_equal("tty1", result);
+	xfree(result);
+}
+
+static void test_get_tty_by_sddm_returns_null_when_no_sddm_session(void **state)
+{
+	(void)state;
+	g_popen_output = "";
+	char *result = pusb_get_tty_by_sddm();
+	assert_null(result);
+}
+
+static void test_get_tty_by_sddm_returns_null_on_empty_tty_field(void **state)
+{
+	(void)state;
+	g_popen_output = "\n";
+	char *result = pusb_get_tty_by_sddm();
+	assert_null(result);
+}
+
 static void test_local_login_display_env_set(void **state)
 {
 	(void)state;
@@ -298,6 +354,11 @@ int main(void)
 		cmocka_unit_test(test_local_login_denies_xrdp_session),
 		cmocka_unit_test(test_local_login_display_env_null),
 		cmocka_unit_test(test_local_login_display_env_set),
+		cmocka_unit_test(test_is_sddm_active_returns_1_when_session_exists),
+		cmocka_unit_test(test_is_sddm_active_returns_0_when_no_session),
+		cmocka_unit_test(test_get_tty_by_sddm_returns_tty_when_sddm_running),
+		cmocka_unit_test(test_get_tty_by_sddm_returns_null_when_no_sddm_session),
+		cmocka_unit_test(test_get_tty_by_sddm_returns_null_on_empty_tty_field),
 	};
 	return cmocka_run_group_tests(tests, NULL, NULL);
 }
