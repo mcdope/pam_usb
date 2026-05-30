@@ -20,7 +20,7 @@
 set -e
 
 # Bump when the provisioned environment changes (packages, modules, key).
-PROVISION_VERSION="2"
+PROVISION_VERSION="3"
 
 # --- argument parsing ---
 if [ "$1" = "--provision" ]; then
@@ -176,6 +176,8 @@ packages:
   - git
   - make
   - gcc
+  - udisks2
+  - libevdev2
 package_update: true
 package_upgrade: false
 CLOUDINIT
@@ -244,10 +246,10 @@ EOF
     $PROV_SSH "sudo apt install -y linux-modules-extra-\$(uname -r) 2>/dev/null || true"
 
     echo "Pre-building dummy_hcd kernel module..."
-    $PROV_SSH "mkdir -p /tmp/src/dummy-hcd && git clone -b main https://github.com/0prichnik/dummy-hcd.git /tmp/src/dummy-hcd/master/ && cd /tmp/src/dummy-hcd/master/ && make update && make dkms" || true
+    $PROV_SSH "mkdir -p /tmp/src/dummy-hcd && git clone -b main https://github.com/0prichnik/dummy-hcd.git /tmp/src/dummy-hcd/master/ && cd /tmp/src/dummy-hcd/master/ && make update && make dkms"
 
-    echo "Disabling cloud-init for test boots (fixed SSH key embedded)..."
-    $PROV_SSH "sudo touch /etc/cloud/cloud-init.disabled"
+    echo "Disabling cloud-init and apt-daily timers for test boots..."
+    $PROV_SSH "sudo touch /etc/cloud/cloud-init.disabled && sudo systemctl disable --now apt-daily.timer apt-daily-upgrade.timer apt-daily.service apt-daily-upgrade.service 2>/dev/null || true"
 
     echo "Shutting down provisioning VM..."
     QEMU_PID="$(cat "$PROV_PIDFILE" 2>/dev/null || true)"
