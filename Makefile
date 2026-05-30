@@ -390,7 +390,7 @@ build-debian-arm64: buildenv-debian-arm64
 	$(DOCKER) run -i --platform linux/arm64 \
 		-v`pwd`/.build:/usr/local/src \
 		-v`pwd`:/usr/local/src/pam_usb \
-		-e DEB_BUILD_OPTIONS="parallel=2" \
+		-e DEB_BUILD_OPTIONS="parallel=4" \
 		--rm mcdope/pam_usb-ubuntu-arm64-build \
 		sh -c "git config --global --add safe.directory /usr/local/src/pam_usb && make deb && chown -R $(UID):$(GID) .build debian"
 

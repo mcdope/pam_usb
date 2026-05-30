@@ -8,6 +8,6 @@ RUN --mount=type=cache,target=/var/cache/pacman/pkg,sharing=locked \
     pacman --noconfirm -Sy archlinux-keyring && \
     pacman --noconfirm -S --needed --overwrite '*' glibc linux-api-headers libgcc libstdc++ libasan liblsan libtsan libubsan binutils glib2 pcre2 && \
     pacman --noconfirm -S --needed sudo git pkgconf gcc make patch pam dbus python python-dbus python-lxml python-gobject udisks2 libevdev base-devel pacman-contrib && \
-    sed -i 's/^#\?MAKEFLAGS.*/MAKEFLAGS="-j2"/' /etc/makepkg.conf && \
+    sed -i 's/^#\?MAKEFLAGS.*/MAKEFLAGS="-j4"/' /etc/makepkg.conf && \
     sed -i "s/^#\?PKGEXT.*/PKGEXT='.pkg.tar.zst'/" /etc/makepkg.conf && \
     sed -i 's/ -Wl,-z,pack-relative-relocs//g; s/,-z,pack-relative-relocs//g' /etc/makepkg.conf

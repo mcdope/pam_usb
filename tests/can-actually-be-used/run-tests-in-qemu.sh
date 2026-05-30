@@ -69,7 +69,7 @@ case "$ARCH" in
         QEMU_BIN="qemu-system-aarch64"
         IMAGE_URL="https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-arm64.img"
         IMAGE_CACHE="${CACHE_DIR}/jammy-arm64.img"
-        QEMU_MACHINE="-M virt -cpu cortex-a57 -smp 4 -m 2048"
+        QEMU_MACHINE="-M virt -cpu cortex-a57 -smp 8 -m 2048"
         BIOS_PATH="$(find_bios \
             /usr/share/qemu-efi-aarch64/QEMU_EFI.fd \
             /usr/share/AAVMF/AAVMF_CODE.fd \
