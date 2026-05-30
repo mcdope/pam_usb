@@ -1,9 +1,0 @@
-Name: USB Authentication (libpam-usb)
-Default: yes
-Priority: 1000
-
-Auth-Type: Primary
-Auth:
-	sufficient	pam_usb.so
-Auth-Initial:
-	sufficient	pam_usb.so
