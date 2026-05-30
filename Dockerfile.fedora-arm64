@@ -2,6 +2,6 @@ FROM fedora:40
 ENV TERM=xterm
 WORKDIR /usr/local/src/pam_usb
 
-RUN --mount=type=cache,target=/var/cache/dnf,sharing=locked \
+RUN --mount=type=cache,id=dnf-fedora-arm64,target=/var/cache/dnf,sharing=locked \
     dnf install -y gcc make libxml2-devel pam-devel libudisks2-devel glib2-devel libevdev-devel python3-gobject rpmdevtools rpmlint && \
     printf '%%_lto_cflags %%{nil}\n%%_smp_mflags -j4\n' > /etc/rpm/macros.no-lto

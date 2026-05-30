@@ -2,7 +2,7 @@ FROM menci/archlinuxarm:base-devel
 ENV TERM=xterm
 WORKDIR /usr/local/src/pam_usb
 
-RUN --mount=type=cache,target=/var/cache/pacman/pkg,sharing=locked \
+RUN --mount=type=cache,id=pacman-arch-arm64,target=/var/cache/pacman/pkg,sharing=locked \
     useradd -m builduser && \
     pacman-key --init && \
     pacman --noconfirm -Sy archlinux-keyring && \
