@@ -20,7 +20,7 @@
 set -e
 
 # Bump when the provisioned environment changes (packages, modules, key).
-PROVISION_VERSION="3"
+PROVISION_VERSION="4"
 
 # --- argument parsing ---
 if [ "$1" = "--provision" ]; then
@@ -178,6 +178,7 @@ packages:
   - gcc
   - udisks2
   - libevdev2
+  - python3-dotenv
 package_update: true
 package_upgrade: false
 CLOUDINIT

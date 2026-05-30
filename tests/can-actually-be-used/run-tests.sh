@@ -40,20 +40,20 @@ for PUSB_FS_TYPE in vfat ext4 exfat; do
 
     rm -rf "/home/$(whoami)/.pamusb"
 
-    ./test-keyring-unlock-gnome-installer.sh && \
-    ./test-pinentry-installer.sh && \
-    ./test-conf-detects-device.sh && \
-    ./test-conf-adds-device.sh && \
-    ./test-conf-adds-user.sh && \
-    ./test-conf-doesnt-add-user-twice-but-adds-a-second-device.sh && \
-    ./test-check-verify-created-config.sh && \
-    ./test-conf-reset-pads.sh && \
-    ./test-check-many-devices.sh && \
-    ./test-check-superuser-filtering.sh && \
-    ./test-conf-adds-user-with-superuser.sh && \
-    ./test-check-deny-xrdp-session.sh && \
-    ./test-check-debug-flag.sh && \
-    rm -rf /tmp/fakestick/.pamusb && \
+    ./test-keyring-unlock-gnome-installer.sh
+    ./test-pinentry-installer.sh
+    ./test-conf-detects-device.sh
+    ./test-conf-adds-device.sh
+    ./test-conf-adds-user.sh
+    ./test-conf-doesnt-add-user-twice-but-adds-a-second-device.sh
+    ./test-check-verify-created-config.sh
+    ./test-conf-reset-pads.sh
+    ./test-check-many-devices.sh
+    ./test-check-superuser-filtering.sh
+    ./test-conf-adds-user-with-superuser.sh
+    ./test-check-deny-xrdp-session.sh
+    ./test-check-debug-flag.sh
+    rm -rf /tmp/fakestick/.pamusb
     ./test-agent-properly-triggers.sh
 
     PUSB_FS_TYPE_PREV=$PUSB_FS_TYPE
