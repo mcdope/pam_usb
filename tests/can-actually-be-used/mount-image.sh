@@ -68,3 +68,14 @@ echo "Info: fake device registered as /dev/$CREATED_DEVICE"
 
 mkdir -p /tmp/fakestick
 ./do-mount.sh "$PUSB_FS_TYPE" "/dev/${CREATED_DEVICE}1"
+
+# Wait for udev/UDisks2 to probe the filesystem UUID on the partition.
+# udevadm settle drains the udev queue but does not guarantee that udev has
+# finished reading the superblock and populating ID_FS_UUID, which pamusb-conf
+# needs to enumerate volumes. On QEMU ARM this probe is significantly slower
+# than on native x86, causing a timing race in test-conf-adds-device.sh.
+for i in $(seq 1 30); do
+    udevadm info --query=property --name="/dev/${CREATED_DEVICE}1" \
+        2>/dev/null | grep -q "^ID_FS_UUID=" && break
+    sleep 1
+done

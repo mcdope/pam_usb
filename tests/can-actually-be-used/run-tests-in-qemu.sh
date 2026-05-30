@@ -282,6 +282,14 @@ EOF
     chmod 600 "$SSH_KEY_CACHE"
     echo "=== Provisioned image saved ($(du -sh "$PROVISIONED_CACHE" | cut -f1)) ==="
 
+    # Prune older versioned images for this arch to prevent disk accumulation.
+    for old_img in "${CACHE_DIR}/jammy-${ARCH}-provisioned-v"*.qcow2; do
+        [ "$old_img" = "$PROVISIONED_CACHE" ] || rm -f "$old_img"
+    done
+    for old_key in "${CACHE_DIR}/jammy-${ARCH}-key-v"*; do
+        [ "$old_key" = "$SSH_KEY_CACHE" ] || rm -f "$old_key"
+    done
+
     trap 'rm -rf "$PROV_DIR"' EXIT
     exit 0
 fi
