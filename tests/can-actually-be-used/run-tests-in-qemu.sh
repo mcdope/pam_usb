@@ -134,10 +134,14 @@ if [ "$_PROVISION_MODE" -eq 1 ]; then
     prov_cleanup() {
         if [ -f "$PROV_PIDFILE" ]; then
             local pid
-            pid=$(cat "$PROV_PIDFILE")
-            kill "$pid" 2>/dev/null || true
-            sleep 3
-            kill -9 "$pid" 2>/dev/null || true
+            pid=$(cat "$PROV_PIDFILE" 2>/dev/null)
+            if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+                if grep -q "qemu" "/proc/$pid/cmdline" 2>/dev/null; then
+                    kill "$pid" 2>/dev/null || true
+                    sleep 3
+                    kill -9 "$pid" 2>/dev/null || true
+                fi
+            fi
         fi
         rm -rf "$PROV_DIR"
         rm -f "${PROVISIONED_CACHE}.tmp" "${SSH_KEY_CACHE}.tmp"
@@ -301,14 +305,16 @@ SSH_PORT="$(free_port)"
 cleanup() {
     if [ -f "$PIDFILE" ]; then
         local pid
-        pid=$(cat "$PIDFILE")
-        if kill -0 "$pid" 2>/dev/null; then
-            kill "$pid" 2>/dev/null || true
-            for i in $(seq 1 10); do
-                if ! kill -0 "$pid" 2>/dev/null; then break; fi
-                sleep 1
-            done
-            kill -9 "$pid" 2>/dev/null || true
+        pid=$(cat "$PIDFILE" 2>/dev/null)
+        if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+            if grep -q "qemu" "/proc/$pid/cmdline" 2>/dev/null; then
+                kill "$pid" 2>/dev/null || true
+                for i in $(seq 1 10); do
+                    if ! kill -0 "$pid" 2>/dev/null; then break; fi
+                    sleep 1
+                done
+                kill -9 "$pid" 2>/dev/null || true
+            fi
         fi
     fi
     rm -rf "$WORK_DIR"
