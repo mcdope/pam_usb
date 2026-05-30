@@ -28,7 +28,9 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         zlib1g:m68k zlib1g-dev:m68k \
         libc6:m68k \
         libselinux1:m68k libmount1:m68k libblkid1:m68k \
-        libpcre2-8-0:m68k libffi8:m68k libdbus-1-3:m68k && \
+        libpcre2-8-0:m68k libffi8:m68k libdbus-1-3:m68k \
+        libsystemd0:m68k libcap2:m68k libgcrypt20:m68k \
+        liblz4-1:m68k liblzma5:m68k libzstd1:m68k libgpg-error0:m68k && \
     dpkg --force-depends --force-architecture -i *.deb || true && \
     dpkg --configure -a 2>/dev/null || true && \
     for f in /usr/lib/m68k-linux-gnu/*.so.*.*; do \
