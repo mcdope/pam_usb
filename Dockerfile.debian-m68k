@@ -38,6 +38,6 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         [ "$so" != "$b" ] && [ ! -e "$d/$so" ] && ln -sf "$b" "$d/$so" || true; \
     done && \
     rm -rf /tmp/m68k-debs && \
-    printf '#!/bin/sh\nPKG_CONFIG_LIBDIR=/usr/lib/m68k-linux-gnu/pkgconfig:/usr/share/pkgconfig exec pkg-config "$@"\n' \
+    printf '#!/bin/sh\nPKG_CONFIG_LIBDIR=/usr/lib/m68k-linux-gnu/pkgconfig:/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig exec pkg-config "$@"\n' \
         > /usr/bin/m68k-linux-gnu-pkg-config && \
     chmod +x /usr/bin/m68k-linux-gnu-pkg-config
