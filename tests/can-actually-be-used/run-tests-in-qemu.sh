@@ -103,6 +103,14 @@ esac
 PROVISIONED_CACHE="${CACHE_DIR}/jammy-${ARCH}-provisioned-v${PROVISION_VERSION}.qcow2"
 SSH_KEY_CACHE="${CACHE_DIR}/jammy-${ARCH}-key-v${PROVISION_VERSION}"
 
+if [ "$_PROVISION_MODE" -eq 0 ]; then
+    if [ ! -f "$PROVISIONED_CACHE" ] || [ ! -f "$SSH_KEY_CACHE" ]; then
+        echo "Error: golden image not found for ${ARCH} (v${PROVISION_VERSION})."
+        echo "Run 'make provision-qemu-arm-images' on the CI runner first."
+        exit 1
+    fi
+fi
+
 # --- download base cloud image ---
 DOWNLOAD_LOCK="${CACHE_DIR}/download-${ARCH}.lock"
 if [ ! -f "$IMAGE_CACHE" ]; then
@@ -299,12 +307,6 @@ fi
 # Boots from the pre-provisioned golden image — no seed disk, no cloud-init,
 # fixed SSH key. VM is ready to test as soon as sshd accepts connections.
 # =============================================================================
-
-if [ ! -f "$PROVISIONED_CACHE" ] || [ ! -f "$SSH_KEY_CACHE" ]; then
-    echo "Error: golden image not found for ${ARCH} (v${PROVISION_VERSION})."
-    echo "Run 'make provision-qemu-arm-images' on the CI runner first."
-    exit 1
-fi
 
 WORK_DIR="$(mktemp -d /tmp/pam_usb_qemu_XXXXXX)"
 PIDFILE="${WORK_DIR}/qemu.pid"
