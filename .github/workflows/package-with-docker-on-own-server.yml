@@ -428,6 +428,7 @@ jobs:
   Arch-arm64:
 
     runs-on: ubuntu-22.04
+    needs: [Debian-arm64, Fedora-arm64]
 
     steps:
     - name: Install local requirements
