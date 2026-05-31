@@ -373,6 +373,7 @@ jobs:
   Fedora-arm64:
 
     runs-on: ubuntu-22.04
+    needs: [Debian-arm64]
 
     steps:
     - name: Install local requirements
@@ -539,6 +540,7 @@ jobs:
   Fedora-ppc64el:
 
     runs-on: ubuntu-22.04
+    needs: [Debian-ppc64el]
 
     steps:
     - name: Install local requirements
