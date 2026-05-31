@@ -466,6 +466,7 @@ build-debian-ppc64el: buildenv-debian-ppc64el
 		-v`pwd`/.build:/usr/local/src \
 		-v`pwd`:/usr/local/src/pam_usb \
 		-e DEB_BUILD_OPTIONS="parallel=1" \
+		-e DEB_BUILD_MAINT_OPTIONS="optimize=-lto" \
 		--rm mcdope/pam_usb-ubuntu-ppc64el-build \
 		sh -c "git config --global --add safe.directory /usr/local/src/pam_usb && make deb && chown -R $(UID):$(GID) .build debian"
 
@@ -487,6 +488,7 @@ build-debian-riscv64: buildenv-debian-riscv64
 		-v`pwd`/.build:/usr/local/src \
 		-v`pwd`:/usr/local/src/pam_usb \
 		-e DEB_BUILD_OPTIONS="parallel=2" \
+		-e DEB_BUILD_MAINT_OPTIONS="optimize=-lto" \
 		--rm mcdope/pam_usb-ubuntu-riscv64-build \
 		sh -c "git config --global --add safe.directory /usr/local/src/pam_usb && make deb && chown -R $(UID):$(GID) .build debian"
 
