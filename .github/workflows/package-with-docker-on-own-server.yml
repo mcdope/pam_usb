@@ -504,7 +504,7 @@ jobs:
 
 
   Debian-ppc64el:
-    needs: [Gate]
+    needs: [Gate, Arch-arm64]
 
     runs-on: ubuntu-22.04
 
