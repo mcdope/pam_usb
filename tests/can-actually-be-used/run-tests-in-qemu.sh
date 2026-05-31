@@ -102,7 +102,6 @@ esac
 
 PROVISIONED_CACHE="${CACHE_DIR}/jammy-${ARCH}-provisioned-v${PROVISION_VERSION}.qcow2"
 SSH_KEY_CACHE="${CACHE_DIR}/jammy-${ARCH}-key-v${PROVISION_VERSION}"
-PROVISION_LOCK="${CACHE_DIR}/provision-${ARCH}.lock"
 
 # --- download base cloud image ---
 DOWNLOAD_LOCK="${CACHE_DIR}/download-${ARCH}.lock"
@@ -302,12 +301,9 @@ fi
 # =============================================================================
 
 if [ ! -f "$PROVISIONED_CACHE" ] || [ ! -f "$SSH_KEY_CACHE" ]; then
-    (
-        flock -x 9
-        if [ ! -f "$PROVISIONED_CACHE" ] || [ ! -f "$SSH_KEY_CACHE" ]; then
-            bash "$0" --provision "$ARCH"
-        fi
-    ) 9>"$PROVISION_LOCK"
+    echo "Error: golden image not found for ${ARCH} (v${PROVISION_VERSION})."
+    echo "Run 'make provision-qemu-arm-images' on the CI runner first."
+    exit 1
 fi
 
 WORK_DIR="$(mktemp -d /tmp/pam_usb_qemu_XXXXXX)"
