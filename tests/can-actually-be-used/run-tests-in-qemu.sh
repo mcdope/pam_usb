@@ -125,6 +125,12 @@ if [ "$_PROVISION_MODE" -eq 0 ]; then
     fi
 fi
 
+# In provisioning mode, skip if the versioned image already exists.
+if [ "$_PROVISION_MODE" -eq 1 ] && [ -f "$PROVISIONED_CACHE" ] && [ -f "$SSH_KEY_CACHE" ]; then
+    echo "Golden image for ${ARCH} is already at v${PROVISION_VERSION}, nothing to do."
+    exit 0
+fi
+
 # --- download base cloud image ---
 DOWNLOAD_LOCK="${CACHE_DIR}/download-${ARCH}.lock"
 if [ ! -f "$IMAGE_CACHE" ]; then
