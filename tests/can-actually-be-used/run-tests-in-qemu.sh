@@ -3,11 +3,12 @@
 # functional test suite inside the VM.
 #
 # Host prerequisites:
-#   arm64: qemu-system-aarch64, qemu-efi-aarch64, cloud-image-utils
-#   armhf: qemu-system-arm, qemu-efi-arm, cloud-image-utils
+#   arm64:   qemu-system-aarch64, qemu-efi-aarch64, cloud-image-utils
+#   armhf:   qemu-system-arm, qemu-efi-arm, cloud-image-utils
+#   ppc64el: qemu-system-ppc, cloud-image-utils
 #
 # Usage: run-tests-in-qemu.sh <arch> <deb_path>
-#   arch     : arm64 | armhf
+#   arch     : arm64 | armhf | ppc64el
 #   deb_path : path to the libpam-usb .deb package to test
 #
 # Golden image strategy:
@@ -78,6 +79,8 @@ case "$ARCH" in
             echo "Error: cannot find arm64 EFI firmware" >&2; exit 1
         fi
         QEMU_BIOS="-bios ${BIOS_PATH}"
+        QEMU_BLK_DEV="virtio-blk-device"
+        QEMU_NET_DEV="virtio-net-device"
         ;;
     armhf)
         QEMU_BIN="qemu-system-arm"
@@ -93,9 +96,20 @@ case "$ARCH" in
             echo "Error: cannot find armhf EFI/U-Boot firmware" >&2; exit 1
         fi
         QEMU_BIOS="-bios ${BIOS_PATH}"
+        QEMU_BLK_DEV="virtio-blk-device"
+        QEMU_NET_DEV="virtio-net-device"
+        ;;
+    ppc64el)
+        QEMU_BIN="qemu-system-ppc64"
+        IMAGE_URL="https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-ppc64el.img"
+        IMAGE_CACHE="${CACHE_DIR}/jammy-ppc64el.img"
+        QEMU_MACHINE="-M pseries -cpu POWER9 -smp 2 -m 2048"
+        QEMU_BIOS=""
+        QEMU_BLK_DEV="virtio-blk-pci"
+        QEMU_NET_DEV="virtio-net-pci"
         ;;
     *)
-        echo "Unsupported arch: $ARCH (supported: arm64, armhf)" >&2
+        echo "Unsupported arch: $ARCH (supported: arm64, armhf, ppc64el)" >&2
         exit 1
         ;;
 esac
@@ -106,7 +120,7 @@ SSH_KEY_CACHE="${CACHE_DIR}/jammy-${ARCH}-key-v${PROVISION_VERSION}"
 if [ "$_PROVISION_MODE" -eq 0 ]; then
     if [ ! -f "$PROVISIONED_CACHE" ] || [ ! -f "$SSH_KEY_CACHE" ]; then
         echo "Error: golden image not found for ${ARCH} (v${PROVISION_VERSION})."
-        echo "Run 'make provision-qemu-arm-images' on the CI runner first."
+        echo "Run 'make provision-qemu-images' on the CI runner first."
         exit 1
     fi
 fi
@@ -204,11 +218,11 @@ EOF
         $QEMU_MACHINE \
         $QEMU_BIOS \
         -drive if=none,id=hd0,format=qcow2,file="$PROV_DISK" \
-        -device virtio-blk-device,drive=hd0 \
+        -device ${QEMU_BLK_DEV},drive=hd0 \
         -drive if=none,id=cloud,format=raw,file="$PROV_SEED" \
-        -device virtio-blk-device,drive=cloud \
+        -device ${QEMU_BLK_DEV},drive=cloud \
         -netdev user,id=net0,hostfwd=tcp::${PROV_PORT}-:22 \
-        -device virtio-net-device,netdev=net0 \
+        -device ${QEMU_NET_DEV},netdev=net0 \
         -serial "file:${PROV_SERIAL}" \
         -D "$PROV_QEMU_LOG" \
         -display none \
@@ -343,9 +357,9 @@ $QEMU_BIN \
     $QEMU_MACHINE \
     $QEMU_BIOS \
     -drive if=none,id=hd0,format=qcow2,file="$DISK_IMG" \
-    -device virtio-blk-device,drive=hd0 \
+    -device ${QEMU_BLK_DEV},drive=hd0 \
     -netdev user,id=net0,hostfwd=tcp::${SSH_PORT}-:22 \
-    -device virtio-net-device,netdev=net0 \
+    -device ${QEMU_NET_DEV},netdev=net0 \
     -serial "file:${SERIAL_LOG}" \
     -D "$QEMU_LOG" \
     -display none \

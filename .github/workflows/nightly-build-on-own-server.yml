@@ -83,8 +83,9 @@ jobs:
         sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -o ServerAliveCountMax=10 -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "cd ~/pam_usb_nightly_$GITHUB_RUN_ID && make build-debian-armhf" & PID2=$!
         sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -o ServerAliveCountMax=10 -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "cd ~/pam_usb_nightly_$GITHUB_RUN_ID && make build-debian-i386" & PID3=$!
         sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -o ServerAliveCountMax=10 -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "cd ~/pam_usb_nightly_$GITHUB_RUN_ID && make build-debian-m68k" & PID4=$!
-        wait $PID1; R1=$?; wait $PID2; R2=$?; wait $PID3; R3=$?; wait $PID4; R4=$?
-        exit $((R1 || R2 || R3 || R4))
+        sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -o ServerAliveCountMax=10 -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "cd ~/pam_usb_nightly_$GITHUB_RUN_ID && make build-debian-ppc64el" & PID5=$!
+        wait $PID1; R1=$?; wait $PID2; R2=$?; wait $PID3; R3=$?; wait $PID4; R4=$?; wait $PID5; R5=$?
+        exit $((R1 || R2 || R3 || R4 || R5))
     - name: Build .rpm package (arm64)
       env:
         TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
@@ -99,6 +100,13 @@ jobs:
         TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
         TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
       run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -o ServerAliveCountMax=10 -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "cd ~/pam_usb_nightly_$GITHUB_RUN_ID && make build-arch-arm64"
+    - name: Build .rpm package (ppc64el)
+      env:
+        TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
+        TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
+        TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
+        TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -o ServerAliveCountMax=10 -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "cd ~/pam_usb_nightly_$GITHUB_RUN_ID && make build-fedora-ppc64el"
     - name: Download generated package files
       env:
         TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}

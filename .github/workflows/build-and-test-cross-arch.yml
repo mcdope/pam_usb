@@ -57,7 +57,7 @@ jobs:
           CACHE=\"\$HOME/.cache/pam_usb-qemu\"
           test -f \"\${CACHE}/jammy-arm64-provisioned-v\${PROVISION_VERSION}.qcow2\" \
             && test -f \"\${CACHE}/jammy-arm64-key-v\${PROVISION_VERSION}\" \
-            || { echo \"Error: golden image not found for arm64 (v\${PROVISION_VERSION}). Run 'make provision-qemu-arm-images' on the CI runner first.\" >&2; exit 1; }
+            || { echo \"Error: golden image not found for arm64 (v\${PROVISION_VERSION}). Run 'make provision-qemu-images' on the CI runner first.\" >&2; exit 1; }
         "
     - name: Clean Docker dangling layers
       env:
@@ -134,7 +134,7 @@ jobs:
           CACHE=\"\$HOME/.cache/pam_usb-qemu\"
           test -f \"\${CACHE}/jammy-armhf-provisioned-v\${PROVISION_VERSION}.qcow2\" \
             && test -f \"\${CACHE}/jammy-armhf-key-v\${PROVISION_VERSION}\" \
-            || { echo \"Error: golden image not found for armhf (v\${PROVISION_VERSION}). Run 'make provision-qemu-arm-images' on the CI runner first.\" >&2; exit 1; }
+            || { echo \"Error: golden image not found for armhf (v\${PROVISION_VERSION}). Run 'make provision-qemu-images' on the CI runner first.\" >&2; exit 1; }
         "
     - name: Clean Docker dangling layers
       env:
@@ -172,3 +172,80 @@ jobs:
         TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
         TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
       run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -tt -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "sudo rm -rf ~/pam_usb_qemu_armhf_$GITHUB_RUN_ID; docker image rm -f mcdope/pam_usb-ubuntu-armhf-build 2>/dev/null || true; docker image prune -f || true"
+
+
+  FunctionalTest-ppc64el:
+
+    runs-on: ubuntu-22.04
+
+    steps:
+    - name: Install sshpass on Github runner
+      run: sudo apt install sshpass
+    - name: FURTHER STEPS EXECUTED ON CONFIGURED RUNNER
+      run: exit 0
+    - name: Free runner disk before build
+      env:
+        TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
+        TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
+        TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
+        TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "killall -q qemu-system-ppc64 2>/dev/null || true; rm -rf /tmp/pam_usb_qemu_* || true; docker container prune -f || true; docker images 'mcdope/pam_usb-*' -q | xargs -r docker image rm -f || true; docker image prune -f || true"
+    - name: Checkout branch on runner
+      env:
+        TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
+        TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
+        TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
+        TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
+        REF_TO_CHECKOUT: ${{ github.head_ref }}
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -tt -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "sudo rm -rf ~/pam_usb_qemu_ppc64el_$GITHUB_RUN_ID && git clone https://github.com/mcdope/pam_usb.git ~/pam_usb_qemu_ppc64el_$GITHUB_RUN_ID && cd ~/pam_usb_qemu_ppc64el_$GITHUB_RUN_ID && git switch -f $REF_TO_CHECKOUT || git switch -f master && git pull"
+    - name: Check ppc64el QEMU golden image exists
+      id: check_image_ppc64el
+      env:
+        TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
+        TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
+        TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
+        TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
+      run: |
+        sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "
+          PROVISION_VERSION=\$(grep '^PROVISION_VERSION=' ~/pam_usb_qemu_ppc64el_$GITHUB_RUN_ID/tests/can-actually-be-used/run-tests-in-qemu.sh | cut -d'\"' -f2)
+          CACHE=\"\$HOME/.cache/pam_usb-qemu\"
+          test -f \"\${CACHE}/jammy-ppc64el-provisioned-v\${PROVISION_VERSION}.qcow2\" \
+            && test -f \"\${CACHE}/jammy-ppc64el-key-v\${PROVISION_VERSION}\" \
+            || { echo \"Error: golden image not found for ppc64el (v\${PROVISION_VERSION}). Run 'make provision-qemu-images' on the CI runner first.\" >&2; exit 1; }
+        "
+    - name: Clean Docker dangling layers
+      env:
+        TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
+        TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
+        TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
+        TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "docker image prune -f"
+    - name: Build ppc64el .deb
+      env:
+        TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
+        TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
+        TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
+        TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "cd ~/pam_usb_qemu_ppc64el_$GITHUB_RUN_ID && make build-debian-ppc64el"
+    - name: Install QEMU test prerequisites on runner
+      env:
+        TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
+        TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
+        TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
+        TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "sudo apt-get install -y qemu-system-ppc qemu-utils cloud-image-utils 2>/dev/null || true"
+    - name: Run functional test suite in ppc64el QEMU VM
+      env:
+        TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
+        TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
+        TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
+        TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ServerAliveCountMax=20 -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW 'cd ~/pam_usb_qemu_ppc64el_'"$GITHUB_RUN_ID"' && tests/can-actually-be-used/run-tests-in-qemu.sh ppc64el $(ls .build/libpam-usb_*_ppc64el.deb | head -1)'
+    - name: Cleanup
+      if: always() && steps.check_image_ppc64el.outcome == 'success'
+      env:
+        TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
+        TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
+        TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
+        TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -tt -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "sudo rm -rf ~/pam_usb_qemu_ppc64el_$GITHUB_RUN_ID; docker image rm -f mcdope/pam_usb-ubuntu-ppc64el-build 2>/dev/null || true; docker image prune -f || true"
