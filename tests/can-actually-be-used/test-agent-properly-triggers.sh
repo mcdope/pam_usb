@@ -18,8 +18,14 @@ sudo tail -n 200 /var/log/auth.log | grep "pamusb-agent\[" | grep "has been remo
 
 # "plug" virtual usb
 sudo modprobe g_mass_storage file=./virtual_usb.img stall=0 removable=y iSerialNumber=1234567890 || exit 1
-sleep 20
-sudo tail -n 200 /var/log/auth.log | grep "pamusb-agent\[" | grep "Authentication succeeded. Unlocking user"  > /dev/null && echo -e "\t\t\t\tUnlock event found" || { echo -e "\t\t\t\tNo unlock event found!"; exit 1; }
+# Poll for unlock — authentication requires UDisks2 to reprobe the filesystem
+# after plug-in, which is slower than the unplug path on QEMU ARM.
+UNLOCK_FOUND=0
+for i in $(seq 1 30); do
+    sudo tail -n 200 /var/log/auth.log | grep "pamusb-agent\[" | grep -q "Authentication succeeded. Unlocking user" && { UNLOCK_FOUND=1; break; }
+    sleep 2
+done
+[ $UNLOCK_FOUND -eq 1 ] && echo -e "\t\t\t\tUnlock event found" || { echo -e "\t\t\t\tNo unlock event found!"; exit 1; }
 
 # Disable agent again
 sudo systemctl stop pamusb-agent > /dev/null 2>&1 || exit 1
