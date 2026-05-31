@@ -443,3 +443,7 @@ build-arch-arm64: buildenv-arch-arm64
 		-v`pwd`:/usr/local/src/pam_usb \
 		--rm mcdope/pam_usb-arch-arm64-build \
 		sh -c "chown -R builduser:builduser . && sudo -u builduser make zst && chown -R $(UID):$(GID) ."
+
+provision-qemu-arm-images:
+	tests/can-actually-be-used/run-tests-in-qemu.sh --provision arm64
+	tests/can-actually-be-used/run-tests-in-qemu.sh --provision armhf
