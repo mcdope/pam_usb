@@ -2,14 +2,18 @@
 
 set -e
 
+CONF_BACKUP=$(mktemp)
+sudo cp /etc/security/pam_usb.conf "$CONF_BACKUP"
+
 cleanup() {
     local exit_code=$?
-    [ $exit_code -eq 0 ] && return 0
-    echo "Error: test suite failed (exit $exit_code), cleaning up..."
+    [ $exit_code -eq 0 ] || echo "Error: test suite failed (exit $exit_code), cleaning up..."
     sync 2>/dev/null || true
     sudo umount /tmp/fakestick 2>/dev/null || true
     sudo modprobe -r g_mass_storage 2>/dev/null || true
     sudo udevadm settle 2>/dev/null || true
+    sudo cp "$CONF_BACKUP" /etc/security/pam_usb.conf 2>/dev/null || true
+    rm -f "$CONF_BACKUP"
 }
 trap cleanup EXIT
 
@@ -33,6 +37,7 @@ for PUSB_FS_TYPE in vfat ext4 exfat; do
         sudo umount /tmp/fakestick 2>/dev/null || true
         sudo modprobe -r g_mass_storage 2>/dev/null || true
         sudo udevadm settle
+        sudo cp "$CONF_BACKUP" /etc/security/pam_usb.conf
     fi
 
     ./create-image.sh
