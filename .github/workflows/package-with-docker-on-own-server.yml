@@ -7,7 +7,22 @@ on:
     branches: [ master ]
 
 jobs:
+
+  Gate:
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install build dependencies
+      uses: ./.github/actions/install-build-deps
+      with:
+        extra-packages: libcmocka-dev python3-pytest python3-pytest-mock
+    - name: Build
+      run: make
+    - name: Unit tests
+      run: make test
+
   Debian:
+    needs: [Gate]
 
     runs-on: ubuntu-22.04
 
@@ -56,6 +71,7 @@ jobs:
 
 
   Fedora:
+    needs: [Gate]
 
     runs-on: ubuntu-22.04
 
@@ -103,6 +119,7 @@ jobs:
       run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -tt -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "sudo rm -rf ~/pam_usb_rpm_$GITHUB_RUN_ID; docker image prune -f || true"
 
   Arch:
+    needs: [Gate]
 
     runs-on: ubuntu-22.04
 
@@ -151,6 +168,7 @@ jobs:
 
 
   Debian-arm64:
+    needs: [Gate]
 
     runs-on: ubuntu-22.04
 
@@ -206,6 +224,7 @@ jobs:
 
 
   Debian-armhf:
+    needs: [Gate]
 
     runs-on: ubuntu-22.04
 
@@ -261,6 +280,7 @@ jobs:
 
 
   Debian-i386:
+    needs: [Gate]
 
     runs-on: ubuntu-22.04
 
@@ -316,6 +336,7 @@ jobs:
 
 
   Debian-m68k:
+    needs: [Gate]
 
     runs-on: ubuntu-22.04
 
@@ -483,6 +504,7 @@ jobs:
 
 
   Debian-ppc64el:
+    needs: [Gate]
 
     runs-on: ubuntu-22.04
 
@@ -594,6 +616,7 @@ jobs:
 
 
   Debian-riscv64:
+    needs: [Gate]
 
     runs-on: ubuntu-22.04
 

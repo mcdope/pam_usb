@@ -7,7 +7,22 @@ on:
     branches: [ master ]
 
 jobs:
+
+  Gate:
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install build dependencies
+      uses: ./.github/actions/install-build-deps
+      with:
+        extra-packages: libcmocka-dev python3-pytest python3-pytest-mock
+    - name: Build
+      run: make
+    - name: Unit tests
+      run: make test
+
   DoMagicOnConfiguredCustomRunner:
+    needs: [Gate]
 
     runs-on: ubuntu-22.04
 
