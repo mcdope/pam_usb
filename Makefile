@@ -445,5 +445,6 @@ build-arch-arm64: buildenv-arch-arm64
 		sh -c "chown -R builduser:builduser . && sudo -u builduser make zst && chown -R $(UID):$(GID) ."
 
 provision-qemu-arm-images:
-	tests/can-actually-be-used/run-tests-in-qemu.sh --provision arm64
-	tests/can-actually-be-used/run-tests-in-qemu.sh --provision armhf
+	tests/can-actually-be-used/run-tests-in-qemu.sh --provision arm64 & PID1=$$!; \
+	tests/can-actually-be-used/run-tests-in-qemu.sh --provision armhf & PID2=$$!; \
+	wait $$PID1; R1=$$?; wait $$PID2; R2=$$?; exit $$((R1 || R2))
