@@ -6,9 +6,10 @@
 #   arm64:   qemu-system-aarch64, qemu-efi-aarch64, cloud-image-utils
 #   armhf:   qemu-system-arm, qemu-efi-arm, cloud-image-utils
 #   ppc64el: qemu-system-ppc, cloud-image-utils
+#   riscv64: qemu-system-misc, qemu-efi-riscv64, cloud-image-utils
 #
 # Usage: run-tests-in-qemu.sh <arch> <deb_path>
-#   arch     : arm64 | armhf | ppc64el
+#   arch     : arm64 | armhf | ppc64el | riscv64
 #   deb_path : path to the libpam-usb .deb package to test
 #
 # Golden image strategy:
@@ -108,8 +109,21 @@ case "$ARCH" in
         QEMU_BLK_DEV="virtio-blk-pci"
         QEMU_NET_DEV="virtio-net-pci"
         ;;
+    riscv64)
+        QEMU_BIN="qemu-system-riscv64"
+        IMAGE_URL="https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-riscv64.img"
+        IMAGE_CACHE="${CACHE_DIR}/jammy-riscv64.img"
+        QEMU_MACHINE="-M virt -smp 2 -m 2048"
+        BIOS_PATH="$(find_bios /usr/share/qemu-efi-riscv64/QEMU_EFI.fd)" || true
+        if [ -z "$BIOS_PATH" ]; then
+            echo "Error: cannot find riscv64 EFI firmware" >&2; exit 1
+        fi
+        QEMU_BIOS="-bios ${BIOS_PATH}"
+        QEMU_BLK_DEV="virtio-blk-device"
+        QEMU_NET_DEV="virtio-net-device"
+        ;;
     *)
-        echo "Unsupported arch: $ARCH (supported: arm64, armhf, ppc64el)" >&2
+        echo "Unsupported arch: $ARCH (supported: arm64, armhf, ppc64el, riscv64)" >&2
         exit 1
         ;;
 esac

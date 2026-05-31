@@ -40,6 +40,9 @@ endif
 ifeq ($(ARCH), ppc64le)
 	LIBDIR ?= lib/powerpc64le-linux-gnu
 endif
+ifeq ($(ARCH), riscv64)
+	LIBDIR ?= lib/riscv64-linux-gnu
+endif
 
 # compiler/linker options
 CC ?= gcc
@@ -381,7 +384,7 @@ build-arch: buildenv-arch
 		--rm mcdope/pam_usb-arch-build \
 		sh -c "chown -R builduser:builduser . && sudo -u builduser make zst && chown -R $(UID):$(GID) ."
 
-build-all: sourcegz buildenv-arch buildenv-debian buildenv-fedora build-arch build-debian build-fedora build-debian-arm64 build-debian-armhf build-debian-i386 build-debian-m68k build-fedora-arm64 build-arch-arm64 build-debian-ppc64el build-fedora-ppc64el
+build-all: sourcegz buildenv-arch buildenv-debian buildenv-fedora build-arch build-debian build-fedora build-debian-arm64 build-debian-armhf build-debian-i386 build-debian-m68k build-fedora-arm64 build-arch-arm64 build-debian-ppc64el build-fedora-ppc64el build-debian-riscv64 build-fedora-riscv64
 
 setup-qemu:
 	$(DOCKER) run --rm --privileged multiarch/qemu-user-static -p yes || true
@@ -468,8 +471,30 @@ build-fedora-ppc64el: buildenv-fedora-ppc64el
 		--rm mcdope/pam_usb-fedora-ppc64el-build \
 		sh -c "make rpm && chown -R $(UID):$(GID) .build fedora"
 
+buildenv-debian-riscv64: setup-qemu
+	DOCKER_BUILDKIT=1 $(DOCKER) build --platform linux/riscv64 -f Dockerfile.debian -t mcdope/pam_usb-ubuntu-riscv64-build .
+
+build-debian-riscv64: buildenv-debian-riscv64
+	$(DOCKER) run -i --platform linux/riscv64 \
+		-v`pwd`/.build:/usr/local/src \
+		-v`pwd`:/usr/local/src/pam_usb \
+		-e DEB_BUILD_OPTIONS="parallel=2" \
+		--rm mcdope/pam_usb-ubuntu-riscv64-build \
+		sh -c "git config --global --add safe.directory /usr/local/src/pam_usb && make deb && chown -R $(UID):$(GID) .build debian"
+
+buildenv-fedora-riscv64: setup-qemu
+	DOCKER_BUILDKIT=1 $(DOCKER) build --platform linux/riscv64 -f Dockerfile.fedora-riscv64 -t mcdope/pam_usb-fedora-riscv64-build .
+
+build-fedora-riscv64: buildenv-fedora-riscv64
+	$(DOCKER) run -i --platform linux/riscv64 \
+		-v`pwd`/.build:/usr/local/src \
+		-v`pwd`:/usr/local/src/pam_usb \
+		--rm mcdope/pam_usb-fedora-riscv64-build \
+		sh -c "make rpm && chown -R $(UID):$(GID) .build fedora"
+
 provision-qemu-images:
 	tests/can-actually-be-used/run-tests-in-qemu.sh --provision arm64 & PID1=$$!; \
 	tests/can-actually-be-used/run-tests-in-qemu.sh --provision armhf & PID2=$$!; \
 	tests/can-actually-be-used/run-tests-in-qemu.sh --provision ppc64el & PID3=$$!; \
-	wait $$PID1; R1=$$?; wait $$PID2; R2=$$?; wait $$PID3; R3=$$?; exit $$((R1 || R2 || R3))
+	tests/can-actually-be-used/run-tests-in-qemu.sh --provision riscv64 & PID4=$$!; \
+	wait $$PID1; R1=$$?; wait $$PID2; R2=$$?; wait $$PID3; R3=$$?; wait $$PID4; R4=$$?; exit $$((R1 || R2 || R3 || R4))
