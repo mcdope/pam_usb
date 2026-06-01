@@ -493,8 +493,8 @@ build-debian-riscv64: buildenv-debian-riscv64
 		sh -c "git config --global --add safe.directory /usr/local/src/pam_usb && make deb && chown -R $(UID):$(GID) .build debian"
 
 provision-qemu-images:
-	tests/can-actually-be-used/run-tests-in-qemu.sh --provision arm64 & PID1=$$!; \
-	tests/can-actually-be-used/run-tests-in-qemu.sh --provision armhf & PID2=$$!; \
-	tests/can-actually-be-used/run-tests-in-qemu.sh --provision ppc64el & PID3=$$!; \
-	tests/can-actually-be-used/run-tests-in-qemu.sh --provision riscv64 & PID4=$$!; \
-	wait $$PID1; R1=$$?; wait $$PID2; R2=$$?; wait $$PID3; R3=$$?; wait $$PID4; R4=$$?; exit $$((R1 || R2 || R3 || R4))
+	tests/can-actually-be-used/run-tests-in-qemu.sh --provision arm64; R1=$$?; \
+	tests/can-actually-be-used/run-tests-in-qemu.sh --provision armhf; R2=$$?; \
+	tests/can-actually-be-used/run-tests-in-qemu.sh --provision ppc64el; R3=$$?; \
+	tests/can-actually-be-used/run-tests-in-qemu.sh --provision riscv64; R4=$$?; \
+	exit $$((R1 || R2 || R3 || R4))
