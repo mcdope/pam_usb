@@ -80,6 +80,7 @@ case "$ARCH" in
             echo "Error: cannot find arm64 EFI firmware" >&2; exit 1
         fi
         QEMU_BIOS="-bios ${BIOS_PATH}"
+        QEMU_KERNEL=""
         QEMU_BLK_DEV="virtio-blk-device"
         QEMU_NET_DEV="virtio-net-device"
         ;;
@@ -97,6 +98,7 @@ case "$ARCH" in
             echo "Error: cannot find armhf EFI/U-Boot firmware" >&2; exit 1
         fi
         QEMU_BIOS="-bios ${BIOS_PATH}"
+        QEMU_KERNEL=""
         QEMU_BLK_DEV="virtio-blk-device"
         QEMU_NET_DEV="virtio-net-device"
         ;;
@@ -106,6 +108,7 @@ case "$ARCH" in
         IMAGE_CACHE="${CACHE_DIR}/jammy-ppc64el.img"
         QEMU_MACHINE="-M pseries -cpu POWER9 -smp 2 -m 2048"
         QEMU_BIOS=""
+        QEMU_KERNEL=""
         QEMU_BLK_DEV="virtio-blk-pci"
         QEMU_NET_DEV="virtio-net-pci"
         ;;
@@ -114,13 +117,16 @@ case "$ARCH" in
         IMAGE_URL="https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-riscv64.img"
         IMAGE_CACHE="${CACHE_DIR}/jammy-riscv64.img"
         QEMU_MACHINE="-M virt -smp 2 -m 2048"
-        BIOS_PATH="$(find_bios \
+        # riscv64 virt: QEMU's built-in OpenSBI runs as M-mode firmware automatically;
+        # U-Boot (S-mode) must be specified as -kernel so OpenSBI can hand off to it.
+        UBOOT_PATH="$(find_bios \
             /usr/lib/u-boot/qemu-riscv64_smode/u-boot.bin \
             /usr/lib/u-boot/qemu-riscv64/u-boot.bin)" || true
-        if [ -z "$BIOS_PATH" ]; then
-            echo "Error: cannot find riscv64 U-Boot firmware (install u-boot-qemu)" >&2; exit 1
+        if [ -z "$UBOOT_PATH" ]; then
+            echo "Error: cannot find riscv64 U-Boot binary (install u-boot-qemu)" >&2; exit 1
         fi
-        QEMU_BIOS="-bios ${BIOS_PATH}"
+        QEMU_BIOS=""
+        QEMU_KERNEL="-kernel ${UBOOT_PATH}"
         QEMU_BLK_DEV="virtio-blk-device"
         QEMU_NET_DEV="virtio-net-device"
         ;;
@@ -249,6 +255,7 @@ EOF
     $QEMU_BIN \
         $QEMU_MACHINE \
         $QEMU_BIOS \
+        $QEMU_KERNEL \
         -drive if=none,id=hd0,format=qcow2,file="$PROV_DISK" \
         -device ${QEMU_BLK_DEV},drive=hd0,bootindex=1 \
         -drive if=none,id=cloud,format=raw,file="$PROV_SEED" \
@@ -388,6 +395,7 @@ echo "Starting QEMU $ARCH VM on SSH port $SSH_PORT..."
 $QEMU_BIN \
     $QEMU_MACHINE \
     $QEMU_BIOS \
+    $QEMU_KERNEL \
     -drive if=none,id=hd0,format=qcow2,file="$DISK_IMG" \
     -device ${QEMU_BLK_DEV},drive=hd0,bootindex=1 \
     -netdev user,id=net0,hostfwd=tcp::${SSH_PORT}-:22 \
