@@ -498,3 +498,8 @@ provision-qemu-images:
 	tests/can-actually-be-used/run-tests-in-qemu.sh --provision ppc64el; R3=$$?; \
 	tests/can-actually-be-used/run-tests-in-qemu.sh --provision riscv64; R4=$$?; \
 	exit $$((R1 || R2 || R3 || R4))
+
+clean-qemu-images:
+	rm -f $(HOME)/.cache/pam_usb-qemu/jammy-*-provisioned-*.qcow2 \
+	      $(HOME)/.cache/pam_usb-qemu/jammy-*-key-*
+	@echo "Provisioned QEMU images removed. Run 'make provision-qemu-images' to rebuild."
