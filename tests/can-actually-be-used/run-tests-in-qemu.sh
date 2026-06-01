@@ -128,6 +128,16 @@ case "$ARCH" in
         ;;
 esac
 
+# --- pre-flight: verify QEMU binary is installed ---
+if ! command -v "$QEMU_BIN" > /dev/null 2>&1; then
+    echo "Error: $QEMU_BIN not found. Install the required package first:" >&2
+    echo "  arm64:   sudo apt install qemu-system-arm qemu-efi-aarch64 cloud-image-utils" >&2
+    echo "  armhf:   sudo apt install qemu-system-arm qemu-efi-arm u-boot-qemu cloud-image-utils" >&2
+    echo "  ppc64el: sudo apt install qemu-system-ppc qemu-utils cloud-image-utils" >&2
+    echo "  riscv64: sudo apt install qemu-system-misc qemu-efi-riscv64 qemu-utils cloud-image-utils" >&2
+    exit 1
+fi
+
 PROVISIONED_CACHE="${CACHE_DIR}/jammy-${ARCH}-provisioned-v${PROVISION_VERSION}.qcow2"
 SSH_KEY_CACHE="${CACHE_DIR}/jammy-${ARCH}-key-v${PROVISION_VERSION}"
 
