@@ -6,7 +6,7 @@
 #   arm64:   qemu-system-aarch64, qemu-efi-aarch64, cloud-image-utils
 #   armhf:   qemu-system-arm, qemu-efi-arm, cloud-image-utils
 #   ppc64el: qemu-system-ppc, cloud-image-utils
-#   riscv64: qemu-system-misc, qemu-efi-riscv64, cloud-image-utils
+#   riscv64: qemu-system-misc, u-boot-qemu, cloud-image-utils
 #
 # Usage: run-tests-in-qemu.sh <arch> <deb_path>
 #   arch     : arm64 | armhf | ppc64el | riscv64
@@ -114,9 +114,11 @@ case "$ARCH" in
         IMAGE_URL="https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-riscv64.img"
         IMAGE_CACHE="${CACHE_DIR}/jammy-riscv64.img"
         QEMU_MACHINE="-M virt -smp 2 -m 2048"
-        BIOS_PATH="$(find_bios /usr/share/qemu-efi-riscv64/QEMU_EFI.fd)" || true
+        BIOS_PATH="$(find_bios \
+            /usr/lib/u-boot/qemu-riscv64_smode/u-boot.bin \
+            /usr/lib/u-boot/qemu-riscv64/u-boot.bin)" || true
         if [ -z "$BIOS_PATH" ]; then
-            echo "Error: cannot find riscv64 EFI firmware" >&2; exit 1
+            echo "Error: cannot find riscv64 U-Boot firmware (install u-boot-qemu)" >&2; exit 1
         fi
         QEMU_BIOS="-bios ${BIOS_PATH}"
         QEMU_BLK_DEV="virtio-blk-device"
@@ -248,9 +250,9 @@ EOF
         $QEMU_MACHINE \
         $QEMU_BIOS \
         -drive if=none,id=hd0,format=qcow2,file="$PROV_DISK" \
-        -device ${QEMU_BLK_DEV},drive=hd0 \
+        -device ${QEMU_BLK_DEV},drive=hd0,bootindex=1 \
         -drive if=none,id=cloud,format=raw,file="$PROV_SEED" \
-        -device ${QEMU_BLK_DEV},drive=cloud \
+        -device ${QEMU_BLK_DEV},drive=cloud,bootindex=2 \
         -netdev user,id=net0,hostfwd=tcp::${PROV_PORT}-:22 \
         -device ${QEMU_NET_DEV},netdev=net0 \
         -serial "file:${PROV_SERIAL}" \
@@ -278,7 +280,7 @@ EOF
         fi
         if $PROV_SSH "true" 2>/dev/null; then BOOTED=1; break; fi
         if [ $((i % 12)) -eq 0 ]; then
-            echo "  Still waiting... ($(( i * 10 / 60 )) min elapsed)"
+            echo "  Still waiting... ($(( i * 10 / 60 )) min elapsed, last serial: $(tail -1 "$PROV_SERIAL" 2>/dev/null | tr -d '\r' || echo '(none)'))"
         fi
         sleep 10 || true
     done
@@ -387,7 +389,7 @@ $QEMU_BIN \
     $QEMU_MACHINE \
     $QEMU_BIOS \
     -drive if=none,id=hd0,format=qcow2,file="$DISK_IMG" \
-    -device ${QEMU_BLK_DEV},drive=hd0 \
+    -device ${QEMU_BLK_DEV},drive=hd0,bootindex=1 \
     -netdev user,id=net0,hostfwd=tcp::${SSH_PORT}-:22 \
     -device ${QEMU_NET_DEV},netdev=net0 \
     -serial "file:${SERIAL_LOG}" \
