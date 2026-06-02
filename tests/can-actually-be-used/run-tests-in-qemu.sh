@@ -21,8 +21,9 @@
 
 set -e
 
-# Bump when the provisioned environment changes (packages, modules, key).
-PROVISION_VERSION="6"
+# Per-arch provision version. Bump only the arch(es) whose environment changed.
+# Bumping an arch invalidates its golden image and requires re-provisioning.
+PROVISION_VERSION=""  # set per-arch in the case block below
 
 # --- argument parsing ---
 if [ "$1" = "--provision" ]; then
@@ -68,6 +69,7 @@ free_port() {
 
 case "$ARCH" in
     arm64)
+        PROVISION_VERSION="5"
         QEMU_BIN="qemu-system-aarch64"
         IMAGE_URL="https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-arm64.img"
         IMAGE_CACHE="${CACHE_DIR}/jammy-arm64.img"
@@ -85,6 +87,7 @@ case "$ARCH" in
         QEMU_NET_DEV="virtio-net-device"
         ;;
     armhf)
+        PROVISION_VERSION="5"
         QEMU_BIN="qemu-system-arm"
         IMAGE_URL="https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-armhf.img"
         IMAGE_CACHE="${CACHE_DIR}/jammy-armhf.img"
@@ -103,6 +106,7 @@ case "$ARCH" in
         QEMU_NET_DEV="virtio-net-device"
         ;;
     ppc64el)
+        PROVISION_VERSION="6"
         QEMU_BIN="qemu-system-ppc64"
         IMAGE_URL="https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-ppc64el.img"
         IMAGE_CACHE="${CACHE_DIR}/jammy-ppc64el.img"
@@ -115,6 +119,7 @@ case "$ARCH" in
         QEMU_NET_DEV="virtio-net-pci"
         ;;
     riscv64)
+        PROVISION_VERSION="6"
         QEMU_BIN="qemu-system-riscv64"
         IMAGE_URL="https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-riscv64.img"
         IMAGE_CACHE="${CACHE_DIR}/jammy-riscv64.img"
