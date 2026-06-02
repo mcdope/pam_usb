@@ -409,8 +409,8 @@ if [ ! -f "$PIDFILE" ] || ! kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
 fi
 echo "QEMU PID: $(cat "$PIDFILE")"
 
-SSH_CMD="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5 -p $SSH_PORT -i $SSH_KEY_CACHE ${TEST_USER}@127.0.0.1"
-SCP_CMD="scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -P $SSH_PORT -i $SSH_KEY_CACHE"
+SSH_CMD="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5 -o BatchMode=yes -p $SSH_PORT -i $SSH_KEY_CACHE ${TEST_USER}@127.0.0.1"
+SCP_CMD="scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o BatchMode=yes -P $SSH_PORT -i $SSH_KEY_CACHE"
 
 echo "Waiting for VM to boot (max 40 minutes)..."
 BOOTED=0
