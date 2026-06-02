@@ -2,7 +2,7 @@
 
 | | amd64 | arm64 | armhf | riscv64 | i386 | m68k |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Tests** | [![B&T][badge-bt]][wf-bt] | [![QEMU][badge-qemu]][wf-qemu] | [![QEMU][badge-qemu]][wf-qemu] | [![QEMU][badge-qemu]][wf-qemu] | — | — |
+| **Tests** | [![B&T][badge-bt]][wf-bt] | [![QEMU][badge-qemu]][wf-qemu] | [![QEMU][badge-qemu]][wf-qemu] | — | — | — |
 | **Debian** | [![Pkg][badge-pkg]][wf-pkg] | [![Pkg][badge-pkg]][wf-pkg] | [![Pkg][badge-pkg]][wf-pkg] | [![Pkg][badge-pkg]][wf-pkg] | [![Pkg][badge-pkg]][wf-pkg] | [![Pkg][badge-pkg]][wf-pkg] |
 | **Fedora** | [![Pkg][badge-pkg]][wf-pkg] | [![Pkg][badge-pkg]][wf-pkg] | — | — | — | — |
 | **Arch** | [![Pkg][badge-pkg]][wf-pkg] | [![Pkg][badge-pkg]][wf-pkg] | — | — | — | — |

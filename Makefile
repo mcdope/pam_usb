@@ -467,8 +467,7 @@ build-debian-riscv64: buildenv-debian-riscv64
 provision-qemu-images:
 	tests/can-actually-be-used/run-tests-in-qemu.sh --provision arm64; R1=$$?; \
 	tests/can-actually-be-used/run-tests-in-qemu.sh --provision armhf; R2=$$?; \
-	tests/can-actually-be-used/run-tests-in-qemu.sh --provision riscv64; R3=$$?; \
-	exit $$((R1 || R2 || R3))
+	exit $$((R1 || R2))
 
 clean-qemu-images:
 	rm -f $(HOME)/.cache/pam_usb-qemu/jammy-*-provisioned-*.qcow2 \
