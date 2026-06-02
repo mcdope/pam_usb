@@ -22,7 +22,7 @@
 set -e
 
 # Bump when the provisioned environment changes (packages, modules, key).
-PROVISION_VERSION="5"
+PROVISION_VERSION="6"
 
 # --- argument parsing ---
 if [ "$1" = "--provision" ]; then
@@ -222,6 +222,8 @@ if [ "$_PROVISION_MODE" -eq 1 ]; then
 
     cat > "${PROV_DIR}/user-data" <<CLOUDINIT
 #cloud-config
+output:
+  all: '| tee /dev/console'
 users:
   - name: ${TEST_USER}
     sudo: ALL=(ALL) NOPASSWD:ALL
@@ -245,12 +247,15 @@ packages:
 package_update: true
 package_upgrade: false
 runcmd:
-  - [bash, -c, "apt-get install -y linux-headers-\$(uname -r) 2>/dev/null || apt-get install -y linux-headers-virtual"]
-  - [bash, -c, "apt-get install -y linux-modules-extra-\$(uname -r) 2>/dev/null || true"]
-  - [bash, -c, "mkdir -p /tmp/src/dummy-hcd && git clone -b main https://github.com/0prichnik/dummy-hcd.git /tmp/src/dummy-hcd/master/ && cd /tmp/src/dummy-hcd/master/ && make update && make dkms"]
+  - [bash, -c, "DEBIAN_FRONTEND=noninteractive apt-get install -y linux-headers-\$(uname -r) 2>/dev/null || DEBIAN_FRONTEND=noninteractive apt-get install -y linux-headers-virtual"]
+  - [bash, -c, "DEBIAN_FRONTEND=noninteractive apt-get install -y linux-modules-extra-\$(uname -r) 2>/dev/null || true"]
+  - [bash, -c, "git clone -b main https://github.com/0prichnik/dummy-hcd.git /tmp/src/dummy-hcd/master/"]
+  - [bash, -c, "cd /tmp/src/dummy-hcd/master/ && make update"]
+  - [bash, -c, "cd /tmp/src/dummy-hcd/master/ && MAKEFLAGS='-j1' CFLAGS='-O1 -fno-lto' make dkms"]
   - [bash, -c, "touch /etc/cloud/cloud-init.disabled"]
   - [bash, -c, "systemctl disable --now apt-daily.timer apt-daily-upgrade.timer apt-daily.service apt-daily-upgrade.service 2>/dev/null || true"]
   - [bash, -c, "ssh-keygen -A"]
+  - [bash, -c, "echo PAM_USB_PROV_DONE > /dev/console"]
 power_state:
   delay: now
   mode: poweroff
@@ -308,7 +313,18 @@ EOF
         tail -80 "$PROV_SERIAL" 2>/dev/null >&2 || true
         exit 1
     fi
-    echo "Provisioning VM powered off cleanly."
+    echo "Provisioning VM powered off."
+
+    # Verify all runcmd steps completed. A QEMU crash mid-provisioning (e.g. GCC ICE
+    # during make dkms) also sets POWERED_OFF=1 because the PID disappears. Without
+    # this check a broken image would be silently saved.
+    if ! grep -q "PAM_USB_PROV_DONE" "$PROV_SERIAL" 2>/dev/null; then
+        echo "Error: provisioning incomplete — sentinel not found in serial log (QEMU crash or runcmd failure)" >&2
+        echo "Last 80 lines of serial log:" >&2
+        tail -80 "$PROV_SERIAL" 2>/dev/null >&2 || true
+        exit 1
+    fi
+    echo "Provisioning complete (sentinel confirmed)."
 
     if [ ! -f "$PROV_DISK" ]; then
         echo "Error: provisioned disk image missing: $PROV_DISK" >&2
