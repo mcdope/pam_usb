@@ -106,7 +106,9 @@ case "$ARCH" in
         QEMU_BIN="qemu-system-ppc64"
         IMAGE_URL="https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-ppc64el.img"
         IMAGE_CACHE="${CACHE_DIR}/jammy-ppc64el.img"
-        QEMU_MACHINE="-M pseries -cpu POWER9 -smp 2 -m 2048"
+        # virtio-rng-pci is required: pseries has no hardware RNG under TCG, so
+        # ssh-keygen (host key generation) blocks indefinitely without it.
+        QEMU_MACHINE="-M pseries -cpu POWER9 -smp 2 -m 2048 -device virtio-rng-pci"
         QEMU_BIOS=""
         QEMU_KERNEL=""
         QEMU_BLK_DEV="virtio-blk-pci"
@@ -178,15 +180,14 @@ fi
 
 # =============================================================================
 # PROVISIONING MODE
-# Builds a golden qcow2 with all packages, kernel modules, and dummy_hcd
-# pre-built. Embeds a fixed SSH key and disables cloud-init so test boots
-# need no seed disk and start testing immediately after VM is reachable.
+# All setup runs via cloud-init runcmd (no SSH needed). cloud-init installs
+# packages, builds dummy_hcd, generates SSH host keys, and powers the VM off.
+# The golden image is saved; test boots use the pre-existing SSH host keys.
 # =============================================================================
 if [ "$_PROVISION_MODE" -eq 1 ]; then
     PROV_DIR="$(mktemp -d /tmp/pam_usb_qemu_provision_XXXXXX)"
     PROV_PIDFILE="${PROV_DIR}/qemu.pid"
     PROV_KEY="${PROV_DIR}/id_ed25519"
-    PROV_PORT="$(free_port)"
     PROV_SERIAL="${PROV_DIR}/serial.log"
     PROV_QEMU_LOG="${PROV_DIR}/qemu.log"
 
@@ -213,7 +214,9 @@ if [ "$_PROVISION_MODE" -eq 1 ]; then
     qemu-img create -q -f qcow2 -b "$(realpath "$IMAGE_CACHE")" -F qcow2 "$PROV_DISK"
     qemu-img resize -q "$PROV_DISK" +8G
 
-    # Generate the permanent SSH key that will be embedded in the golden image
+    # Generate the permanent SSH key that will be embedded in the golden image.
+    # We do NOT use SSH during provisioning — everything runs via cloud-init runcmd.
+    # The key is only needed for TEST mode (second boot from the golden image).
     ssh-keygen -t ed25519 -N '' -f "$PROV_KEY" -C "pam_usb-qemu-${ARCH}-v${PROVISION_VERSION}" -q
     PROV_PUBKEY="$(cat "${PROV_KEY}.pub")"
 
@@ -241,6 +244,18 @@ packages:
   - python3-dotenv
 package_update: true
 package_upgrade: false
+runcmd:
+  - [bash, -c, "apt-get install -y linux-headers-\$(uname -r) 2>/dev/null || apt-get install -y linux-headers-virtual"]
+  - [bash, -c, "apt-get install -y linux-modules-extra-\$(uname -r) 2>/dev/null || true"]
+  - [bash, -c, "mkdir -p /tmp/src/dummy-hcd && git clone -b main https://github.com/0prichnik/dummy-hcd.git /tmp/src/dummy-hcd/master/ && cd /tmp/src/dummy-hcd/master/ && make update && make dkms"]
+  - [bash, -c, "touch /etc/cloud/cloud-init.disabled"]
+  - [bash, -c, "systemctl disable --now apt-daily.timer apt-daily-upgrade.timer apt-daily.service apt-daily-upgrade.service 2>/dev/null || true"]
+  - [bash, -c, "ssh-keygen -A"]
+power_state:
+  delay: now
+  mode: poweroff
+  message: Provisioning complete
+  condition: true
 CLOUDINIT
 
     cat > "${PROV_DIR}/meta-data" <<EOF
@@ -251,7 +266,7 @@ EOF
     PROV_SEED="${PROV_DIR}/seed.img"
     cloud-localds "$PROV_SEED" "${PROV_DIR}/user-data" "${PROV_DIR}/meta-data"
 
-    echo "Starting provisioning VM on SSH port $PROV_PORT..."
+    echo "Starting provisioning VM (SSH-less: all setup via cloud-init runcmd + poweroff)..."
     $QEMU_BIN \
         $QEMU_MACHINE \
         $QEMU_BIOS \
@@ -260,7 +275,7 @@ EOF
         -device ${QEMU_BLK_DEV},drive=hd0,bootindex=1 \
         -drive if=none,id=cloud,format=raw,file="$PROV_SEED" \
         -device ${QEMU_BLK_DEV},drive=cloud,bootindex=2 \
-        -netdev user,id=net0,hostfwd=tcp::${PROV_PORT}-:22 \
+        -netdev user,id=net0 \
         -device ${QEMU_NET_DEV},netdev=net0 \
         -serial "file:${PROV_SERIAL}" \
         -D "$PROV_QEMU_LOG" \
@@ -275,56 +290,25 @@ EOF
         exit 1
     fi
 
-    PROV_SSH="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5 -p $PROV_PORT -i $PROV_KEY ${TEST_USER}@localhost"
-
-    echo "Waiting for provisioning VM to boot (max 40 minutes)..."
-    BOOTED=0
-    for i in $(seq 1 240); do
-        if ! kill -0 "$(cat "$PROV_PIDFILE")" 2>/dev/null; then
-            echo "Error: provisioning QEMU died unexpectedly" >&2
-            tail -80 "$PROV_SERIAL" 2>/dev/null >&2 || true
-            exit 1
+    echo "Waiting for cloud-init to complete and VM to power off (max 120 minutes)..."
+    POWERED_OFF=0
+    for i in $(seq 1 720); do
+        if [ ! -f "$PROV_PIDFILE" ] || ! kill -0 "$(cat "$PROV_PIDFILE" 2>/dev/null)" 2>/dev/null; then
+            POWERED_OFF=1
+            break
         fi
-        if $PROV_SSH "true" 2>/dev/null; then BOOTED=1; break; fi
         if [ $((i % 12)) -eq 0 ]; then
-            echo "  Still waiting... ($(( i * 10 / 60 )) min elapsed, last serial: $(tail -1 "$PROV_SERIAL" 2>/dev/null | tr -d '\r' || echo '(none)'))"
+            echo "  Still running... ($(( i * 10 / 60 )) min elapsed, last serial: $(tail -1 "$PROV_SERIAL" 2>/dev/null | tr -d '\r' || echo '(none)'))"
         fi
         sleep 10 || true
     done
 
-    if [ $BOOTED -eq 0 ]; then
-        echo "Error: provisioning VM did not become reachable within 40 minutes" >&2
+    if [ $POWERED_OFF -eq 0 ]; then
+        echo "Error: provisioning VM did not complete within 120 minutes" >&2
         tail -80 "$PROV_SERIAL" 2>/dev/null >&2 || true
         exit 1
     fi
-    echo "Provisioning VM is reachable."
-
-    echo "Waiting for cloud-init to finish installing packages..."
-    $PROV_SSH "sudo cloud-init status --wait" || true
-
-    echo "Installing kernel headers..."
-    $PROV_SSH "sudo apt install -y linux-headers-\$(uname -r) 2>/dev/null || sudo apt install -y linux-headers-virtual"
-    echo "Installing extra kernel modules (g_mass_storage etc, optional)..."
-    $PROV_SSH "sudo apt install -y linux-modules-extra-\$(uname -r) 2>/dev/null || true"
-
-    echo "Pre-building dummy_hcd kernel module..."
-    $PROV_SSH "mkdir -p /tmp/src/dummy-hcd && git clone -b main https://github.com/0prichnik/dummy-hcd.git /tmp/src/dummy-hcd/master/ && cd /tmp/src/dummy-hcd/master/ && make update && make dkms"
-
-    echo "Disabling cloud-init and apt-daily timers for test boots..."
-    $PROV_SSH "sudo touch /etc/cloud/cloud-init.disabled && sudo systemctl disable --now apt-daily.timer apt-daily-upgrade.timer apt-daily.service apt-daily-upgrade.service 2>/dev/null || true"
-
-    echo "Shutting down provisioning VM..."
-    QEMU_PID="$(cat "$PROV_PIDFILE" 2>/dev/null || true)"
-    $PROV_SSH "sudo shutdown -h now" 2>/dev/null || true
-
-    for i in $(seq 1 60); do
-        if [ -z "$QEMU_PID" ] || ! kill -0 "$QEMU_PID" 2>/dev/null; then break; fi
-        sleep 5
-    done
-    if [ -n "$QEMU_PID" ] && kill -0 "$QEMU_PID" 2>/dev/null; then
-        kill "$QEMU_PID" 2>/dev/null || true
-        sleep 3
-    fi
+    echo "Provisioning VM powered off cleanly."
 
     if [ ! -f "$PROV_DISK" ]; then
         echo "Error: provisioned disk image missing: $PROV_DISK" >&2
