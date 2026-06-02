@@ -1,11 +1,11 @@
 [![Unit tests][badge-unit]][wf-unit] [![Build][badge-build]][wf-build] [![CodeQL][badge-codeql]][wf-codeql] [![DevSkim][badge-devskim]][wf-devskim] [![Nightly][badge-nightly]][wf-nightly]
 
-| | amd64 | arm64 | armhf | ppc64el | riscv64 | i386 | m68k |
-|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Tests** | [![B&T][badge-bt]][wf-bt] | [![QEMU][badge-qemu]][wf-qemu] | [![QEMU][badge-qemu]][wf-qemu] | [![QEMU][badge-qemu]][wf-qemu] | [![QEMU][badge-qemu]][wf-qemu] | — | — |
-| **Debian** | [![Pkg][badge-pkg]][wf-pkg] | [![Pkg][badge-pkg]][wf-pkg] | [![Pkg][badge-pkg]][wf-pkg] | [![Pkg][badge-pkg]][wf-pkg] | [![Pkg][badge-pkg]][wf-pkg] | [![Pkg][badge-pkg]][wf-pkg] | [![Pkg][badge-pkg]][wf-pkg] |
-| **Fedora** | [![Pkg][badge-pkg]][wf-pkg] | [![Pkg][badge-pkg]][wf-pkg] | — | [![Pkg][badge-pkg]][wf-pkg] | — | — | — |
-| **Arch** | [![Pkg][badge-pkg]][wf-pkg] | [![Pkg][badge-pkg]][wf-pkg] | — | — | — | — | — |
+| | amd64 | arm64 | armhf | riscv64 | i386 | m68k |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Tests** | [![B&T][badge-bt]][wf-bt] | [![QEMU][badge-qemu]][wf-qemu] | [![QEMU][badge-qemu]][wf-qemu] | [![QEMU][badge-qemu]][wf-qemu] | — | — |
+| **Debian** | [![Pkg][badge-pkg]][wf-pkg] | [![Pkg][badge-pkg]][wf-pkg] | [![Pkg][badge-pkg]][wf-pkg] | [![Pkg][badge-pkg]][wf-pkg] | [![Pkg][badge-pkg]][wf-pkg] | [![Pkg][badge-pkg]][wf-pkg] |
+| **Fedora** | [![Pkg][badge-pkg]][wf-pkg] | [![Pkg][badge-pkg]][wf-pkg] | — | — | — | — |
+| **Arch** | [![Pkg][badge-pkg]][wf-pkg] | [![Pkg][badge-pkg]][wf-pkg] | — | — | — | — |
 
 [badge-unit]:   https://github.com/mcdope/pam_usb/actions/workflows/unit-tests.yml/badge.svg
 [badge-build]:  https://github.com/mcdope/pam_usb/actions/workflows/can-be-built-successfully.yml/badge.svg

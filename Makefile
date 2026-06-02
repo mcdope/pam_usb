@@ -37,13 +37,6 @@ endif
 ifeq ($(ARCH), m68k-linux-gnu) # Motorola 68k - Amiga forever
 	LIBDIR ?= lib/m68k-linux-gnu
 endif
-ifeq ($(ARCH), ppc64le)
-	ifeq ($(USE_FEDORA_LIBDIR), 1)
-		LIBDIR ?= lib64
-	else
-		LIBDIR ?= lib/powerpc64le-linux-gnu
-	endif
-endif
 ifeq ($(ARCH), riscv64)
 	ifeq ($(USE_FEDORA_LIBDIR), 1)
 		LIBDIR ?= lib64
@@ -392,7 +385,7 @@ build-arch: buildenv-arch
 		--rm mcdope/pam_usb-arch-build \
 		sh -c "chown -R builduser:builduser . && sudo -u builduser make zst && chown -R $(UID):$(GID) ."
 
-build-all: sourcegz buildenv-arch buildenv-debian buildenv-fedora build-arch build-debian build-fedora build-debian-arm64 build-debian-armhf build-debian-i386 build-debian-m68k build-fedora-arm64 build-arch-arm64 build-debian-ppc64el build-fedora-ppc64el build-debian-riscv64
+build-all: sourcegz buildenv-arch buildenv-debian buildenv-fedora build-arch build-debian build-fedora build-debian-arm64 build-debian-armhf build-debian-i386 build-debian-m68k build-fedora-arm64 build-arch-arm64 build-debian-riscv64
 
 setup-qemu:
 	$(DOCKER) run --rm --privileged multiarch/qemu-user-static -p yes || true
@@ -458,27 +451,6 @@ build-arch-arm64: buildenv-arch-arm64
 		--rm mcdope/pam_usb-arch-arm64-build \
 		sh -c "chown -R builduser:builduser . && sudo -u builduser make zst && chown -R $(UID):$(GID) ."
 
-buildenv-debian-ppc64el: setup-qemu
-	DOCKER_BUILDKIT=1 $(DOCKER) build --platform linux/ppc64le -f Dockerfile.debian -t mcdope/pam_usb-ubuntu-ppc64el-build .
-
-build-debian-ppc64el: buildenv-debian-ppc64el
-	$(DOCKER) run -i --platform linux/ppc64le \
-		-v`pwd`/.build:/usr/local/src \
-		-v`pwd`:/usr/local/src/pam_usb \
-		-e DEB_BUILD_OPTIONS="parallel=1" \
-		-e DEB_BUILD_MAINT_OPTIONS="optimize=-lto" \
-		--rm mcdope/pam_usb-ubuntu-ppc64el-build \
-		sh -c "git config --global --add safe.directory /usr/local/src/pam_usb && make deb && chown -R $(UID):$(GID) .build debian"
-
-buildenv-fedora-ppc64el: setup-qemu
-	DOCKER_BUILDKIT=1 $(DOCKER) build --platform linux/ppc64le -f Dockerfile.fedora-ppc64el -t mcdope/pam_usb-fedora-ppc64el-build .
-
-build-fedora-ppc64el: buildenv-fedora-ppc64el
-	$(DOCKER) run -i --platform linux/ppc64le \
-		-v`pwd`/.build:/usr/local/src \
-		-v`pwd`:/usr/local/src/pam_usb \
-		--rm mcdope/pam_usb-fedora-ppc64el-build \
-		sh -c "make rpm && chown -R $(UID):$(GID) .build fedora"
 
 buildenv-debian-riscv64: setup-qemu
 	DOCKER_BUILDKIT=1 $(DOCKER) build --platform linux/riscv64 -f Dockerfile.debian -t mcdope/pam_usb-ubuntu-riscv64-build .
@@ -495,9 +467,8 @@ build-debian-riscv64: buildenv-debian-riscv64
 provision-qemu-images:
 	tests/can-actually-be-used/run-tests-in-qemu.sh --provision arm64; R1=$$?; \
 	tests/can-actually-be-used/run-tests-in-qemu.sh --provision armhf; R2=$$?; \
-	tests/can-actually-be-used/run-tests-in-qemu.sh --provision ppc64el; R3=$$?; \
-	tests/can-actually-be-used/run-tests-in-qemu.sh --provision riscv64; R4=$$?; \
-	exit $$((R1 || R2 || R3 || R4))
+	tests/can-actually-be-used/run-tests-in-qemu.sh --provision riscv64; R3=$$?; \
+	exit $$((R1 || R2 || R3))
 
 clean-qemu-images:
 	rm -f $(HOME)/.cache/pam_usb-qemu/jammy-*-provisioned-*.qcow2 \

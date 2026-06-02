@@ -5,11 +5,10 @@
 # Host prerequisites:
 #   arm64:   qemu-system-aarch64, qemu-efi-aarch64, cloud-image-utils
 #   armhf:   qemu-system-arm, qemu-efi-arm, cloud-image-utils
-#   ppc64el: qemu-system-ppc, cloud-image-utils
 #   riscv64: qemu-system-misc, u-boot-qemu, cloud-image-utils
 #
 # Usage: run-tests-in-qemu.sh <arch> <deb_path>
-#   arch     : arm64 | armhf | ppc64el | riscv64
+#   arch     : arm64 | armhf | riscv64
 #   deb_path : path to the libpam-usb .deb package to test
 #
 # Golden image strategy:
@@ -105,19 +104,6 @@ case "$ARCH" in
         QEMU_BLK_DEV="virtio-blk-device"
         QEMU_NET_DEV="virtio-net-device"
         ;;
-    ppc64el)
-        PROVISION_VERSION="6"
-        QEMU_BIN="qemu-system-ppc64"
-        IMAGE_URL="https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-ppc64el.img"
-        IMAGE_CACHE="${CACHE_DIR}/jammy-ppc64el.img"
-        # virtio-rng-pci is required: pseries has no hardware RNG under TCG, so
-        # ssh-keygen (host key generation) blocks indefinitely without it.
-        QEMU_MACHINE="-M pseries -cpu POWER9 -smp 2 -m 2048 -device virtio-rng-pci"
-        QEMU_BIOS=""
-        QEMU_KERNEL=""
-        QEMU_BLK_DEV="virtio-blk-pci"
-        QEMU_NET_DEV="virtio-net-pci"
-        ;;
     riscv64)
         PROVISION_VERSION="6"
         QEMU_BIN="qemu-system-riscv64"
@@ -138,7 +124,7 @@ case "$ARCH" in
         QEMU_NET_DEV="virtio-net-device"
         ;;
     *)
-        echo "Unsupported arch: $ARCH (supported: arm64, armhf, ppc64el, riscv64)" >&2
+        echo "Unsupported arch: $ARCH (supported: arm64, armhf, riscv64)" >&2
         exit 1
         ;;
 esac
