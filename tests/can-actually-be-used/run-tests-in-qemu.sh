@@ -227,8 +227,6 @@ if [ "$_PROVISION_MODE" -eq 1 ]; then
 
     cat > "${PROV_DIR}/user-data" <<CLOUDINIT
 #cloud-config
-output:
-  all: '| tee /dev/console'
 users:
   - name: ${TEST_USER}
     sudo: ALL=(ALL) NOPASSWD:ALL
