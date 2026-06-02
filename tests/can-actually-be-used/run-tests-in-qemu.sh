@@ -252,16 +252,7 @@ packages:
 package_update: true
 package_upgrade: false
 runcmd:
-  - [bash, -c, "DEBIAN_FRONTEND=noninteractive apt-get install -y linux-headers-\$(uname -r) 2>/dev/null || DEBIAN_FRONTEND=noninteractive apt-get install -y linux-headers-virtual"]
-  - [bash, -c, "DEBIAN_FRONTEND=noninteractive apt-get install -y linux-modules-extra-\$(uname -r) 2>/dev/null || true"]
-  - [bash, -c, "git clone -b main https://github.com/0prichnik/dummy-hcd.git /tmp/src/dummy-hcd/master/"]
-  - [bash, -c, "cd /tmp/src/dummy-hcd/master/ && make update"]
-  - [bash, -c, "cd /tmp/src/dummy-hcd/master/ && MAKEFLAGS='-j1' CFLAGS='-O1 -fno-lto' make dkms"]
-  - [bash, -c, "touch /etc/cloud/cloud-init.disabled"]
-  - [bash, -c, "systemctl disable --now apt-daily.timer apt-daily-upgrade.timer apt-daily.service apt-daily-upgrade.service 2>/dev/null || true"]
-  - [bash, -c, "ssh-keygen -A"]
-  - [bash, -c, "echo PAM_USB_PROV_DONE > /dev/ttyS0 2>/dev/null || echo PAM_USB_PROV_DONE > /dev/console"]
-  - [bash, -c, "poweroff -f"]
+  - [bash, -c, "set -e; trap 'poweroff -f' EXIT; export DEBIAN_FRONTEND=noninteractive; apt-get install -y linux-headers-\$(uname -r) 2>/dev/null || apt-get install -y linux-headers-virtual; apt-get install -y linux-modules-extra-\$(uname -r) 2>/dev/null || true; git clone -b main https://github.com/0prichnik/dummy-hcd.git /tmp/src/dummy-hcd/master/; cd /tmp/src/dummy-hcd/master/; make update; MAKEFLAGS='-j1' CFLAGS='-O1 -fno-lto' make dkms; touch /etc/cloud/cloud-init.disabled; systemctl disable --now apt-daily.timer apt-daily-upgrade.timer apt-daily.service apt-daily-upgrade.service 2>/dev/null || true; ssh-keygen -A; echo PAM_USB_PROV_DONE > /dev/ttyS0 2>/dev/null || echo PAM_USB_PROV_DONE > /dev/console"]
 CLOUDINIT
 
     cat > "${PROV_DIR}/meta-data" <<EOF
@@ -346,9 +337,11 @@ EOF
 
     # Prune older versioned images for this arch to prevent disk accumulation.
     for old_img in "${CACHE_DIR}/jammy-${ARCH}-provisioned-v"*.qcow2; do
+        [ -f "$old_img" ] || continue
         [ "$old_img" = "$PROVISIONED_CACHE" ] || rm -f "$old_img"
     done
     for old_key in "${CACHE_DIR}/jammy-${ARCH}-key-v"*; do
+        [ -f "$old_key" ] || continue
         [ "$old_key" = "$SSH_KEY_CACHE" ] || rm -f "$old_key"
     done
 
@@ -416,7 +409,7 @@ if [ ! -f "$PIDFILE" ] || ! kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
 fi
 echo "QEMU PID: $(cat "$PIDFILE")"
 
-SSH_CMD="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5 -p $SSH_PORT -i $SSH_KEY_CACHE ${TEST_USER}@localhost"
+SSH_CMD="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5 -p $SSH_PORT -i $SSH_KEY_CACHE ${TEST_USER}@127.0.0.1"
 SCP_CMD="scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -P $SSH_PORT -i $SSH_KEY_CACHE"
 
 echo "Waiting for VM to boot (max 40 minutes)..."
@@ -446,14 +439,14 @@ if [ $BOOTED -eq 0 ]; then
 fi
 echo "VM is reachable."
 
-$SCP_CMD "$DEB_PATH" "${TEST_USER}@localhost:/tmp/libpam-usb.deb"
+$SCP_CMD "$DEB_PATH" "${TEST_USER}@127.0.0.1:/tmp/libpam-usb.deb"
 $SSH_CMD "sudo DEBIAN_FRONTEND=noninteractive apt install --reinstall -yq /tmp/libpam-usb.deb"
 
 # Tests run inside an SSH session so deny_remote would block authentication
 $SSH_CMD "sudo sed -i 's/<defaults>/<defaults><option name=\"deny_remote\">false<\/option>/g' /etc/security/pam_usb.conf"
 
 $SSH_CMD "mkdir -p /tmp/pam_usb_tests"
-$SCP_CMD -r "$SCRIPT_DIR/." "${TEST_USER}@localhost:/tmp/pam_usb_tests/"
+$SCP_CMD -r "$SCRIPT_DIR/." "${TEST_USER}@127.0.0.1:/tmp/pam_usb_tests/"
 
 $SSH_CMD "cd /tmp/pam_usb_tests && ./setup-dummyhcd.sh"
 $SSH_CMD "cd /tmp/pam_usb_tests && ./prepare-mounting.sh"
