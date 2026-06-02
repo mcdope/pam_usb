@@ -260,12 +260,8 @@ runcmd:
   - [bash, -c, "touch /etc/cloud/cloud-init.disabled"]
   - [bash, -c, "systemctl disable --now apt-daily.timer apt-daily-upgrade.timer apt-daily.service apt-daily-upgrade.service 2>/dev/null || true"]
   - [bash, -c, "ssh-keygen -A"]
-  - [bash, -c, "echo PAM_USB_PROV_DONE > /dev/console"]
-power_state:
-  delay: now
-  mode: poweroff
-  message: Provisioning complete
-  condition: true
+  - [bash, -c, "echo PAM_USB_PROV_DONE > /dev/ttyS0 2>/dev/null || echo PAM_USB_PROV_DONE > /dev/console"]
+  - [bash, -c, "poweroff -f"]
 CLOUDINIT
 
     cat > "${PROV_DIR}/meta-data" <<EOF
