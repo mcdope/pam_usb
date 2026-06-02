@@ -294,6 +294,18 @@ EOF
             POWERED_OFF=1
             break
         fi
+        if grep -q "PAM_USB_PROV_DONE" "$PROV_SERIAL" 2>/dev/null; then
+            echo "Sentinel found — provisioning complete, stopping VM..."
+            QEMU_PID="$(cat "$PROV_PIDFILE" 2>/dev/null || true)"
+            kill "$QEMU_PID" 2>/dev/null || true
+            for j in $(seq 1 15); do
+                kill -0 "$QEMU_PID" 2>/dev/null || break
+                sleep 1
+            done
+            kill -9 "$QEMU_PID" 2>/dev/null || true
+            POWERED_OFF=1
+            break
+        fi
         if [ $((i % 12)) -eq 0 ]; then
             echo "  Still running... ($(( i * 10 / 60 )) min elapsed, last serial: $(tail -1 "$PROV_SERIAL" 2>/dev/null | tr -d '\r' || echo '(none)'))"
         fi
