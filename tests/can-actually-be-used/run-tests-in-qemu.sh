@@ -259,7 +259,14 @@ local-hostname: pam-usb-provision
 EOF
 
     PROV_SEED="${PROV_DIR}/seed.img"
-    cloud-localds "$PROV_SEED" "${PROV_DIR}/user-data" "${PROV_DIR}/meta-data"
+    # Use ext2 instead of FAT (cloud-localds default) for the cloud-init seed.
+    # On ppc64el under QEMU TCG, the vfat kernel module / FAT parsing triggers a crash
+    # in cloud-init-local, causing the entire stage to fail silently. ext2 avoids this.
+    dd if=/dev/zero of="$PROV_SEED" bs=1M count=4 2>/dev/null
+    mkfs.ext2 -q -L cidata "$PROV_SEED"
+    printf "write %s user-data\nwrite %s meta-data\n" \
+        "${PROV_DIR}/user-data" "${PROV_DIR}/meta-data" \
+        | debugfs -w "$PROV_SEED" 2>/dev/null
 
     echo "Starting provisioning VM (SSH-less: all setup via cloud-init runcmd + poweroff)..."
     $QEMU_BIN \
