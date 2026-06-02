@@ -2,9 +2,6 @@
 
 set -e
 
-CONF_BACKUP=$(mktemp)
-cp /etc/security/pam_usb.conf "$CONF_BACKUP"
-
 _restore_conf() {
     sudo sed -i "1{r ${CONF_BACKUP}
 d}; 1,\$d" /etc/security/pam_usb.conf 2>/dev/null || true
@@ -15,12 +12,16 @@ cleanup() {
     [ $exit_code -eq 0 ] || echo "Error: test suite failed (exit $exit_code), cleaning up..."
     sync 2>/dev/null || true
     sudo umount /tmp/fakestick 2>/dev/null || true
+    sudo udevadm settle 2>/dev/null || true
     sudo modprobe -r g_mass_storage 2>/dev/null || true
     sudo udevadm settle 2>/dev/null || true
     _restore_conf
-    rm -f "$CONF_BACKUP"
+    [ -n "$CONF_BACKUP" ] && rm -f "$CONF_BACKUP"
 }
 trap cleanup EXIT
+
+CONF_BACKUP=$(mktemp)
+cp /etc/security/pam_usb.conf "$CONF_BACKUP"
 
 for PUSB_FS_TYPE in vfat ext4 exfat; do
     export PUSB_FS_TYPE
@@ -40,6 +41,7 @@ for PUSB_FS_TYPE in vfat ext4 exfat; do
     if [ -n "$PUSB_FS_TYPE_PREV" ]; then
         sync && sync && sync
         sudo umount /tmp/fakestick 2>/dev/null || true
+        sudo udevadm settle 2>/dev/null || true
         sudo modprobe -r g_mass_storage 2>/dev/null || true
         sudo udevadm settle
         _restore_conf
