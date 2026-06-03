@@ -616,7 +616,7 @@ jobs:
 
 
   FunctionalTest-armhf:
-    needs: [Debian-armhf]
+    needs: [Debian-armhf, FunctionalTest-arm64]
 
     runs-on: ubuntu-22.04
 
