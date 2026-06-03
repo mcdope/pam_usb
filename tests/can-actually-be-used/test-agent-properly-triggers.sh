@@ -14,7 +14,7 @@ sync && sync && sync
 sudo umount /tmp/fakestick
 sudo modprobe -r g_mass_storage || exit 1
 LOCK_FOUND=0
-for i in $(seq 1 30); do
+for i in $(seq 1 90); do
     sudo tail -n 200 /var/log/auth.log | grep "pamusb-agent\[" | grep -q "has been removed, locking down user" && { LOCK_FOUND=1; break; }
     sleep 2
 done
@@ -25,7 +25,7 @@ sudo modprobe g_mass_storage file=./virtual_usb.img stall=0 removable=y iSerialN
 # Poll for unlock — authentication requires UDisks2 to reprobe the filesystem
 # after plug-in, which is slower than the unplug path on QEMU ARM.
 UNLOCK_FOUND=0
-for i in $(seq 1 30); do
+for i in $(seq 1 90); do
     sudo tail -n 200 /var/log/auth.log | grep "pamusb-agent\[" | grep -q "Authentication succeeded. Unlocking user" && { UNLOCK_FOUND=1; break; }
     sleep 2
 done
