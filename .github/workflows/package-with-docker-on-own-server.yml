@@ -585,7 +585,7 @@ jobs:
         TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
       run: |
         sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "
-          PROVISION_VERSION=\$(grep '^PROVISION_VERSION=' ~/pam_usb_deb_arm64_$GITHUB_RUN_ID/tests/can-actually-be-used/run-tests-in-qemu.sh | cut -d'\"' -f2)
+          PROVISION_VERSION=\$(grep -A1 'arm64)' ~/pam_usb_deb_arm64_$GITHUB_RUN_ID/tests/can-actually-be-used/run-tests-in-qemu.sh | grep 'PROVISION_VERSION=' | cut -d'\"' -f2)
           CACHE=\"\$HOME/.cache/pam_usb-qemu\"
           test -f \"\${CACHE}/jammy-arm64-provisioned-v\${PROVISION_VERSION}.qcow2\" \
             && test -f \"\${CACHE}/jammy-arm64-key-v\${PROVISION_VERSION}\" \
@@ -641,7 +641,7 @@ jobs:
         TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
       run: |
         sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "
-          PROVISION_VERSION=\$(grep '^PROVISION_VERSION=' ~/pam_usb_deb_armhf_$GITHUB_RUN_ID/tests/can-actually-be-used/run-tests-in-qemu.sh | cut -d'\"' -f2)
+          PROVISION_VERSION=\$(grep -A1 'armhf)' ~/pam_usb_deb_armhf_$GITHUB_RUN_ID/tests/can-actually-be-used/run-tests-in-qemu.sh | grep 'PROVISION_VERSION=' | cut -d'\"' -f2)
           CACHE=\"\$HOME/.cache/pam_usb-qemu\"
           test -f \"\${CACHE}/jammy-armhf-provisioned-v\${PROVISION_VERSION}.qcow2\" \
             && test -f \"\${CACHE}/jammy-armhf-key-v\${PROVISION_VERSION}\" \
