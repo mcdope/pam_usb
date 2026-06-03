@@ -617,6 +617,7 @@ jobs:
 
   FunctionalTest-armhf:
     needs: [Debian-armhf, FunctionalTest-arm64]
+    if: ${{ !cancelled() }}
 
     runs-on: ubuntu-22.04
 
