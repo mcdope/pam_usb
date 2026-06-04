@@ -420,18 +420,21 @@ if [ $BOOTED -eq 0 ]; then
 fi
 echo "VM is reachable."
 
+# After boot, switch to a longer ConnectTimeout for all post-boot SSH commands.
+# Under QEMU TCG, heavy operations (dpkg postinst, kernel module loading,
+# filesystem setup) can briefly starve sshd; 5 s is too short to survive those gaps.
+SSH_CMD="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o BatchMode=yes -p $SSH_PORT -i $SSH_KEY_CACHE ${TEST_USER}@127.0.0.1"
+
 $SCP_CMD "$DEB_PATH" "${TEST_USER}@127.0.0.1:/tmp/libpam-usb.deb"
 $SSH_CMD "sudo DEBIAN_FRONTEND=noninteractive dpkg -i /tmp/libpam-usb.deb"
 
-# After a heavy apt install under QEMU TCG, sshd can be overwhelmed by postinst
-# background activity (man-db rebuild, journald flush, etc.). Wait until SSH is
-# confirmed responsive with a longer ConnectTimeout before proceeding.
+# dpkg triggers (man-db) keep the VM busy for a while after the command returns.
+# Poll until SSH is confirmed responsive before proceeding.
 echo "Waiting for VM to settle after package install..."
-SETTLE_SSH="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o BatchMode=yes -p ${SSH_PORT} -i ${SSH_KEY_CACHE} ${TEST_USER}@127.0.0.1"
 SETTLED=0
 for i in $(seq 1 12); do
     sleep 15
-    $SETTLE_SSH "sync" 2>/dev/null && { SETTLED=1; break; }
+    $SSH_CMD "sync" 2>/dev/null && { SETTLED=1; break; }
 done
 [ $SETTLED -eq 1 ] || { echo "Error: VM did not settle after install (postinst timeout)" >&2; exit 1; }
 
