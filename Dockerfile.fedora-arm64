@@ -4,5 +4,5 @@ WORKDIR /usr/local/src/pam_usb
 
 RUN --mount=type=cache,id=dnf-fedora-arm64,target=/var/cache/dnf,sharing=locked \
     dnf install -y gcc make libxml2-devel pam-devel libudisks2-devel glib2-devel libevdev-devel python3-gobject rpmdevtools rpmlint
-RUN printf '%%_lto_cflags %%{nil}\n%%_smp_mflags -j1\n' > /etc/rpm/macros.no-lto && \
-    printf 'optflags: aarch64 -O2 -fexceptions -g -grecord-gcc-switches -pipe -Wall -Werror=format-security -Wp,-U_FORTIFY_SOURCE,-D_FORTIFY_SOURCE=3 -Wp,-D_GLIBCXX_ASSERTIONS -specs=/usr/lib/rpm/redhat/redhat-hardened-cc1 -fstack-protector-strong -specs=/usr/lib/rpm/redhat/redhat-annobin-cc1 -mbranch-protection=standard -fasynchronous-unwind-tables -fstack-clash-protection\n' > /root/.rpmrc
+RUN printf '%%_lto_cflags %%{nil}\n%%_smp_mflags -j1\n%%_annotated_build 0\n' > /etc/rpm/macros.no-lto && \
+    printf 'optflags: aarch64 -O1 -fexceptions -g -grecord-gcc-switches -pipe -Wall -Werror=format-security -Wp,-U_FORTIFY_SOURCE,-D_FORTIFY_SOURCE=3 -Wp,-D_GLIBCXX_ASSERTIONS -specs=/usr/lib/rpm/redhat/redhat-hardened-cc1 -fstack-protector-strong -mbranch-protection=standard -fasynchronous-unwind-tables -fstack-clash-protection\n' > /root/.rpmrc
