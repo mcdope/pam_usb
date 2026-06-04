@@ -561,6 +561,7 @@ jobs:
 
   FunctionalTest-arm64:
     needs: [Debian-arm64, Arch-arm64]
+    if: ${{ !cancelled() }}
 
     runs-on: ubuntu-22.04
 
