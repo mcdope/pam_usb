@@ -421,7 +421,7 @@ fi
 echo "VM is reachable."
 
 $SCP_CMD "$DEB_PATH" "${TEST_USER}@127.0.0.1:/tmp/libpam-usb.deb"
-$SSH_CMD "sudo DEBIAN_FRONTEND=noninteractive apt install --reinstall -yq /tmp/libpam-usb.deb"
+$SSH_CMD "sudo DEBIAN_FRONTEND=noninteractive dpkg -i /tmp/libpam-usb.deb"
 
 # After a heavy apt install under QEMU TCG, sshd can be overwhelmed by postinst
 # background activity (man-db rebuild, journald flush, etc.). Wait until SSH is
