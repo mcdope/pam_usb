@@ -391,7 +391,7 @@ fi
 echo "QEMU PID: $(cat "$PIDFILE")"
 
 SSH_CMD="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5 -o BatchMode=yes -p $SSH_PORT -i $SSH_KEY_CACHE ${TEST_USER}@127.0.0.1"
-SCP_CMD="scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o BatchMode=yes -P $SSH_PORT -i $SSH_KEY_CACHE"
+SCP_CMD="scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o BatchMode=yes -P $SSH_PORT -i $SSH_KEY_CACHE"
 
 echo "Waiting for VM to boot (max 40 minutes)..."
 BOOTED=0
@@ -422,6 +422,18 @@ echo "VM is reachable."
 
 $SCP_CMD "$DEB_PATH" "${TEST_USER}@127.0.0.1:/tmp/libpam-usb.deb"
 $SSH_CMD "sudo DEBIAN_FRONTEND=noninteractive apt install --reinstall -yq /tmp/libpam-usb.deb"
+
+# After a heavy apt install under QEMU TCG, sshd can be overwhelmed by postinst
+# background activity (man-db rebuild, journald flush, etc.). Wait until SSH is
+# confirmed responsive with a longer ConnectTimeout before proceeding.
+echo "Waiting for VM to settle after package install..."
+SETTLE_SSH="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o BatchMode=yes -p ${SSH_PORT} -i ${SSH_KEY_CACHE} ${TEST_USER}@127.0.0.1"
+SETTLED=0
+for i in $(seq 1 12); do
+    sleep 15
+    $SETTLE_SSH "sync" 2>/dev/null && { SETTLED=1; break; }
+done
+[ $SETTLED -eq 1 ] || { echo "Error: VM did not settle after install (postinst timeout)" >&2; exit 1; }
 
 # Tests run inside an SSH session so deny_remote would block authentication
 $SSH_CMD "sudo sed -i 's/<defaults>/<defaults><option name=\"deny_remote\">false<\/option>/g' /etc/security/pam_usb.conf"
