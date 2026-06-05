@@ -7,12 +7,7 @@ sudo sed -i -r 's/<user id="([0-9a-zA-Z]+)">/<user id="\1"><agent event="lock"><
 # Enable & start agent
 sudo systemctl enable pamusb-agent > /dev/null 2>&1 || exit 1
 sudo systemctl start pamusb-agent > /dev/null 2>&1 || exit 1
-# Poll until agent is active; under QEMU TCG the service can take >5 s to
-# fully connect to D-Bus and start monitoring UDisks2 signals.
-for i in $(seq 1 15); do
-    sudo systemctl is-active pamusb-agent 2>/dev/null | grep -q "^active" && break
-    sleep 2
-done
+sleep 10 # allow agent to fully connect to D-Bus and subscribe to UDisks2 signals
 
 # "unplug" virtual usb
 sync && sync && sync
