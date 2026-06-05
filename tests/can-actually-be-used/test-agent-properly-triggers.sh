@@ -7,7 +7,12 @@ sudo sed -i -r 's/<user id="([0-9a-zA-Z]+)">/<user id="\1"><agent event="lock"><
 # Enable & start agent
 sudo systemctl enable pamusb-agent > /dev/null 2>&1 || exit 1
 sudo systemctl start pamusb-agent > /dev/null 2>&1 || exit 1
-sleep 5 # make sure agent is up
+# Poll until agent is active; under QEMU TCG the service can take >5 s to
+# fully connect to D-Bus and start monitoring UDisks2 signals.
+for i in $(seq 1 15); do
+    sudo systemctl is-active pamusb-agent 2>/dev/null | grep -q "^active" && break
+    sleep 2
+done
 
 # "unplug" virtual usb
 sync && sync && sync
@@ -15,7 +20,7 @@ sudo umount /tmp/fakestick
 sudo udevadm settle 2>/dev/null || true
 sudo modprobe -r g_mass_storage || exit 1
 LOCK_FOUND=0
-for i in $(seq 1 200); do
+for i in $(seq 1 300); do
     sudo tail -n 200 /var/log/auth.log | grep "pamusb-agent\[" | grep -q "has been removed, locking down user" && { LOCK_FOUND=1; break; }
     sleep 2
 done
@@ -26,7 +31,7 @@ sudo modprobe g_mass_storage file=./virtual_usb.img stall=0 removable=y iSerialN
 # Poll for unlock — authentication requires UDisks2 to reprobe the filesystem
 # after plug-in, which is slower than the unplug path on QEMU ARM.
 UNLOCK_FOUND=0
-for i in $(seq 1 150); do
+for i in $(seq 1 300); do
     sudo tail -n 200 /var/log/auth.log | grep "pamusb-agent\[" | grep -q "Authentication succeeded. Unlocking user" && { UNLOCK_FOUND=1; break; }
     sleep 2
 done
