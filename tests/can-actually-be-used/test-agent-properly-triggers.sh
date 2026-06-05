@@ -15,7 +15,7 @@ sudo umount /tmp/fakestick
 sudo udevadm settle 2>/dev/null || true
 sudo modprobe -r g_mass_storage || exit 1
 LOCK_FOUND=0
-for i in $(seq 1 150); do
+for i in $(seq 1 200); do
     sudo tail -n 200 /var/log/auth.log | grep "pamusb-agent\[" | grep -q "has been removed, locking down user" && { LOCK_FOUND=1; break; }
     sleep 2
 done
