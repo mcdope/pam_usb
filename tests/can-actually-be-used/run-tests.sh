@@ -4,7 +4,7 @@ set -e
 
 _restore_conf() {
     sudo sed -i "1{r ${CONF_BACKUP}
-d}; 1,\$d" /etc/security/pam_usb.conf 2>/dev/null || true
+d}; 1,\$d" /etc/security/pam_usb.conf || echo "Warning: failed to restore pam_usb.conf from backup" >&2
 }
 
 cleanup() {
@@ -20,8 +20,8 @@ cleanup() {
 }
 trap cleanup EXIT
 
-CONF_BACKUP=$(mktemp)
-cp /etc/security/pam_usb.conf "$CONF_BACKUP"
+CONF_BACKUP=$(mktemp) || { echo "Error: mktemp failed, cannot back up pam_usb.conf" >&2; exit 1; }
+cp /etc/security/pam_usb.conf "$CONF_BACKUP" || { echo "Error: failed to back up pam_usb.conf" >&2; exit 1; }
 
 for PUSB_FS_TYPE in vfat ext4 exfat; do
     export PUSB_FS_TYPE
