@@ -2,7 +2,7 @@
 
 | | amd64 | arm64 | armhf | riscv64 | i386 | m68k |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Tests** | [![B&T][badge-bt]][wf-bt] | [![QEMU][badge-qemu]][wf-qemu] | [![QEMU][badge-qemu]][wf-qemu] | — | — | — |
+| **Tests** | [![B&T][badge-bt]][wf-bt] | — | — | — | — | — |
 | **Debian** | [![Pkg][badge-pkg]][wf-pkg] | [![Pkg][badge-pkg]][wf-pkg] | [![Pkg][badge-pkg]][wf-pkg] | [![Pkg][badge-pkg]][wf-pkg] | [![Pkg][badge-pkg]][wf-pkg] | [![Pkg][badge-pkg]][wf-pkg] |
 | **Fedora** | [![Pkg][badge-pkg]][wf-pkg] | [![Pkg][badge-pkg]][wf-pkg] | — | — | — | — |
 | **Arch** | [![Pkg][badge-pkg]][wf-pkg] | [![Pkg][badge-pkg]][wf-pkg] | — | — | — | — |
@@ -13,7 +13,6 @@
 [badge-devskim]: https://github.com/mcdope/pam_usb/actions/workflows/devskim.yml/badge.svg
 [badge-nightly]: https://github.com/mcdope/pam_usb/actions/workflows/nightly-build-on-own-server.yml/badge.svg
 [badge-bt]:     https://github.com/mcdope/pam_usb/actions/workflows/build-and-test-on-own-server.yml/badge.svg
-[badge-qemu]:   https://github.com/mcdope/pam_usb/actions/workflows/package-with-docker-on-own-server.yml/badge.svg
 [badge-pkg]:    https://github.com/mcdope/pam_usb/actions/workflows/package-with-docker-on-own-server.yml/badge.svg
 [wf-unit]:      https://github.com/mcdope/pam_usb/actions/workflows/unit-tests.yml
 [wf-build]:     https://github.com/mcdope/pam_usb/actions/workflows/can-be-built-successfully.yml
@@ -21,7 +20,6 @@
 [wf-devskim]:   https://github.com/mcdope/pam_usb/actions/workflows/devskim.yml
 [wf-nightly]:   https://github.com/mcdope/pam_usb/actions/workflows/nightly-build-on-own-server.yml
 [wf-bt]:        https://github.com/mcdope/pam_usb/actions/workflows/build-and-test-on-own-server.yml
-[wf-qemu]:      https://github.com/mcdope/pam_usb/actions/workflows/package-with-docker-on-own-server.yml
 [wf-pkg]:       https://github.com/mcdope/pam_usb/actions/workflows/package-with-docker-on-own-server.yml
 
 
