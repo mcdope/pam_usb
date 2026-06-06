@@ -2,16 +2,26 @@
 
 set -e
 
+_restore_conf() {
+    sudo sed -i "1{r ${CONF_BACKUP}
+d}; 1,\$d" /etc/security/pam_usb.conf || echo "Warning: failed to restore pam_usb.conf from backup" >&2
+}
+
 cleanup() {
     local exit_code=$?
-    [ $exit_code -eq 0 ] && return 0
-    echo "Error: test suite failed (exit $exit_code), cleaning up..."
+    [ $exit_code -eq 0 ] || echo "Error: test suite failed (exit $exit_code), cleaning up..."
     sync 2>/dev/null || true
     sudo umount /tmp/fakestick 2>/dev/null || true
+    sudo udevadm settle 2>/dev/null || true
     sudo modprobe -r g_mass_storage 2>/dev/null || true
     sudo udevadm settle 2>/dev/null || true
+    _restore_conf
+    [ -n "$CONF_BACKUP" ] && rm -f "$CONF_BACKUP"
 }
 trap cleanup EXIT
+
+CONF_BACKUP=$(mktemp) || { echo "Error: mktemp failed, cannot back up pam_usb.conf" >&2; exit 1; }
+cp /etc/security/pam_usb.conf "$CONF_BACKUP" || { echo "Error: failed to back up pam_usb.conf" >&2; exit 1; }
 
 for PUSB_FS_TYPE in vfat ext4 exfat; do
     export PUSB_FS_TYPE
@@ -31,8 +41,10 @@ for PUSB_FS_TYPE in vfat ext4 exfat; do
     if [ -n "$PUSB_FS_TYPE_PREV" ]; then
         sync && sync && sync
         sudo umount /tmp/fakestick 2>/dev/null || true
+        sudo udevadm settle 2>/dev/null || true
         sudo modprobe -r g_mass_storage 2>/dev/null || true
         sudo udevadm settle
+        _restore_conf
     fi
 
     ./create-image.sh
@@ -40,20 +52,20 @@ for PUSB_FS_TYPE in vfat ext4 exfat; do
 
     rm -rf "/home/$(whoami)/.pamusb"
 
-    ./test-keyring-unlock-gnome-installer.sh && \
-    ./test-pinentry-installer.sh && \
-    ./test-conf-detects-device.sh && \
-    ./test-conf-adds-device.sh && \
-    ./test-conf-adds-user.sh && \
-    ./test-conf-doesnt-add-user-twice-but-adds-a-second-device.sh && \
-    ./test-check-verify-created-config.sh && \
-    ./test-conf-reset-pads.sh && \
-    ./test-check-many-devices.sh && \
-    ./test-check-superuser-filtering.sh && \
-    ./test-conf-adds-user-with-superuser.sh && \
-    ./test-check-deny-xrdp-session.sh && \
-    ./test-check-debug-flag.sh && \
-    rm -rf /tmp/fakestick/.pamusb && \
+    ./test-keyring-unlock-gnome-installer.sh
+    ./test-pinentry-installer.sh
+    ./test-conf-detects-device.sh
+    ./test-conf-adds-device.sh
+    ./test-conf-adds-user.sh
+    ./test-conf-doesnt-add-user-twice-but-adds-a-second-device.sh
+    ./test-check-verify-created-config.sh
+    ./test-conf-reset-pads.sh
+    ./test-check-many-devices.sh
+    ./test-check-superuser-filtering.sh
+    ./test-conf-adds-user-with-superuser.sh
+    ./test-check-deny-xrdp-session.sh
+    ./test-check-debug-flag.sh
+    rm -rf /tmp/fakestick/.pamusb
     ./test-agent-properly-triggers.sh
 
     PUSB_FS_TYPE_PREV=$PUSB_FS_TYPE

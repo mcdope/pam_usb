@@ -7,7 +7,22 @@ on:
     branches: [ master ]
 
 jobs:
+
+  Gate:
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install build dependencies
+      uses: ./.github/actions/install-build-deps
+      with:
+        extra-packages: libcmocka-dev python3-pytest python3-pytest-mock
+    - name: Build
+      run: make
+    - name: Unit tests
+      run: make test
+
   DoMagicOnConfiguredCustomRunner:
+    needs: [Gate]
 
     runs-on: ubuntu-22.04
 
@@ -38,42 +53,14 @@ jobs:
         TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
       # NOTE: deps are installed directly on the remote host via SSH; keep in sync with .github/actions/install-build-deps/action.yml
       run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "sudo apt --yes install fdisk libudisks2-dev libxml2-dev python-is-python3 python3-dotenv libpam0g-dev devscripts debhelper dkms pkg-config gir1.2-glib-2.0 libglib2.0-dev libevdev-dev exfatprogs"
-    - name: git clone
-      env:
-        TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
-        TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
-        TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
-        TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
-      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "sudo rm -rf ~/pam_usb_$GITHUB_RUN_ID; mkdir ~/pam_usb_$GITHUB_RUN_ID; cd ~/pam_usb_$GITHUB_RUN_ID && git clone https://github.com/mcdope/pam_usb.git ."
-    - name: git fetch --all
-      env:
-        TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
-        TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
-        TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
-        TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
-      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "cd ~/pam_usb_$GITHUB_RUN_ID && git fetch --all"
-    - name: git reset --hard
-      env:
-        TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
-        TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
-        TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
-        TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
-      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "cd ~/pam_usb_$GITHUB_RUN_ID && git reset --hard"
-    - name: git switch -f
+    - name: Checkout branch on runner
       env:
         TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
         TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
         TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
         TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
         REF_TO_CHECKOUT: ${{ github.head_ref }}
-      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "cd ~/pam_usb_$GITHUB_RUN_ID && git switch -f $REF_TO_CHECKOUT || git switch -f master"
-    - name: git pull
-      env:
-        TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
-        TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
-        TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
-        TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
-      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "cd ~/pam_usb_$GITHUB_RUN_ID && git pull"
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -tt -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "sudo rm -rf ~/pam_usb_$GITHUB_RUN_ID && git clone https://github.com/mcdope/pam_usb.git ~/pam_usb_$GITHUB_RUN_ID && cd ~/pam_usb_$GITHUB_RUN_ID && git switch -f $REF_TO_CHECKOUT || git switch -f master && git pull"
     - name: remove previously installed package (ensure no config)
       env:
         TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}

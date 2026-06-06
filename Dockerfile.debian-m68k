@@ -1,0 +1,45 @@
+FROM debian:sid
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TERM=xterm
+WORKDIR /usr/local/src/pam_usb
+
+RUN --mount=type=cache,id=apt-debian-m68k,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,id=aptlib-debian-m68k,target=/var/lib/apt,sharing=locked \
+    apt-get -qqy update && \
+    apt-get -qqy install --no-install-recommends debian-ports-archive-keyring ca-certificates
+
+RUN --mount=type=cache,id=apt-debian-m68k,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,id=aptlib-debian-m68k,target=/var/lib/apt,sharing=locked \
+    dpkg --add-architecture m68k && \
+    echo 'deb [arch=m68k] http://ftp.ports.debian.org/debian-ports/ sid main' >> /etc/apt/sources.list && \
+    apt-get -qqy update && \
+    apt-get -qqy install --no-install-recommends \
+        build-essential debhelper devscripts wget git python3 python3-gi \
+        gcc-m68k-linux-gnu g++-m68k-linux-gnu binutils-m68k-linux-gnu libc6-dev-m68k-cross \
+        gir1.2-udisks-2.0 pkg-config zlib1g-dev libglib2.0-dev && \
+    mkdir -p /tmp/m68k-debs && cd /tmp/m68k-debs && \
+    apt-get -qqy download \
+        libxml2:m68k libxml2-dev:m68k \
+        libpam0g:m68k libpam0g-dev:m68k \
+        libudisks2-0:m68k libudisks2-dev:m68k \
+        libglib2.0-0t64:m68k libglib2.0-dev:m68k \
+        libgio-2.0-dev:m68k \
+        libevdev2:m68k libevdev-dev:m68k \
+        zlib1g:m68k zlib1g-dev:m68k \
+        libc6:m68k \
+        libselinux1:m68k libmount1:m68k libblkid1:m68k \
+        libpcre2-8-0:m68k libffi8:m68k libdbus-1-3:m68k \
+        libsystemd0:m68k libcap2:m68k libgcrypt20:m68k \
+        liblz4-1:m68k liblzma5:m68k libzstd1:m68k libgpg-error0:m68k && \
+    dpkg --force-depends --force-architecture -i *.deb || true && \
+    dpkg --configure -a 2>/dev/null || true && \
+    for f in /usr/lib/m68k-linux-gnu/*.so.*.*; do \
+        [ -f "$f" ] || continue; \
+        d=$(dirname "$f"); b=$(basename "$f"); \
+        so=$(echo "$b" | sed 's/\(.*\.so\.[0-9][0-9]*\)\..*/\1/'); \
+        [ "$so" != "$b" ] && [ ! -e "$d/$so" ] && ln -sf "$b" "$d/$so" || true; \
+    done && \
+    rm -rf /tmp/m68k-debs && \
+    printf '#!/bin/sh\nPKG_CONFIG_LIBDIR=/usr/lib/m68k-linux-gnu/pkgconfig:/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig exec pkg-config "$@"\n' \
+        > /usr/bin/m68k-linux-gnu-pkg-config && \
+    chmod +x /usr/bin/m68k-linux-gnu-pkg-config

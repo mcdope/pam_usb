@@ -7,19 +7,30 @@ sudo sed -i -r 's/<user id="([0-9a-zA-Z]+)">/<user id="\1"><agent event="lock"><
 # Enable & start agent
 sudo systemctl enable pamusb-agent > /dev/null 2>&1 || exit 1
 sudo systemctl start pamusb-agent > /dev/null 2>&1 || exit 1
-sleep 5 # make sure agent is up
+sleep 10 # allow agent to fully connect to D-Bus and subscribe to UDisks2 signals
 
 # "unplug" virtual usb
 sync && sync && sync
 sudo umount /tmp/fakestick
+sudo udevadm settle 2>/dev/null || true
 sudo modprobe -r g_mass_storage || exit 1
-sleep 20
-sudo tail -n 200 /var/log/auth.log | grep "pamusb-agent\[" | grep "has been removed, locking down user" > /dev/null && echo -e "\t\t\t\tLock event found" || { echo -e "\t\t\t\tNo lock event found!"; exit 1; }
+LOCK_FOUND=0
+for i in $(seq 1 300); do
+    sudo tail -n 200 /var/log/auth.log | grep "pamusb-agent\[" | grep -q "has been removed, locking down user" && { LOCK_FOUND=1; break; }
+    sleep 2
+done
+[ $LOCK_FOUND -eq 1 ] && echo -e "\t\t\t\tLock event found" || { echo -e "\t\t\t\tNo lock event found!"; exit 1; }
 
 # "plug" virtual usb
 sudo modprobe g_mass_storage file=./virtual_usb.img stall=0 removable=y iSerialNumber=1234567890 || exit 1
-sleep 20
-sudo tail -n 200 /var/log/auth.log | grep "pamusb-agent\[" | grep "Authentication succeeded. Unlocking user"  > /dev/null && echo -e "\t\t\t\tUnlock event found" || { echo -e "\t\t\t\tNo unlock event found!"; exit 1; }
+# Poll for unlock — authentication requires UDisks2 to reprobe the filesystem
+# after plug-in, which is slower than the unplug path on QEMU ARM.
+UNLOCK_FOUND=0
+for i in $(seq 1 300); do
+    sudo tail -n 200 /var/log/auth.log | grep "pamusb-agent\[" | grep -q "Authentication succeeded. Unlocking user" && { UNLOCK_FOUND=1; break; }
+    sleep 2
+done
+[ $UNLOCK_FOUND -eq 1 ] && echo -e "\t\t\t\tUnlock event found" || { echo -e "\t\t\t\tNo unlock event found!"; exit 1; }
 
 # Disable agent again
 sudo systemctl stop pamusb-agent > /dev/null 2>&1 || exit 1

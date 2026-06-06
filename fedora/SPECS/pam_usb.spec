@@ -32,7 +32,7 @@ chmod -Rf a+rX,u+w,g-w,o-w .
 
 %build
 cd %{_topdir}/BUILD/%{name}-%{version}
-make all
+%make_build all
 
 %install
 cd %{_topdir}/BUILD/%{name}-%{version}

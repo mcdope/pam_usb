@@ -1,4 +1,26 @@
-![Unit tests](https://github.com/mcdope/pam_usb/workflows/Unit%20tests/badge.svg) ![Build](https://github.com/mcdope/pam_usb/workflows/Can%20be%20built%20successfully/badge.svg) ![Packaging](https://github.com/mcdope/pam_usb/workflows/Packaging%20(deb,%20rpm,%20zst)/badge.svg) ![Functional testing](https://github.com/mcdope/pam_usb/workflows/Build%20&%20test/badge.svg) ![CodeQL](https://github.com/mcdope/pam_usb/workflows/CodeQL/badge.svg) ![DevSkim](https://github.com/mcdope/pam_usb/workflows/DevSkim/badge.svg) ![Nightly builds (tar.gz, deb, rpm, zst)](https://github.com/mcdope/pam_usb/actions/workflows/nightly-build-on-own-server.yml/badge.svg)
+[![Unit tests][badge-unit]][wf-unit] [![Build][badge-build]][wf-build] [![CodeQL][badge-codeql]][wf-codeql] [![DevSkim][badge-devskim]][wf-devskim] [![Nightly][badge-nightly]][wf-nightly]
+
+| | amd64 | arm64 | armhf | riscv64 | i386 | m68k |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Tests** | [![B&T][badge-bt]][wf-bt] | — | — | — | — | — |
+| **Debian** | [![Pkg][badge-pkg]][wf-pkg] | [![Pkg][badge-pkg]][wf-pkg] | [![Pkg][badge-pkg]][wf-pkg] | [![Pkg][badge-pkg]][wf-pkg] | [![Pkg][badge-pkg]][wf-pkg] | [![Pkg][badge-pkg]][wf-pkg] |
+| **Fedora** | [![Pkg][badge-pkg]][wf-pkg] | [![Pkg][badge-pkg]][wf-pkg] | — | — | — | — |
+| **Arch** | [![Pkg][badge-pkg]][wf-pkg] | [![Pkg][badge-pkg]][wf-pkg] | — | — | — | — |
+
+[badge-unit]:   https://github.com/mcdope/pam_usb/actions/workflows/unit-tests.yml/badge.svg
+[badge-build]:  https://github.com/mcdope/pam_usb/actions/workflows/can-be-built-successfully.yml/badge.svg
+[badge-codeql]: https://github.com/mcdope/pam_usb/actions/workflows/codeql-analysis.yml/badge.svg
+[badge-devskim]: https://github.com/mcdope/pam_usb/actions/workflows/devskim.yml/badge.svg
+[badge-nightly]: https://github.com/mcdope/pam_usb/actions/workflows/nightly-build-on-own-server.yml/badge.svg
+[badge-bt]:     https://github.com/mcdope/pam_usb/actions/workflows/build-and-test-on-own-server.yml/badge.svg
+[badge-pkg]:    https://github.com/mcdope/pam_usb/actions/workflows/package-with-docker-on-own-server.yml/badge.svg
+[wf-unit]:      https://github.com/mcdope/pam_usb/actions/workflows/unit-tests.yml
+[wf-build]:     https://github.com/mcdope/pam_usb/actions/workflows/can-be-built-successfully.yml
+[wf-codeql]:    https://github.com/mcdope/pam_usb/actions/workflows/codeql-analysis.yml
+[wf-devskim]:   https://github.com/mcdope/pam_usb/actions/workflows/devskim.yml
+[wf-nightly]:   https://github.com/mcdope/pam_usb/actions/workflows/nightly-build-on-own-server.yml
+[wf-bt]:        https://github.com/mcdope/pam_usb/actions/workflows/build-and-test-on-own-server.yml
+[wf-pkg]:       https://github.com/mcdope/pam_usb/actions/workflows/package-with-docker-on-own-server.yml
 
 
 pam\_usb
