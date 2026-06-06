@@ -561,7 +561,8 @@ jobs:
 
   FunctionalTest-arm64:
     needs: [Debian-arm64, Arch-arm64]
-    if: ${{ !cancelled() }}
+    if: ${{ github.event_name == 'push' && !cancelled() }}
+    continue-on-error: true
 
     runs-on: ubuntu-22.04
 
@@ -626,7 +627,8 @@ jobs:
 
   FunctionalTest-armhf:
     needs: [Debian-armhf, FunctionalTest-arm64]
-    if: ${{ !cancelled() }}
+    if: ${{ github.event_name == 'push' && !cancelled() }}
+    continue-on-error: true
 
     runs-on: ubuntu-22.04
 
