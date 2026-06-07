@@ -267,17 +267,24 @@ static const char *pusb_loginctl_parse_output(char *buf)
 	return (val && *val != '\0') ? val : NULL;
 }
 
+/*
+ * "auto" resolves to the session the calling process belongs to (via cgroup
+ * membership).  Without a session ID argument loginctl would show manager
+ * properties instead, which do not include Remote or TTY.
+ * export LC_ALL=C covers both loginctl and awk in the pipeline.
+ */
+#define LOGINCTL_SHOW_SESSION_CMD \
+	"export LC_ALL=C; /usr/bin/loginctl show-session auto -p %s 2>/dev/null | " \
+	"/usr/bin/awk -F= '{print $2}'"
+
 static char *pusb_get_loginctl_session_property(const char *property)
 {
+	if (!property)
+		return NULL;
+
 	char loginctl_cmd[BUFSIZ];
 	int n = snprintf(loginctl_cmd, sizeof(loginctl_cmd),
-		"LC_ALL=C; LOGINCTL_SESSION_ID=$("
-		"/usr/bin/loginctl user-status | "
-		"/usr/bin/sed -n 's/.*session-\\([a-zA-Z0-9]\\+\\)\\.scope.*/\\1/p;T;q'"
-		"); "
-		"[ -n \"$LOGINCTL_SESSION_ID\" ] && "
-		"/usr/bin/loginctl show-session \"$LOGINCTL_SESSION_ID\" -p %s | "
-		"/usr/bin/awk -F= '{print $2}'",
+		LOGINCTL_SHOW_SESSION_CMD,
 		property);
 	if (n < 0 || (size_t)n >= sizeof(loginctl_cmd))
 	{
@@ -285,7 +292,7 @@ static char *pusb_get_loginctl_session_property(const char *property)
 		return NULL;
 	}
 
-	FILE *fp = popen(loginctl_cmd, "r");
+	FILE *fp = popen(loginctl_cmd, "re");
 	if (fp == NULL)
 	{
 		log_debug("		Opening pipe for 'loginctl' failed, this is quite a wtf...\n");

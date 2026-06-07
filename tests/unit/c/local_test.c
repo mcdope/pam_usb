@@ -249,6 +249,16 @@ static void test_local_login_display_env_null(void **state)
 	assert_true(result >= -1 && result <= 1);
 }
 
+static void test_loginctl_cmd_uses_auto_not_user_status(void **state)
+{
+	(void)state;
+	/* Regression for issue #430: the command must resolve by calling-process
+	 * session ("auto"), not by scraping the first session from user-status. */
+	assert_non_null(strstr(LOGINCTL_SHOW_SESSION_CMD, "show-session auto"));
+	assert_null(strstr(LOGINCTL_SHOW_SESSION_CMD, "user-status"));
+	assert_null(strstr(LOGINCTL_SHOW_SESSION_CMD, "sed -n"));
+}
+
 static void test_local_login_display_env_set(void **state)
 {
 	(void)state;
@@ -295,6 +305,7 @@ int main(void)
 		cmocka_unit_test(test_loginctl_parse_output_empty),
 		cmocka_unit_test(test_loginctl_parse_output_valid_with_newline),
 		cmocka_unit_test(test_loginctl_parse_output_valid_without_newline),
+		cmocka_unit_test(test_loginctl_cmd_uses_auto_not_user_status),
 		cmocka_unit_test(test_local_login_denies_xrdp_session),
 		cmocka_unit_test(test_local_login_display_env_null),
 		cmocka_unit_test(test_local_login_display_env_set),
