@@ -1,6 +1,7 @@
 *.o
 *.so
 pamusb-check
+pamusb-evdev-helper
 debian/.debhelper/*
 debian/files
 debian/libpam-usb.debhelper.log
@@ -19,4 +20,5 @@ doc/*.1.gz
 .build
 **/__pycache__
 tests/unit/c/*_test
+tests/unit/c/*_test_exit*
 .claude/*.lock
