@@ -279,6 +279,9 @@ static const char *pusb_loginctl_parse_output(char *buf)
 
 static char *pusb_get_loginctl_session_property(const char *property)
 {
+	if (!property)
+		return NULL;
+
 	char loginctl_cmd[BUFSIZ];
 	int n = snprintf(loginctl_cmd, sizeof(loginctl_cmd),
 		LOGINCTL_SHOW_SESSION_CMD,
