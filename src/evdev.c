@@ -21,10 +21,16 @@
 #include <errno.h>
 #include <dirent.h>
 #include <fcntl.h>
+#include <signal.h>
+#include <time.h>
 #include <unistd.h>
 #include <limits.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include <libevdev/libevdev.h>
 #include <linux/input.h>
+#include "evdev.h"
 #include "log.h"
 
 int pusb_has_virtual_input_device(const char *input_dir)
@@ -90,4 +96,74 @@ int pusb_has_virtual_input_device(const char *input_dir)
 
 	closedir(d);
 	return permission_denied ? -1 : 0;
+}
+
+int pusb_has_virtual_input_device_safe(const char *input_dir)
+{
+	struct stat st;
+	if (stat(PAMUSB_EVDEV_HELPER_PATH, &st) != 0 || !S_ISREG(st.st_mode)) {
+		log_debug("	evdev helper not found at %s, using direct scan\n",
+		          PAMUSB_EVDEV_HELPER_PATH);
+		return pusb_has_virtual_input_device(input_dir);
+	}
+
+	pid_t pid = fork();
+	if (pid < 0) {
+		log_debug("	fork() failed (%s), using direct evdev scan\n", strerror(errno));
+		return pusb_has_virtual_input_device(input_dir);
+	}
+
+	if (pid == 0) {
+		char *const argv[] = {PAMUSB_EVDEV_HELPER_PATH, NULL};
+		char *const envp[] = {NULL};
+		execve(PAMUSB_EVDEV_HELPER_PATH, argv, envp);
+		_exit(2);
+	}
+
+	/* parent: poll up to 200 ms for the helper to finish */
+	struct timespec deadline;
+	clock_gettime(CLOCK_MONOTONIC, &deadline);
+	deadline.tv_nsec += 200000000L;
+	if (deadline.tv_nsec >= 1000000000L) {
+		deadline.tv_sec  += 1;
+		deadline.tv_nsec -= 1000000000L;
+	}
+
+	int status;
+	for (;;) {
+		pid_t r = waitpid(pid, &status, WNOHANG);
+		if (r == pid)
+			break;
+		if (r < 0) {
+			kill(pid, SIGKILL);
+			waitpid(pid, NULL, 0);
+			return pusb_has_virtual_input_device(input_dir);
+		}
+		struct timespec now;
+		clock_gettime(CLOCK_MONOTONIC, &now);
+		if (now.tv_sec > deadline.tv_sec ||
+		    (now.tv_sec == deadline.tv_sec &&
+		     now.tv_nsec >= deadline.tv_nsec)) {
+			log_debug("	evdev helper timed out, falling back to direct scan\n");
+			kill(pid, SIGKILL);
+			waitpid(pid, NULL, 0);
+			return pusb_has_virtual_input_device(input_dir);
+		}
+		struct timespec slp = {0, 5000000L};  /* 5 ms */
+		nanosleep(&slp, NULL);
+	}
+
+	if (!WIFEXITED(status)) {
+		log_debug("	evdev helper exited abnormally, falling back\n");
+		return pusb_has_virtual_input_device(input_dir);
+	}
+
+	switch (WEXITSTATUS(status)) {
+	case 0: return 0;
+	case 1: return 1;
+	default:
+		log_debug("	evdev helper returned unexpected code %d, falling back\n",
+		          WEXITSTATUS(status));
+		return pusb_has_virtual_input_device(input_dir);
+	}
 }

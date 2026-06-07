@@ -24,3 +24,14 @@ package() {
   make -C $pkgname-$pkgver DESTDIR="$pkgdir" PAM_USB_DEST="$pkgdir/usr/lib/security" install
   install -Dt "$pkgdir/usr/lib/systemd/system" -m0644 "pamusb-agent.service"
 }
+
+post_install() {
+  if getent group input > /dev/null 2>&1; then
+    chgrp input /usr/lib/pam_usb/pamusb-evdev-helper || true
+    chmod g+s   /usr/lib/pam_usb/pamusb-evdev-helper || true
+  fi
+}
+
+post_upgrade() {
+  post_install
+}

@@ -6,6 +6,11 @@
 if [ "$1" = "configure" ] || [ "$1" = "abort-upgrade" ] || [ "$1" = "abort-deconfigure" ] || [ "$1" = "abort-remove" ] ; then
     pam-auth-update --package
 
+    if getent group input > /dev/null 2>&1; then
+        chgrp input /usr/lib/pam_usb/pamusb-evdev-helper 2>/dev/null || true
+        chmod g+s   /usr/lib/pam_usb/pamusb-evdev-helper 2>/dev/null || true
+    fi
+
     ALREADY_CONFIGED=`cat /etc/security/pam_usb.conf 2>&1 | grep "<device id=" | grep -v "MyDevice" | wc -l`
     if [ "$ALREADY_CONFIGED" = "0" ]
     then

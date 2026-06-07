@@ -171,6 +171,24 @@ def addUser(options):
 		items.append(('Superuser device', 'yes'))
 	shouldSave(options, items)
 
+	print("")
+	print("NOTE: For remote desktop detection (remote_desktop_check) to work when running")
+	print("as a non-root user, pam_usb needs read access to /dev/input devices.")
+	print("")
+	print("Option 1 - Recommended (no action required if package-installed):")
+	print("  The pamusb-evdev-helper binary is installed setgid 'input' by packages, so")
+	print("  the check runs with the required permissions automatically.")
+	print("")
+	print("Option 2 - Manual fallback (use only if the helper is not available):")
+	print("  Add your user to the 'input' group:")
+	print("    sudo usermod -aG input %s" % options['userName'])
+	print("  (Log out and back in for the change to take effect.)")
+	print("")
+	print("  WARNING: The 'input' group grants read access to ALL input devices,")
+	print("  including keyboards. This is effectively keylogger-level access and")
+	print("  should only be used on trusted single-user systems.")
+	print("")
+
 	# Check if user exists
 	users = doc.getElementsByTagName('users')
 	if len(users) == 0:
