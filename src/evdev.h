@@ -19,6 +19,16 @@
 #define PUSB_EVDEV_H_
 
 /*
+ * Compile-time path for the setgid helper binary that performs the evdev scan
+ * with input group privileges so the authenticating user does not need to be a
+ * member of the input group.  Override via -DPAMUSB_EVDEV_HELPER_PATH=... at
+ * build time when installing to a non-standard prefix.
+ */
+#ifndef PAMUSB_EVDEV_HELPER_PATH
+#define PAMUSB_EVDEV_HELPER_PATH "/usr/lib/pam_usb/pamusb-evdev-helper"
+#endif
+
+/*
  * Scans input_dir (typically "/dev/input") for virtual input devices.
  * A device is considered virtual if:
  *   - bus type is BUS_VIRTUAL (0x06)
@@ -35,5 +45,15 @@
  * Production callers should pass "/dev/input".
  */
 int pusb_has_virtual_input_device(const char *input_dir);
+
+/*
+ * Like pusb_has_virtual_input_device() but first tries to exec the setgid
+ * helper at PAMUSB_EVDEV_HELPER_PATH with a cleared environment.  Falls back
+ * to the direct scan when the helper is absent, non-executable, or times out.
+ *
+ * Callers that run without root should use this variant so that the scan works
+ * even when the user is not a member of the input group.
+ */
+int pusb_has_virtual_input_device_safe(const char *input_dir);
 
 #endif /* !PUSB_EVDEV_H_ */

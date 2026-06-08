@@ -161,3 +161,24 @@ int __wrap_close(int fd)
 	(void)fd;
 	return 0;
 }
+
+/* ioctl: serve EVIOCGID from mock table; forward everything else */
+
+extern int __real_ioctl(int fd, unsigned long int request, ...);
+
+int __wrap_ioctl(int fd, unsigned long int request, void *arg)
+{
+	if (request == EVIOCGID) {
+		if (fd < 0 || fd >= g_mock_device_count) {
+			errno = EBADF;
+			return -1;
+		}
+		struct input_id *id = (struct input_id *)arg;
+		id->bustype = (unsigned short)g_mock_devices[fd].bustype;
+		id->vendor  = 0;
+		id->product = 0;
+		id->version = 0;
+		return 0;
+	}
+	return __real_ioctl(fd, request, arg);
+}

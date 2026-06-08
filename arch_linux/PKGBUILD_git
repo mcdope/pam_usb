@@ -14,6 +14,7 @@ conflicts=(${pkgname%-git})
 provides=(${pkgname%-git})
 options=(!emptydirs)
 backup=("etc/security/pam_usb.conf")
+install=pam_usb.install
 source=("git+$url"
         "pamusb-agent.service")
 sha256sums=('SKIP'

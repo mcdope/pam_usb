@@ -1,6 +1,7 @@
 *.o
 *.so
 pamusb-check
+pamusb-evdev-helper
 debian/.debhelper/*
 debian/files
 debian/libpam-usb.debhelper.log

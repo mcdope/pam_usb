@@ -225,6 +225,35 @@ static void test_symlink_then_virtual_detected(void **state)
 	assert_int_equal(1, pusb_has_virtual_input_device("/dev/input"));
 }
 
+/* ── pusb_has_virtual_input_device_safe() fallback tests ──
+ * Compiled with PAMUSB_EVDEV_HELPER_PATH="/nonexistent/pamusb-evdev-helper"
+ * so the safe variant always falls back to the direct scan.  The underlying
+ * direct-scan behaviour is therefore the same as the tests above.
+ */
+
+static void test_safe_no_helper_falls_back_no_devices(void **state)
+{
+	(void)state;
+	/* helper absent, no mock devices → fallback returns 0 */
+	assert_int_equal(0, pusb_has_virtual_input_device_safe("/dev/input"));
+}
+
+static void test_safe_no_helper_virtual_device_detected(void **state)
+{
+	(void)state;
+	/* helper absent, virtual keyboard present → fallback returns 1 */
+	SETUP_DEVICE(0, BUS_VIRTUAL, NULL, (1u << EV_KEY));
+	assert_int_equal(1, pusb_has_virtual_input_device_safe("/dev/input"));
+}
+
+static void test_safe_no_helper_all_eacces_inconclusive(void **state)
+{
+	(void)state;
+	/* helper absent, all EACCES → fallback returns -1 */
+	SETUP_DEVICE_EACCES(0);
+	assert_int_equal(-1, pusb_has_virtual_input_device_safe("/dev/input"));
+}
+
 int main(void)
 {
 	const struct CMUnitTest tests[] = {
@@ -245,6 +274,10 @@ int main(void)
 		cmocka_unit_test_setup(test_eacces_then_virtual_returns_found,     setup),
 		cmocka_unit_test_setup(test_symlink_device_skipped,               setup),
 		cmocka_unit_test_setup(test_symlink_then_virtual_detected,        setup),
+		/* safe-wrapper fallback tests */
+		cmocka_unit_test_setup(test_safe_no_helper_falls_back_no_devices,  setup),
+		cmocka_unit_test_setup(test_safe_no_helper_virtual_device_detected, setup),
+		cmocka_unit_test_setup(test_safe_no_helper_all_eacces_inconclusive, setup),
 	};
 	return cmocka_run_group_tests(tests, NULL, NULL);
 }

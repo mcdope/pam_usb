@@ -98,6 +98,10 @@ PAMUSB_CHECK_SRCS := src/pamusb-check.c
 PAMUSB_CHECK_OBJS := $(PAMUSB_CHECK_SRCS:.c=.o)
 PAMUSB_CHECK := pamusb-check
 
+# pamusb-evdev-helper (setgid input helper for virtual device detection)
+PAMUSB_EVDEV_HELPER      := pamusb-evdev-helper
+PAMUSB_EVDEV_HELPER_DEST := $(DESTDIR)$(PREFIX)/lib/pam_usb
+
 # Tools
 PAMUSB_CONF := pamusb-conf
 PAMUSB_AGENT := pamusb-agent
@@ -136,6 +140,11 @@ RPMBUILD := rpmbuild -v -bb --clean fedora/SPECS/pam_usb.spec
 ZSTBUILD := cd arch_linux && makepkg -p PKGBUILD_git && cd ..
 MANCOMPILE := gzip -kf
 DOCKER := docker
+
+# Override evdev.o compilation to embed the helper install path so it works
+# correctly when PREFIX differs from /usr (the default in evdev.h).
+src/evdev.o: src/evdev.c src/evdev.h
+	${CC} -c ${CFLAGS} -DPAMUSB_EVDEV_HELPER_PATH=\"$(PREFIX)/lib/pam_usb/pamusb-evdev-helper\" $< -o $@
 
 .DEFAULT_GOAL := all
 
@@ -184,11 +193,13 @@ test-c-local: src/process.o src/tmux.o src/rmsvc.o src/evdev.o src/mem.o src/log
 	./tests/unit/c/local_test
 
 test-c-evdev: src/mem.o src/log.o
-	$(CC) $(TEST_CFLAGS) tests/unit/c/evdev_test.c \
+	$(CC) $(TEST_CFLAGS) -DPAMUSB_EVDEV_HELPER_PATH=\"/nonexistent/pamusb-evdev-helper\" \
+		tests/unit/c/evdev_test.c \
 		tests/unit/c/fake_libevdev.c $^ \
-		-Wl,--wrap=opendir,--wrap=readdir,--wrap=closedir,--wrap=open,--wrap=close \
+		-Wl,--wrap=opendir,--wrap=readdir,--wrap=closedir,--wrap=open,--wrap=close,--wrap=ioctl \
 		$(EVDEV_LDFLAGS) -o tests/unit/c/evdev_test
 	./tests/unit/c/evdev_test
+
 
 test-c-pam: src/log.o
 	$(CC) $(TEST_CFLAGS) tests/unit/c/pam_test.c src/pam.c $^ \
@@ -218,13 +229,17 @@ test-shell:
 
 test: test-c test-python test-shell
 
-all: manpages $(PAM_USB) $(PAMUSB_CHECK)
+all: manpages $(PAM_USB) $(PAMUSB_CHECK) $(PAMUSB_EVDEV_HELPER)
 
 $(PAM_USB): $(OBJS) $(PAM_USB_OBJS)
 	$(CC) -o $(PAM_USB) $(PAM_USB_LDFLAGS) $(LDFLAGS) $(OBJS) $(PAM_USB_OBJS) $(LIBS)
 
 $(PAMUSB_CHECK): $(OBJS) $(PAMUSB_CHECK_OBJS)
 	$(CC) -o $(PAMUSB_CHECK) $(LDFLAGS) $(HARDENING_LDFLAGS) -pie $(OBJS) $(PAMUSB_CHECK_OBJS) $(LIBS)
+
+$(PAMUSB_EVDEV_HELPER): src/evdev-helper.o src/evdev.o src/mem.o src/log.o
+	$(CC) -o $@ $(LDFLAGS) $(HARDENING_LDFLAGS) -pie \
+		$^ `$(PKG_CONFIG) --libs libevdev`
 
 %.o: %.c
 	${CC} -c ${CFLAGS} $< -o $@
@@ -235,7 +250,9 @@ clean:
 		doc/pamusb-pinentry.1.gz \
 		$(PAM_USB) \
 		$(PAMUSB_CHECK) \
+		$(PAMUSB_EVDEV_HELPER) \
 		$(OBJS) \
+		src/evdev-helper.o \
 		$(PAMUSB_CHECK_OBJS) \
 		$(PAM_USB_OBJS)
 
@@ -270,6 +287,12 @@ install: all
 
 	$(INSTALL) -m755 $(PAM_USB) $(PAM_USB_DEST)
 	$(INSTALL) -m755 $(PAMUSB_CHECK) $(TOOLS_SRC)/$(PAMUSB_CONF) $(TOOLS_SRC)/$(PAMUSB_AGENT) $(TOOLS_SRC)/$(PAMUSB_KEYRING_GNOME) $(TOOLS_SRC)/$(PAMUSB_PINENTRY) $(TOOLS_DEST)
+	$(MKDIR) -p $(PAMUSB_EVDEV_HELPER_DEST)
+	$(INSTALL) -m755 $(PAMUSB_EVDEV_HELPER) $(PAMUSB_EVDEV_HELPER_DEST)
+	@if getent group input >/dev/null 2>&1; then \
+		chgrp input $(PAMUSB_EVDEV_HELPER_DEST)/$(PAMUSB_EVDEV_HELPER) 2>/dev/null || true; \
+		chmod g+s $(PAMUSB_EVDEV_HELPER_DEST)/$(PAMUSB_EVDEV_HELPER) 2>/dev/null || true; \
+	fi
 	$(INSTALL) -m644 $(DOCS) $(DOCS_DEST)
 	$(INSTALL) -m644 $(MANS) $(MANS_DEST)
 
@@ -291,6 +314,7 @@ deinstall:
 		$(TOOLS_DEST)/$(PAMUSB_AGENT) \
 		$(TOOLS_DEST)/$(PAMUSB_KEYRING_GNOME) \
 		$(TOOLS_DEST)/$(PAMUSB_PINENTRY) \
+		$(PAMUSB_EVDEV_HELPER_DEST)/$(PAMUSB_EVDEV_HELPER) \
 		$(PAM_CONF_DEST)/libpam-usb \
 		$(POLKIT_CONF_DEST)/systemd-polkit-agent-helper-pamusb.conf
 

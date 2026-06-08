@@ -62,6 +62,32 @@ Gives a numbered list of usable volumes, for use with --volume / packaging scrip
 .B
 \fB--reset-pads\fR
 Deletes all relevant key files for the given user (this needs the device to be actually connected)
+.SH NOTES
+.SS Remote desktop detection and the input group
+When \fBremote_desktop_check\fR is enabled (the default), pam_usb scans
+\fI/dev/input\fR for virtual input devices to detect active remote desktop
+sessions.  This scan requires read access to the device nodes, which are
+normally restricted to root and members of the \fBinput\fR group.
+.PP
+Packages install a small setgid helper,
+\fI/usr/lib/pam_usb/pamusb-evdev-helper\fR, that is owned by
+\fBroot:input\fR with the setgid bit set.  pam_usb uses this helper
+automatically so that the check works for non-root users without any manual
+group assignment.
+.PP
+If the helper is not available (e.g.\ a manual installation without setgid
+setup), the scan falls back to direct device access.  In that case the user
+must be a member of the \fBinput\fR group:
+.PP
+.nf
+    sudo usermod -aG input \fIusername\fR
+.fi
+.PP
+\fBWARNING:\fR Membership in the \fBinput\fR group grants read access to
+\fIall\fR input devices, including keyboards.  Any process run by that user
+can read raw keyboard events — effectively keylogger-level access.  Use this
+only on trusted, single-user systems and prefer the setgid helper approach
+wherever possible.
 .SH BUGS
 Please report bugs on the Github issue tracker at https://github.com/mcdope/pam_usb/issues.
 .SH AUTHOR

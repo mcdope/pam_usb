@@ -11,6 +11,7 @@ license=(GPL2)
 depends=(python-gobject libxml2 udisks2 libevdev)
 options=(!emptydirs)
 backup=("etc/security/pam_usb.conf")
+install=pam_usb.install
 source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/$pkgver.tar.gz"
         "pamusb-agent.service")
 sha256sums=('6ddd263e22dbf0c1b7321bcd257b63b1926e1e4ff2bdc07038d54efabe5ff574'
