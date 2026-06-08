@@ -122,9 +122,8 @@ int pusb_has_virtual_input_device_safe(const char *input_dir)
 	pid_t pid = fork();
 	if (pid < 0) {
 		int saved_errno = errno;
-		char errbuf[64];
-		log_debug("	fork() failed (%s), using direct evdev scan\n",
-		          strerror_r(saved_errno, errbuf, sizeof(errbuf)));
+		log_debug("	fork() failed (errno %d), using direct evdev scan\n",
+		          saved_errno);
 		return pusb_has_virtual_input_device(input_dir);
 	}
 
@@ -146,6 +145,8 @@ int pusb_has_virtual_input_device_safe(const char *input_dir)
 		if (r == pid)
 			break;
 		if (r < 0) {
+			if (errno == EINTR)
+				continue;
 			/* ECHILD: child already reaped (SIGCHLD==SIG_IGN or SA_NOCLDWAIT);
 			 * PID may have been recycled — skip kill to avoid hitting
 			 * an unrelated process. */
