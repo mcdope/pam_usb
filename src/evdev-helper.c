@@ -61,7 +61,7 @@ int main(void)
 
 	/* Write result to pipe if parent wired one to fd 3 */
 	struct stat pst;
-	if (fstat(3, &pst) == 0) {
+	if (fstat(3, &pst) == 0 && S_ISFIFO(pst.st_mode)) {
 		ssize_t nw;
 		do {
 			nw = write(3, &result_byte, 1);
