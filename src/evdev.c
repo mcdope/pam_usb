@@ -165,15 +165,18 @@ int pusb_has_virtual_input_device_safe(const char *input_dir)
 	if (poll_r <= 0) {
 		log_debug("	evdev helper timed out, falling back to direct scan\n");
 		kill(pid, SIGKILL);
-		waitpid(pid, NULL, 0); /* best-effort; ECHILD is harmless */
+		while (waitpid(pid, NULL, 0) < 0 && errno == EINTR);
 		close(pipefd[0]);
 		return pusb_has_virtual_input_device(input_dir);
 	}
 
 	unsigned char result_byte;
-	ssize_t n = read(pipefd[0], &result_byte, 1);
+	ssize_t n;
+	do {
+		n = read(pipefd[0], &result_byte, 1);
+	} while (n < 0 && errno == EINTR);
 	close(pipefd[0]);
-	waitpid(pid, NULL, 0); /* best-effort reap; ECHILD is harmless */
+	while (waitpid(pid, NULL, 0) < 0 && errno == EINTR);
 
 	if (n != 1) {
 		log_debug("	evdev helper pipe read failed, falling back\n");
