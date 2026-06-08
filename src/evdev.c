@@ -36,8 +36,6 @@
 
 int pusb_has_virtual_input_device(const char *input_dir)
 {
-	log_debug("	Checking for virtual input devices...\n");
-
 	DIR *d = opendir(input_dir);
 	if (!d) {
 		int saved_errno = errno;
@@ -106,6 +104,7 @@ int pusb_has_virtual_input_device(const char *input_dir)
 
 int pusb_has_virtual_input_device_safe(const char *input_dir)
 {
+	log_debug("\tChecking for virtual input devices...\n");
 	/* Root already has full /dev/input access — no helper needed */
 	if (geteuid() == 0)
 		return pusb_has_virtual_input_device(input_dir);
