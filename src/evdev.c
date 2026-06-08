@@ -186,8 +186,13 @@ int pusb_has_virtual_input_device_safe(const char *input_dir)
 	switch (result_byte) {
 	case 0: return 0;
 	case 1: return 1;
+	case 2:
+		/* Helper got EACCES despite setgid input — direct scan with
+		 * the user's own (lesser) privileges will also fail. */
+		log_debug("	evdev helper scan inconclusive (permission denied)\n");
+		return -1;
 	default:
-		log_debug("	evdev helper returned error, falling back\n");
+		log_debug("	evdev helper returned unexpected result, falling back\n");
 		return pusb_has_virtual_input_device(input_dir);
 	}
 }
