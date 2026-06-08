@@ -28,11 +28,34 @@
  *   2 — scan inconclusive (permission denied even as setgid input)
  */
 
+#include <errno.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #include "evdev.h"
 #include "log.h"
 
 int main(void)
 {
+	/*
+	 * Ensure stdin/stdout/stderr are open before anything else.  As a
+	 * setgid binary we may be invoked with some standard fds closed; if a
+	 * subsequent open() or opendir() receives fd 0, 1, or 2 as its
+	 * descriptor, later I/O through those fds could misbehave.
+	 */
+	for (int i = 0; i < 3; i++) {
+		struct stat st;
+		if (fstat(i, &st) < 0 && errno == EBADF) {
+			int fd = open("/dev/null", O_RDWR);
+			if (fd < 0)
+				return 2;
+			if (fd != i) {
+				dup2(fd, i);
+				close(fd);
+			}
+		}
+	}
+
 	int r = pusb_has_virtual_input_device("/dev/input");
 	if (r == 1)  return 1;
 	if (r == -1) return 2;

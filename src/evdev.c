@@ -101,15 +101,17 @@ int pusb_has_virtual_input_device(const char *input_dir)
 int pusb_has_virtual_input_device_safe(const char *input_dir)
 {
 	struct stat st;
-	if (stat(PAMUSB_EVDEV_HELPER_PATH, &st) != 0 || !S_ISREG(st.st_mode)) {
-		log_debug("	evdev helper not found at %s, using direct scan\n",
+	if (stat(PAMUSB_EVDEV_HELPER_PATH, &st) != 0 || !S_ISREG(st.st_mode) ||
+	    st.st_uid != 0 || (st.st_mode & (S_IWGRP | S_IWOTH)) != 0) {
+		log_debug("	evdev helper at %s absent, not owned by root, or group/world-writable; using direct scan\n",
 		          PAMUSB_EVDEV_HELPER_PATH);
 		return pusb_has_virtual_input_device(input_dir);
 	}
 
 	pid_t pid = fork();
 	if (pid < 0) {
-		log_debug("	fork() failed (%s), using direct evdev scan\n", strerror(errno));
+		int saved_errno = errno;
+		log_debug("	fork() failed (%s), using direct evdev scan\n", strerror(saved_errno));
 		return pusb_has_virtual_input_device(input_dir);
 	}
 

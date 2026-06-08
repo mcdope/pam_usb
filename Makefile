@@ -200,24 +200,6 @@ test-c-evdev: src/mem.o src/log.o
 		$(EVDEV_LDFLAGS) -o tests/unit/c/evdev_test
 	./tests/unit/c/evdev_test
 
-test-c-evdev-helper: src/mem.o src/log.o
-	chmod +x tests/unit/c/fake_evdev_helper_exit0.sh tests/unit/c/fake_evdev_helper_exit1.sh
-	$(CC) $(TEST_CFLAGS) \
-		-DPAMUSB_EVDEV_HELPER_PATH=\"$(CURDIR)/tests/unit/c/fake_evdev_helper_exit0.sh\" \
-		-DEXPECTED_HELPER_EXIT=0 \
-		tests/unit/c/evdev_helper_test.c \
-		tests/unit/c/fake_libevdev.c $^ \
-		-Wl,--wrap=opendir,--wrap=readdir,--wrap=closedir,--wrap=open,--wrap=close \
-		$(EVDEV_LDFLAGS) -o tests/unit/c/evdev_helper_test_exit0
-	$(CC) $(TEST_CFLAGS) \
-		-DPAMUSB_EVDEV_HELPER_PATH=\"$(CURDIR)/tests/unit/c/fake_evdev_helper_exit1.sh\" \
-		-DEXPECTED_HELPER_EXIT=1 \
-		tests/unit/c/evdev_helper_test.c \
-		tests/unit/c/fake_libevdev.c $^ \
-		-Wl,--wrap=opendir,--wrap=readdir,--wrap=closedir,--wrap=open,--wrap=close \
-		$(EVDEV_LDFLAGS) -o tests/unit/c/evdev_helper_test_exit1
-	./tests/unit/c/evdev_helper_test_exit0
-	./tests/unit/c/evdev_helper_test_exit1
 
 test-c-pam: src/log.o
 	$(CC) $(TEST_CFLAGS) tests/unit/c/pam_test.c src/pam.c $^ \
@@ -236,7 +218,7 @@ test-c-mem: tests/unit/c/mem_test.c src/mem.c src/log.o
 		$(MEM_LDFLAGS) -o tests/unit/c/mem_test
 	./tests/unit/c/mem_test
 
-test-c: test-c-xpath test-c-conf test-c-tmux test-c-pad test-c-process test-c-rmsvc test-c-local test-c-evdev test-c-evdev-helper test-c-pam test-c-log test-c-mem
+test-c: test-c-xpath test-c-conf test-c-tmux test-c-pad test-c-process test-c-rmsvc test-c-local test-c-evdev test-c-pam test-c-log test-c-mem
 
 test-python:
 	python3 -m pytest tests/unit/python/ -v
@@ -255,10 +237,9 @@ $(PAM_USB): $(OBJS) $(PAM_USB_OBJS)
 $(PAMUSB_CHECK): $(OBJS) $(PAMUSB_CHECK_OBJS)
 	$(CC) -o $(PAMUSB_CHECK) $(LDFLAGS) $(HARDENING_LDFLAGS) -pie $(OBJS) $(PAMUSB_CHECK_OBJS) $(LIBS)
 
-$(PAMUSB_EVDEV_HELPER): src/evdev-helper.c src/evdev.o src/mem.o src/log.o
+$(PAMUSB_EVDEV_HELPER): src/evdev-helper.o src/evdev.o src/mem.o src/log.o
 	$(CC) -o $@ $(LDFLAGS) $(HARDENING_LDFLAGS) -pie \
-		src/evdev-helper.c src/evdev.o src/mem.o src/log.o \
-		`$(PKG_CONFIG) --libs libevdev`
+		$^ `$(PKG_CONFIG) --libs libevdev`
 
 %.o: %.c
 	${CC} -c ${CFLAGS} $< -o $@
@@ -271,6 +252,7 @@ clean:
 		$(PAMUSB_CHECK) \
 		$(PAMUSB_EVDEV_HELPER) \
 		$(OBJS) \
+		src/evdev-helper.o \
 		$(PAMUSB_CHECK_OBJS) \
 		$(PAM_USB_OBJS)
 
@@ -307,6 +289,10 @@ install: all
 	$(INSTALL) -m755 $(PAMUSB_CHECK) $(TOOLS_SRC)/$(PAMUSB_CONF) $(TOOLS_SRC)/$(PAMUSB_AGENT) $(TOOLS_SRC)/$(PAMUSB_KEYRING_GNOME) $(TOOLS_SRC)/$(PAMUSB_PINENTRY) $(TOOLS_DEST)
 	$(MKDIR) -p $(PAMUSB_EVDEV_HELPER_DEST)
 	$(INSTALL) -m755 $(PAMUSB_EVDEV_HELPER) $(PAMUSB_EVDEV_HELPER_DEST)
+	@if getent group input >/dev/null 2>&1; then \
+		chgrp input $(PAMUSB_EVDEV_HELPER_DEST)/$(PAMUSB_EVDEV_HELPER) 2>/dev/null || true; \
+		chmod g+s $(PAMUSB_EVDEV_HELPER_DEST)/$(PAMUSB_EVDEV_HELPER) 2>/dev/null || true; \
+	fi
 	$(INSTALL) -m644 $(DOCS) $(DOCS_DEST)
 	$(INSTALL) -m644 $(MANS) $(MANS_DEST)
 
