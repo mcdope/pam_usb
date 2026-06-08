@@ -143,7 +143,7 @@ DOCKER := docker
 
 # Override evdev.o compilation to embed the helper install path so it works
 # correctly when PREFIX differs from /usr (the default in evdev.h).
-src/evdev.o: src/evdev.c
+src/evdev.o: src/evdev.c src/evdev.h
 	${CC} -c ${CFLAGS} -DPAMUSB_EVDEV_HELPER_PATH=\"$(PREFIX)/lib/pam_usb/pamusb-evdev-helper\" $< -o $@
 
 .DEFAULT_GOAL := all
