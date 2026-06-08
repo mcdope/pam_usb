@@ -57,6 +57,15 @@ int main(void)
 	}
 
 	int r = pusb_has_virtual_input_device("/dev/input");
+	unsigned char result_byte = (r == 1) ? 1 : (r == -1) ? 2 : 0;
+
+	/* Write result to pipe if parent wired one to fd 3 */
+	struct stat pst;
+	if (fstat(3, &pst) == 0) {
+		write(3, &result_byte, 1);
+		close(3);
+	}
+
 	if (r == 1)  return 1;
 	if (r == -1) return 2;
 	return 0;

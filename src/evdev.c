@@ -22,7 +22,7 @@
 #include <dirent.h>
 #include <fcntl.h>
 #include <signal.h>
-#include <time.h>
+#include <poll.h>
 #include <unistd.h>
 #include <limits.h>
 #include <sys/stat.h>
@@ -119,68 +119,72 @@ int pusb_has_virtual_input_device_safe(const char *input_dir)
 		return pusb_has_virtual_input_device(input_dir);
 	}
 
+	int pipefd[2];
+	if (pipe2(pipefd, O_CLOEXEC) != 0) {
+		log_debug("	pipe2() failed (errno %d), using direct evdev scan\n", errno);
+		return pusb_has_virtual_input_device(input_dir);
+	}
+
 	pid_t pid = fork();
 	if (pid < 0) {
 		int saved_errno = errno;
+		close(pipefd[0]);
+		close(pipefd[1]);
 		log_debug("	fork() failed (errno %d), using direct evdev scan\n",
 		          saved_errno);
 		return pusb_has_virtual_input_device(input_dir);
 	}
 
 	if (pid == 0) {
+		close(pipefd[0]);
+		if (pipefd[1] != 3) {
+			if (dup2(pipefd[1], 3) < 0) /* dup2 clears O_CLOEXEC on dst */
+				_exit(2);
+			close(pipefd[1]);
+		} else {
+			fcntl(3, F_SETFD, 0); /* clear O_CLOEXEC so fd 3 survives execve */
+		}
 		char *const argv[] = {PAMUSB_EVDEV_HELPER_PATH, NULL};
 		char *const envp[] = {NULL};
 		execve(PAMUSB_EVDEV_HELPER_PATH, argv, envp);
 		_exit(2);
 	}
 
-	/* parent: poll up to 2 s for the helper to finish */
-	struct timespec deadline;
-	clock_gettime(CLOCK_MONOTONIC, &deadline);
-	deadline.tv_sec += 2;
+	/* parent: read result from pipe, timeout after 2 s.
+	 * Using a pipe means the result arrives even when SIGCHLD is SIG_IGN
+	 * (where waitpid would return ECHILD immediately before we could read
+	 * the exit code). waitpid below is a best-effort reap only. */
+	close(pipefd[1]);
 
-	int status;
-	for (;;) {
-		pid_t r = waitpid(pid, &status, WNOHANG);
-		if (r == pid)
-			break;
-		if (r < 0) {
-			if (errno == EINTR)
-				continue;
-			/* ECHILD: child already reaped (SIGCHLD==SIG_IGN or SA_NOCLDWAIT);
-			 * PID may have been recycled — skip kill to avoid hitting
-			 * an unrelated process. */
-			if (errno != ECHILD) {
-				kill(pid, SIGKILL);
-				waitpid(pid, NULL, 0);
-			}
-			return pusb_has_virtual_input_device(input_dir);
-		}
-		struct timespec now;
-		clock_gettime(CLOCK_MONOTONIC, &now);
-		if (now.tv_sec > deadline.tv_sec ||
-		    (now.tv_sec == deadline.tv_sec &&
-		     now.tv_nsec >= deadline.tv_nsec)) {
-			log_debug("	evdev helper timed out, falling back to direct scan\n");
-			kill(pid, SIGKILL);
-			waitpid(pid, NULL, 0);
-			return pusb_has_virtual_input_device(input_dir);
-		}
-		struct timespec slp = {0, 5000000L};  /* 5 ms */
-		nanosleep(&slp, NULL);
-	}
+	struct pollfd pfd = { .fd = pipefd[0], .events = POLLIN };
+	int poll_r;
+	do {
+		poll_r = poll(&pfd, 1, 2000);
+	} while (poll_r < 0 && errno == EINTR);
 
-	if (!WIFEXITED(status)) {
-		log_debug("	evdev helper exited abnormally, falling back\n");
+	if (poll_r <= 0) {
+		log_debug("	evdev helper timed out, falling back to direct scan\n");
+		kill(pid, SIGKILL);
+		waitpid(pid, NULL, 0); /* best-effort; ECHILD is harmless */
+		close(pipefd[0]);
 		return pusb_has_virtual_input_device(input_dir);
 	}
 
-	switch (WEXITSTATUS(status)) {
+	unsigned char result_byte;
+	ssize_t n = read(pipefd[0], &result_byte, 1);
+	close(pipefd[0]);
+	waitpid(pid, NULL, 0); /* best-effort reap; ECHILD is harmless */
+
+	if (n != 1) {
+		log_debug("	evdev helper pipe read failed, falling back\n");
+		return pusb_has_virtual_input_device(input_dir);
+	}
+
+	switch (result_byte) {
 	case 0: return 0;
 	case 1: return 1;
 	default:
-		log_debug("	evdev helper returned unexpected code %d, falling back\n",
-		          WEXITSTATUS(status));
+		log_debug("	evdev helper returned error, falling back\n");
 		return pusb_has_virtual_input_device(input_dir);
 	}
 }
