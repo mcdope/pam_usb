@@ -121,7 +121,8 @@ int pusb_has_virtual_input_device_safe(const char *input_dir)
 
 	int pipefd[2];
 	if (pipe2(pipefd, O_CLOEXEC) != 0) {
-		log_debug("	pipe2() failed (errno %d), using direct evdev scan\n", errno);
+		int saved_errno = errno;
+		log_debug("	pipe2() failed (errno %d), using direct evdev scan\n", saved_errno);
 		return pusb_has_virtual_input_device(input_dir);
 	}
 
