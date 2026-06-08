@@ -28,6 +28,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/ioctl.h>
 #include <libevdev/libevdev.h>
 #include <linux/input.h>
 #include "evdev.h"
@@ -61,6 +62,13 @@ int pusb_has_virtual_input_device(const char *input_dir)
 			continue;
 		}
 
+		/* Fast path: one ioctl to get bustype; skip libevdev for non-virtual buses */
+		struct input_id id;
+		if (ioctl(fd, EVIOCGID, &id) < 0 || id.bustype != BUS_VIRTUAL) {
+			close(fd);
+			continue;
+		}
+
 		struct libevdev *dev = NULL;
 		int rc = libevdev_new_from_fd(fd, &dev);
 		if (rc < 0) {
@@ -68,7 +76,6 @@ int pusb_has_virtual_input_device(const char *input_dir)
 			continue;
 		}
 
-		int bustype  = libevdev_get_id_bustype(dev);
 		const char *phys = libevdev_get_phys(dev);
 		int has_input = (
 			libevdev_has_event_type(dev, EV_KEY) ||
@@ -77,13 +84,12 @@ int pusb_has_virtual_input_device(const char *input_dir)
 		);
 
 		int is_virtual = (
-			bustype == BUS_VIRTUAL &&
 			(phys == NULL || phys[0] == '\0') &&
 			has_input
 		);
 
 		log_debug("	evdev: %s bustype=0x%02x phys=%s virtual=%d\n",
-				  ent->d_name, bustype, phys ? phys : "(null)", is_virtual);
+				  ent->d_name, id.bustype, phys ? phys : "(null)", is_virtual);
 
 		libevdev_free(dev);
 		close(fd);
@@ -122,14 +128,10 @@ int pusb_has_virtual_input_device_safe(const char *input_dir)
 		_exit(2);
 	}
 
-	/* parent: poll up to 200 ms for the helper to finish */
+	/* parent: poll up to 2 s for the helper to finish */
 	struct timespec deadline;
 	clock_gettime(CLOCK_MONOTONIC, &deadline);
-	deadline.tv_nsec += 200000000L;
-	if (deadline.tv_nsec >= 1000000000L) {
-		deadline.tv_sec  += 1;
-		deadline.tv_nsec -= 1000000000L;
-	}
+	deadline.tv_sec += 2;
 
 	int status;
 	for (;;) {

@@ -196,7 +196,7 @@ test-c-evdev: src/mem.o src/log.o
 	$(CC) $(TEST_CFLAGS) -DPAMUSB_EVDEV_HELPER_PATH=\"/nonexistent/pamusb-evdev-helper\" \
 		tests/unit/c/evdev_test.c \
 		tests/unit/c/fake_libevdev.c $^ \
-		-Wl,--wrap=opendir,--wrap=readdir,--wrap=closedir,--wrap=open,--wrap=close \
+		-Wl,--wrap=opendir,--wrap=readdir,--wrap=closedir,--wrap=open,--wrap=close,--wrap=ioctl \
 		$(EVDEV_LDFLAGS) -o tests/unit/c/evdev_test
 	./tests/unit/c/evdev_test
 
