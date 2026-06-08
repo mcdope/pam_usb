@@ -106,10 +106,15 @@ int pusb_has_virtual_input_device(const char *input_dir)
 
 int pusb_has_virtual_input_device_safe(const char *input_dir)
 {
+	/* Root already has full /dev/input access — no helper needed */
+	if (geteuid() == 0)
+		return pusb_has_virtual_input_device(input_dir);
+
 	struct stat st;
 	if (stat(PAMUSB_EVDEV_HELPER_PATH, &st) != 0 || !S_ISREG(st.st_mode) ||
-	    st.st_uid != 0 || (st.st_mode & (S_IWGRP | S_IWOTH)) != 0) {
-		log_debug("	evdev helper at %s absent, not owned by root, or group/world-writable; using direct scan\n",
+	    !(st.st_mode & S_ISGID) || st.st_uid != 0 ||
+	    (st.st_mode & (S_IWGRP | S_IWOTH)) != 0) {
+		log_debug("	evdev helper at %s absent, not setgid, not owned by root, or group/world-writable; using direct scan\n",
 		          PAMUSB_EVDEV_HELPER_PATH);
 		return pusb_has_virtual_input_device(input_dir);
 	}
@@ -117,7 +122,9 @@ int pusb_has_virtual_input_device_safe(const char *input_dir)
 	pid_t pid = fork();
 	if (pid < 0) {
 		int saved_errno = errno;
-		log_debug("	fork() failed (%s), using direct evdev scan\n", strerror(saved_errno));
+		char errbuf[64];
+		log_debug("	fork() failed (%s), using direct evdev scan\n",
+		          strerror_r(saved_errno, errbuf, sizeof(errbuf)));
 		return pusb_has_virtual_input_device(input_dir);
 	}
 
@@ -139,8 +146,13 @@ int pusb_has_virtual_input_device_safe(const char *input_dir)
 		if (r == pid)
 			break;
 		if (r < 0) {
-			kill(pid, SIGKILL);
-			waitpid(pid, NULL, 0);
+			/* ECHILD: child already reaped (SIGCHLD==SIG_IGN or SA_NOCLDWAIT);
+			 * PID may have been recycled — skip kill to avoid hitting
+			 * an unrelated process. */
+			if (errno != ECHILD) {
+				kill(pid, SIGKILL);
+				waitpid(pid, NULL, 0);
+			}
 			return pusb_has_virtual_input_device(input_dir);
 		}
 		struct timespec now;
