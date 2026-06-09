@@ -25,6 +25,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/random.h>
+#include <sys/file.h>
 #include <fcntl.h>
 #include <pwd.h>
 #include <time.h>
@@ -382,19 +383,168 @@ static int generate_random_bytes(uint8_t *buf, size_t len)
 	return 0;
 }
 
+/* Open the directory containing `fullpath` and take an exclusive advisory lock on it.
+ * Serializes pad updates so a leftover .tmp file can be told apart from a live updater.
+ * Returns the locked fd (close it to release the lock) or -1 on error. */
+static int pusb_pad_lock_dir(const char *fullpath)
+{
+	char dirbuf[PUSB_PAD_PATH_MAX + 8];
+	int n = snprintf(dirbuf, sizeof(dirbuf), "%s", fullpath);
+	if (n < 0 || (size_t)n >= sizeof(dirbuf))
+		return -1;
+
+	char *sep = strrchr(dirbuf, '/');
+	if (sep == NULL || sep == dirbuf)
+		return -1;
+	*sep = '\0';
+
+	int dirfd = open(dirbuf, O_DIRECTORY | O_NOFOLLOW | O_RDONLY | O_CLOEXEC);
+	if (dirfd == -1)
+		return -1;
+
+	if (flock(dirfd, LOCK_EX) == -1)
+	{
+		int saved_errno = errno;
+		close(dirfd);
+		errno = saved_errno;
+		return -1;
+	}
+	return dirfd;
+}
+
+/* Create both temp pad files (O_EXCL), write `magic` to them, fsync and atomically rename
+ * them into place. Cleans up the temp files on every error path. The caller owns `magic`
+ * (and zeroes it afterwards) and must hold the update lock for the duration of this call. */
+static int pusb_pad_write_and_install(
+	const char *user,
+	const char *path_device,
+	const char *path_system,
+	const char *path_device_tmp,
+	const char *path_system_tmp,
+	const uint8_t *magic,
+	size_t magic_size
+)
+{
+	FILE *f_device = NULL;
+	FILE *f_system = NULL;
+
+	{
+		int fd_dev = open_pad_file_in_dir(path_device_tmp, O_WRONLY | O_CREAT | O_EXCL);
+		if (fd_dev < 0 || !(f_device = fdopen(fd_dev, "w")))
+		{
+			if (fd_dev >= 0) close(fd_dev);
+			log_error("Unable to create temp device pad: %s\n", strerror(errno));
+			return 0;
+		}
+	}
+	if (!pusb_pad_protect(user, fileno(f_device))) {
+		if (errno != EPERM && errno != EROFS && errno != ENOTSUP) {
+			log_error("Failed to protect device pad (unexpected error).\n");
+			fclose(f_device);
+			unlink(path_device_tmp);
+			return 0;
+		}
+	}
+
+	{
+		int fd_sys = open_pad_file_in_dir(path_system_tmp, O_WRONLY | O_CREAT | O_EXCL);
+		if (fd_sys < 0 || !(f_system = fdopen(fd_sys, "w")))
+		{
+			if (fd_sys >= 0) close(fd_sys);
+			log_error("Unable to create temp system pad: %s\n", strerror(errno));
+			fclose(f_device);
+			unlink(path_device_tmp);
+			return 0;
+		}
+	}
+	if (!pusb_pad_protect(user, fileno(f_system))) {
+		if (errno != EPERM && errno != EROFS && errno != ENOTSUP) {
+			log_error("Failed to protect system pad (unexpected error).\n");
+			fclose(f_system);
+			fclose(f_device);
+			unlink(path_system_tmp);
+			unlink(path_device_tmp);
+			return 0;
+		}
+	}
+
+	log_debug("Writing pad to the system...\n");
+	if (fwrite(magic, sizeof(uint8_t), magic_size, f_system) != magic_size)
+	{
+		log_error("Failed to write system pad: %s\n", strerror(errno));
+		fclose(f_system);
+		fclose(f_device);
+		unlink(path_system_tmp);
+		unlink(path_device_tmp);
+		return 0;
+	}
+
+	log_debug("Writing pad to the device...\n");
+	if (fwrite(magic, sizeof(uint8_t), magic_size, f_device) != magic_size)
+	{
+		log_error("Failed to write device pad: %s\n", strerror(errno));
+		fclose(f_system);
+		fclose(f_device);
+		unlink(path_system_tmp);
+		unlink(path_device_tmp);
+		return 0;
+	}
+
+	log_debug("Synchronizing filesystems...\n");
+	if (fflush(f_system) != 0 || fflush(f_device) != 0)
+	{
+		log_error("Failed to flush pad data: %s\n", strerror(errno));
+		fclose(f_system);
+		fclose(f_device);
+		unlink(path_system_tmp);
+		unlink(path_device_tmp);
+		return 0;
+	}
+	if (fsync(fileno(f_system)) != 0 || fsync(fileno(f_device)) != 0)
+	{
+		log_error("Failed to sync pad data to disk: %s\n", strerror(errno));
+		fclose(f_system);
+		fclose(f_device);
+		unlink(path_system_tmp);
+		unlink(path_device_tmp);
+		return 0;
+	}
+	fclose(f_system);
+	fclose(f_device);
+
+	if (rename(path_system_tmp, path_system) != 0)
+	{
+		log_error("Failed to install system pad: %s\n", strerror(errno));
+		unlink(path_system_tmp);
+		unlink(path_device_tmp);
+		return 0;
+	}
+
+	if (rename(path_device_tmp, path_device) != 0)
+	{
+		log_error("Failed to install device pad: %s\n", strerror(errno));
+		unlink(path_device_tmp);
+		return 0;
+	}
+
+	log_debug("One time pads updated.\n");
+	return 1;
+}
+
 static int pusb_pad_update(
 	t_pusb_options *opts,
 	const char *volume,
 	const char *user
 )
 {
-	FILE *f_device = NULL;
-	FILE *f_system = NULL;
 	char path_device[PUSB_PAD_PATH_MAX];
 	char path_system[PUSB_PAD_PATH_MAX];
 	char path_device_tmp[PUSB_PAD_PATH_MAX + 8];
 	char path_system_tmp[PUSB_PAD_PATH_MAX + 8];
 	uint8_t magic[PUSB_PAD_SIZE];
+	int lock_fd;
+	int retval;
+	int saved_errno;
 
 	if (!pusb_pad_should_update(opts, user))
 	{
@@ -426,117 +576,38 @@ static int pusb_pad_update(
 		return 0;
 	}
 
+	/* Serialize the update with an exclusive lock on the system pad directory. This keeps
+	 * the CWE-362 guarantee that two concurrent updates can't clobber each other, while
+	 * letting us safely clean up .tmp files orphaned by a process killed mid-update: the
+	 * kernel releases that process's lock on death, so a survivor can recover. */
+	lock_fd = pusb_pad_lock_dir(path_system);
+	if (lock_fd < 0)
 	{
-		int fd_dev = open_pad_file_in_dir(path_device_tmp, O_WRONLY | O_CREAT | O_EXCL);
-		if (fd_dev < 0 || !(f_device = fdopen(fd_dev, "w")))
-		{
-			if (fd_dev >= 0) close(fd_dev);
-			log_error("Unable to create temp device pad: %s\n", strerror(errno));
-			explicit_bzero(magic, sizeof(magic));
-			return 0;
-		}
-	}
-	if (!pusb_pad_protect(user, fileno(f_device))) {
-		if (errno != EPERM && errno != EROFS && errno != ENOTSUP) {
-			log_error("Failed to protect device pad (unexpected error).\n");
-			fclose(f_device);
-			unlink(path_device_tmp);
-			explicit_bzero(magic, sizeof(magic));
-			return 0;
-		}
-	}
-
-	{
-		int fd_sys = open_pad_file_in_dir(path_system_tmp, O_WRONLY | O_CREAT | O_EXCL);
-		if (fd_sys < 0 || !(f_system = fdopen(fd_sys, "w")))
-		{
-			if (fd_sys >= 0) close(fd_sys);
-			log_error("Unable to create temp system pad: %s\n", strerror(errno));
-			fclose(f_device);
-			unlink(path_device_tmp);
-			explicit_bzero(magic, sizeof(magic));
-			return 0;
-		}
-	}
-	if (!pusb_pad_protect(user, fileno(f_system))) {
-		if (errno != EPERM && errno != EROFS && errno != ENOTSUP) {
-			log_error("Failed to protect system pad (unexpected error).\n");
-			fclose(f_system);
-			fclose(f_device);
-			unlink(path_system_tmp);
-			unlink(path_device_tmp);
-			explicit_bzero(magic, sizeof(magic));
-			return 0;
-		}
-	}
-
-	log_debug("Writing pad to the system...\n");
-	if (fwrite(magic, sizeof(uint8_t), sizeof(magic), f_system) != sizeof(magic))
-	{
-		log_error("Failed to write system pad: %s\n", strerror(errno));
-		fclose(f_system);
-		fclose(f_device);
-		unlink(path_system_tmp);
-		unlink(path_device_tmp);
+		log_error("Unable to lock pad directory for update: %s\n", strerror(errno));
 		explicit_bzero(magic, sizeof(magic));
 		return 0;
 	}
 
-	log_debug("Writing pad to the device...\n");
-	if (fwrite(magic, sizeof(uint8_t), sizeof(magic), f_device) != sizeof(magic))
-	{
-		log_error("Failed to write device pad: %s\n", strerror(errno));
-		fclose(f_system);
-		fclose(f_device);
-		unlink(path_system_tmp);
-		unlink(path_device_tmp);
-		explicit_bzero(magic, sizeof(magic));
-		return 0;
-	}
+	/* Holding the lock, any pre-existing .tmp must be a leftover from an interrupted update
+	 * (a live updater would hold this lock), so remove it to let the O_EXCL create succeed.
+	 * ENOENT is the normal, no-leftover case. */
+	if (unlink(path_device_tmp) == 0)
+		log_debug("Removed orphaned device pad temp file.\n");
+	if (unlink(path_system_tmp) == 0)
+		log_debug("Removed orphaned system pad temp file.\n");
 
-	log_debug("Synchronizing filesystems...\n");
-	if (fflush(f_system) != 0 || fflush(f_device) != 0)
-	{
-		log_error("Failed to flush pad data: %s\n", strerror(errno));
-		fclose(f_system);
-		fclose(f_device);
-		unlink(path_system_tmp);
-		unlink(path_device_tmp);
-		explicit_bzero(magic, sizeof(magic));
-		return 0;
-	}
-	if (fsync(fileno(f_system)) != 0 || fsync(fileno(f_device)) != 0)
-	{
-		log_error("Failed to sync pad data to disk: %s\n", strerror(errno));
-		fclose(f_system);
-		fclose(f_device);
-		unlink(path_system_tmp);
-		unlink(path_device_tmp);
-		explicit_bzero(magic, sizeof(magic));
-		return 0;
-	}
-	fclose(f_system);
-	fclose(f_device);
+	retval = pusb_pad_write_and_install(
+		user, path_device, path_system,
+		path_device_tmp, path_system_tmp,
+		magic, sizeof(magic)
+	);
+
+	saved_errno = errno;
+	close(lock_fd);
+	errno = saved_errno;
 
 	explicit_bzero(magic, sizeof(magic));
-
-	if (rename(path_system_tmp, path_system) != 0)
-	{
-		log_error("Failed to install system pad: %s\n", strerror(errno));
-		unlink(path_system_tmp);
-		unlink(path_device_tmp);
-		return 0;
-	}
-
-	if (rename(path_device_tmp, path_device) != 0)
-	{
-		log_error("Failed to install device pad: %s\n", strerror(errno));
-		unlink(path_device_tmp);
-		return 0;
-	}
-
-	log_debug("One time pads updated.\n");
-	return 1;
+	return retval;
 }
 
 static int timingsafe_memcmp(const void *a, const void *b, size_t n)

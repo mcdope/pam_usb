@@ -20,6 +20,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/time.h>
+#include <sys/wait.h>
 #include <fcntl.h>
 #include <pwd.h>
 #include <time.h>
@@ -473,9 +474,11 @@ static void test_timingsafe_memcmp_differ(void **state)
 	assert_int_not_equal(0, timingsafe_memcmp(a, b, sizeof(a)));
 }
 
-/* ── CWE-362 regression: O_EXCL on temp file prevents concurrent update race ── */
+/* ── #438 regression: a .tmp orphaned by an interrupted update is cleaned up, not fatal ──
+ * The update is serialized by an flock on the system pad dir, so a leftover .tmp can be
+ * safely removed (no live updater could hold it) instead of blocking every future update. */
 
-static void test_pad_update_rejected_on_stale_tmp(void **state)
+static void test_pad_update_recovers_from_stale_tmp(void **state)
 {
 	(void)state;
 	struct passwd *pw = getpwuid(getuid());
@@ -500,18 +503,119 @@ static void test_pad_update_rejected_on_stale_tmp(void **state)
 	snprintf(dev_pad_dir, sizeof(dev_pad_dir), "%s/.pamusb", mnt_dir);
 	mkdir_p(dev_pad_dir);
 
-	/* Pre-create a stale device pad temp file to simulate a leftover from a prior crash */
-	char dev_tmp_path[PUSB_PAD_PATH_MAX + 8];
-	snprintf(dev_tmp_path, sizeof(dev_tmp_path), "%s/%s.%s.pad.tmp",
+	/* Final pad paths and their temp counterparts */
+	char dev_pad_path[PUSB_PAD_PATH_MAX + 8];
+	char sys_pad_path[PUSB_PAD_PATH_MAX + 8];
+	char dev_tmp_path[PUSB_PAD_PATH_MAX + 16];
+	char sys_tmp_path[PUSB_PAD_PATH_MAX + 16];
+	snprintf(dev_pad_path, sizeof(dev_pad_path), "%s/%s.%s.pad",
 	         dev_pad_dir, pw->pw_name, opts.hostname);
-	write_file(dev_tmp_path, "stale", 5);
+	snprintf(sys_pad_path, sizeof(sys_pad_path), "%s/%s.pad",
+	         sys_pad_dir, opts.device.name);
+	snprintf(dev_tmp_path, sizeof(dev_tmp_path), "%s.tmp", dev_pad_path);
+	snprintf(sys_tmp_path, sizeof(sys_tmp_path), "%s.tmp", sys_pad_path);
 
-	/* pusb_pad_update must fail: O_EXCL rejects the pre-existing temp file */
+	/* Pre-create stale device AND system pad temp files (leftovers from a killed update) */
+	write_file(dev_tmp_path, "stale", 5);
+	write_file(sys_tmp_path, "stale", 5);
+
+	/* pusb_pad_update must now succeed: it removes the orphans under the lock and rewrites */
 	int result = pusb_pad_update(&opts, mnt_dir, pw->pw_name);
-	assert_int_equal(0, result);
+	assert_int_equal(1, result);
+
+	/* Final pads were installed and the orphaned temp files are gone */
+	assert_int_equal(0, access(dev_pad_path, F_OK));
+	assert_int_equal(0, access(sys_pad_path, F_OK));
+	assert_int_equal(-1, access(dev_tmp_path, F_OK));
+	assert_int_equal(-1, access(sys_tmp_path, F_OK));
 
 	/* cleanup */
+	unlink(dev_pad_path);
+	unlink(sys_pad_path);
 	unlink(dev_tmp_path);
+	unlink(sys_tmp_path);
+	rmdir(dev_pad_dir);
+	rmdir(mnt_dir);
+	rmdir(sys_pad_dir);
+}
+
+/* ── CWE-362 regression: updates are serialized — a concurrent holder blocks the update ──
+ * A child process holds an exclusive flock on the system pad dir, so pusb_pad_update in the
+ * parent must wait for it to be released rather than racing (which would corrupt the pad). */
+
+static void test_pad_update_serialized_by_lock(void **state)
+{
+	(void)state;
+	struct passwd *pw = getpwuid(getuid());
+	assert_non_null(pw);
+
+	char mnt_dir[] = "/tmp/pamusb_lock_XXXXXX";
+	assert_non_null(mkdtemp(mnt_dir));
+
+	t_pusb_options opts = {0};
+	pusb_conf_init(&opts);
+	snprintf(opts.device.name, sizeof(opts.device.name), "pamusb_lock_test");
+	snprintf(opts.system_pad_directory, sizeof(opts.system_pad_directory),
+	         ".pamusb_lock_unit");
+
+	char sys_pad_dir[PUSB_PAD_PATH_MAX];
+	snprintf(sys_pad_dir, sizeof(sys_pad_dir), "%s/.pamusb_lock_unit", pw->pw_dir);
+	mkdir_p(sys_pad_dir);
+
+	char dev_pad_dir[PUSB_PAD_PATH_MAX];
+	snprintf(dev_pad_dir, sizeof(dev_pad_dir), "%s/.pamusb", mnt_dir);
+	mkdir_p(dev_pad_dir);
+
+	/* Pipe so the parent only starts its update once the child is holding the lock */
+	int sync_pipe[2];
+	assert_int_equal(0, pipe(sync_pipe));
+
+	const useconds_t hold_us = 400000; /* child holds the lock for 400 ms */
+	pid_t child = fork();
+	assert_true(child >= 0);
+	if (child == 0)
+	{
+		close(sync_pipe[0]);
+		int dfd = open(sys_pad_dir, O_DIRECTORY | O_NOFOLLOW | O_RDONLY | O_CLOEXEC);
+		if (dfd < 0 || flock(dfd, LOCK_EX) != 0)
+			_exit(1);
+		/* signal "lock acquired", keep holding it, then release by exiting */
+		char b = 1;
+		if (write(sync_pipe[1], &b, 1) != 1)
+			_exit(1);
+		usleep(hold_us);
+		_exit(0);
+	}
+
+	close(sync_pipe[1]);
+	char b = 0;
+	assert_int_equal(1, read(sync_pipe[0], &b, 1)); /* wait until child holds the lock */
+	close(sync_pipe[0]);
+
+	struct timeval start, end;
+	gettimeofday(&start, NULL);
+	int result = pusb_pad_update(&opts, mnt_dir, pw->pw_name);
+	gettimeofday(&end, NULL);
+
+	int status = 0;
+	waitpid(child, &status, 0);
+
+	long elapsed_us = (end.tv_sec - start.tv_sec) * 1000000L
+	                + (end.tv_usec - start.tv_usec);
+
+	/* The update succeeded only after waiting for the child to release the lock */
+	assert_int_equal(1, result);
+	assert_true(elapsed_us >= (long)(hold_us / 2));
+
+	/* cleanup */
+	char dev_pad_path[PUSB_PAD_PATH_MAX + 8];
+	char sys_pad_path[PUSB_PAD_PATH_MAX + 8];
+	snprintf(dev_pad_path, sizeof(dev_pad_path), "%s/%s.%s.pad",
+	         dev_pad_dir, pw->pw_name, opts.hostname);
+	snprintf(sys_pad_path, sizeof(sys_pad_path), "%s/%s.pad",
+	         sys_pad_dir, opts.device.name);
+	unlink(dev_pad_path);
+	unlink(sys_pad_path);
 	rmdir(dev_pad_dir);
 	rmdir(mnt_dir);
 	rmdir(sys_pad_dir);
@@ -590,7 +694,8 @@ int main(void)
 		cmocka_unit_test(test_generate_random_bytes_fills_buffer),
 		cmocka_unit_test(test_timingsafe_memcmp_equal),
 		cmocka_unit_test(test_timingsafe_memcmp_differ),
-		cmocka_unit_test(test_pad_update_rejected_on_stale_tmp),
+		cmocka_unit_test(test_pad_update_recovers_from_stale_tmp),
+		cmocka_unit_test(test_pad_update_serialized_by_lock),
 		cmocka_unit_test(test_device_pad_dir_existing_accepted),
 		cmocka_unit_test(test_system_pad_dir_existing_accepted),
 	};
