@@ -7,6 +7,12 @@ DEV_PAD="/tmp/fakestick/.pamusb/$USER.$HOSTNAME.pad"
 SYS_TMP="${SYS_PAD}.tmp"
 DEV_TMP="${DEV_PAD}.tmp"
 
+# Ensure the simulated orphans never outlive the test, even on failure or interruption
+cleanup() {
+    rm -f "$SYS_TMP" "$DEV_TMP"
+}
+trap cleanup EXIT
+
 # Pre-condition: valid pads must exist from the previous pamusb-check run
 [ -f "$SYS_PAD" ] || { echo -e "Result:\t\t\tFAILED (pre-condition: system pad not found)"; exit 1; }
 [ -f "$DEV_PAD" ] || { echo -e "Result:\t\t\tFAILED (pre-condition: device pad not found)"; exit 1; }

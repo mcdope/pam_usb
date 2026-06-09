@@ -432,8 +432,15 @@ static int pusb_pad_write_and_install(
 		int fd_dev = open_pad_file_in_dir(path_device_tmp, O_WRONLY | O_CREAT | O_EXCL);
 		if (fd_dev < 0 || !(f_device = fdopen(fd_dev, "w")))
 		{
-			if (fd_dev >= 0) close(fd_dev);
-			log_error("Unable to create temp device pad: %s\n", strerror(errno));
+			int saved_errno = errno;
+			/* O_EXCL already created the file on disk; if only fdopen failed we must
+			 * unlink it so we don't leave a fresh orphan behind. */
+			if (fd_dev >= 0)
+			{
+				close(fd_dev);
+				unlink(path_device_tmp);
+			}
+			log_error("Unable to create temp device pad: %s\n", strerror(saved_errno)); /* DevSkim: ignore DS154189 */
 			return 0;
 		}
 	}
@@ -450,10 +457,15 @@ static int pusb_pad_write_and_install(
 		int fd_sys = open_pad_file_in_dir(path_system_tmp, O_WRONLY | O_CREAT | O_EXCL);
 		if (fd_sys < 0 || !(f_system = fdopen(fd_sys, "w")))
 		{
-			if (fd_sys >= 0) close(fd_sys);
-			log_error("Unable to create temp system pad: %s\n", strerror(errno));
+			int saved_errno = errno;
+			if (fd_sys >= 0)
+			{
+				close(fd_sys);
+				unlink(path_system_tmp);
+			}
 			fclose(f_device);
 			unlink(path_device_tmp);
+			log_error("Unable to create temp system pad: %s\n", strerror(saved_errno)); /* DevSkim: ignore DS154189 */
 			return 0;
 		}
 	}
@@ -583,7 +595,7 @@ static int pusb_pad_update(
 	lock_fd = pusb_pad_lock_dir(path_system);
 	if (lock_fd < 0)
 	{
-		log_error("Unable to lock pad directory for update: %s\n", strerror(errno));
+		log_error("Unable to lock pad directory for update: %s\n", strerror(errno)); /* DevSkim: ignore DS154189 */
 		explicit_bzero(magic, sizeof(magic));
 		return 0;
 	}
