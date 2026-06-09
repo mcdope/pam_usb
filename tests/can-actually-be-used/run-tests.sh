@@ -60,6 +60,7 @@ for PUSB_FS_TYPE in vfat ext4 exfat; do
     ./test-conf-doesnt-add-user-twice-but-adds-a-second-device.sh
     ./test-check-verify-created-config.sh
     ./test-conf-reset-pads.sh
+    ./test-check-recovers-stale-pad-tmp.sh
     ./test-check-many-devices.sh
     ./test-check-superuser-filtering.sh
     ./test-conf-adds-user-with-superuser.sh
