@@ -80,6 +80,11 @@ int pusb_is_tty_local(char *tty)
 	struct utmpx utsearch;
 	struct utmpx *utent;
 
+	if (tty == NULL)
+	{
+		return (0);
+	}
+
 	if (strncmp(tty, "/dev/", 5) == 0)
 	{
 		tty += 5; // cut leading "/dev/"
