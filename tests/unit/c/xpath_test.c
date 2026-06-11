@@ -154,6 +154,21 @@ static void test_time_empty_numeric_part(void **state)
 	xmlFreeDoc(doc);
 }
 
+static void test_time_non_ascii_suffix(void **state)
+{
+	(void)state;
+	/* A trailing byte with the high bit set (here the UTF-8 'é', last byte
+	 * 0xA9) must be rejected as an invalid modifier, never passed to isdigit()
+	 * as a negative int (UB, CERT STR37-C). Pins the (unsigned char) cast in
+	 * pusb_xpath_get_time; on glibc the value is rejected either way, so this
+	 * is a portability/UB-hardening pin rather than a behavioural red/green. */
+	xmlDocPtr doc = make_doc("<r><v>30\xc3\xa9</v></r>");
+	time_t val = 999;
+	assert_int_equal(0, pusb_xpath_get_time(doc, "//r/v", &val));
+	assert_true(val == 999);
+	xmlFreeDoc(doc);
+}
+
 /* ── pusb_xpath_get_int ── */
 
 static void test_int_value(void **state)
@@ -333,6 +348,7 @@ int main(void)
 		cmocka_unit_test(test_time_overflow),
 		cmocka_unit_test(test_time_overflow_via_multiplication),
 		cmocka_unit_test(test_time_empty_numeric_part),
+		cmocka_unit_test(test_time_non_ascii_suffix),
 		cmocka_unit_test(test_int_value),
 		cmocka_unit_test(test_int_zero),
 		cmocka_unit_test(test_int_overflow),
