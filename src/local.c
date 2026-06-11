@@ -80,9 +80,9 @@ int pusb_is_tty_local(char *tty)
 	struct utmpx utsearch;
 	struct utmpx *utent;
 
-	if (strstr(tty, "/dev/") != NULL) 
+	if (strncmp(tty, "/dev/", 5) == 0)
 	{
-		tty += 5; // cut "/dev/"
+		tty += 5; // cut leading "/dev/"
 	}
 
 	snprintf(utsearch.ut_line, sizeof(utsearch.ut_line), "%s", tty);
