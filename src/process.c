@@ -42,6 +42,16 @@
  */
 void pusb_get_process_name(const pid_t pid, char *name, size_t name_len)
 {
+	if (name == NULL || name_len == 0)
+		return;
+
+	/* Guarantee a valid, NUL-terminated string on every path. If the process
+	 * has already exited (fopen fails), the caller must not be left scanning
+	 * uninitialized or stale buffer contents: pusb_local_login() feeds this
+	 * result straight into strstr() while walking the process ancestry, so a
+	 * non-terminated buffer there is both UB and a fail-open in deny_remote. */
+	name[0] = '\0';
+
 	char procfile[BUFSIZ];
 	snprintf(procfile, sizeof(procfile), "/proc/%d/cmdline", pid);
 	FILE* f = fopen(procfile, "re"); /* DevSkim: ignore DS154189 - path constructed from numeric PID only */
