@@ -302,12 +302,12 @@ int pusb_xpath_get_time(xmlDocPtr doc, const char *path, time_t *value)
 	{
 		coef = 3600 * 24;
 	}
-	else if (!isdigit(*last))
+	else if (!isdigit((unsigned char)*last))
 	{
 		log_debug("Expecting a time modifier, got %c\n", *last);
 		return 0;
 	}
-	if (!isdigit(*last))
+	if (!isdigit((unsigned char)*last))
 	{
 		*last = '\0';
 	}
