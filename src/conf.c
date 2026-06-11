@@ -274,8 +274,8 @@ int pusb_conf_parse(
 	}
 	for (int i = 0; i < n_devices; i++)
 	{
-		device_list[i] = xmalloc(128);
-		memset(device_list[i], 0x0, 128);
+		device_list[i] = xmalloc(sizeof(opts->device.name));
+		memset(device_list[i], 0x0, sizeof(opts->device.name));
 	}
 
 	opts->device_list = xmalloc(n_devices * sizeof(t_pusb_device));
@@ -349,8 +349,8 @@ int pusb_conf_parse(
 		}
 		for (int i = 0; i < n_devices; i++)
 		{
-			su_names[i] = xmalloc(128);
-			memset(su_names[i], 0, 128);
+			su_names[i] = xmalloc(sizeof(opts->device.name));
+			memset(su_names[i], 0, sizeof(opts->device.name));
 		}
 
 		if (pusb_xpath_get_string_list(doc, su_xpath, su_names, sizeof(opts->device.name), n_devices))
