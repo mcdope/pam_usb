@@ -38,10 +38,15 @@ static void test_process_name_pid1(void **state)
 static void test_process_name_invalid_pid(void **state)
 {
 	(void)state;
-	char name[256] = {0};
-	/* Should not crash on a non-existent PID; name remains empty */
+	/* Fill with a non-NUL sentinel so we prove the function terminates the
+	 * buffer itself instead of relying on the caller having pre-zeroed it.
+	 * /proc/-1/cmdline cannot be opened, which exercises the fopen-failure
+	 * path the real caller (pusb_local_login) hits when an ancestor process
+	 * exits mid-walk — there the buffer is uninitialised stack. */
+	char name[256];
+	memset(name, 'A', sizeof(name));
 	pusb_get_process_name(-1, name, sizeof(name));
-	/* No assertion on value — just confirm no crash */
+	assert_int_equal('\0', name[0]);
 }
 
 /* ── pusb_get_process_parent_id ── */

@@ -214,6 +214,13 @@ static void test_read_cmdline_read_error(void **state)
 	assert_int_equal(-1, n);
 }
 
+static void test_is_tty_local_null_returns_zero(void **state)
+{
+	(void)state;
+	/* NULL tty must be rejected safely (fail-closed), never dereferenced. */
+	assert_int_equal(0, pusb_is_tty_local(NULL));
+}
+
 static void test_local_login_denies_xrdp_session(void **state)
 {
 	(void)state;
@@ -306,6 +313,7 @@ int main(void)
 		cmocka_unit_test(test_loginctl_parse_output_valid_with_newline),
 		cmocka_unit_test(test_loginctl_parse_output_valid_without_newline),
 		cmocka_unit_test(test_loginctl_cmd_uses_auto_not_user_status),
+		cmocka_unit_test(test_is_tty_local_null_returns_zero),
 		cmocka_unit_test(test_local_login_denies_xrdp_session),
 		cmocka_unit_test(test_local_login_display_env_null),
 		cmocka_unit_test(test_local_login_display_env_set),
