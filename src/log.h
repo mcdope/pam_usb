@@ -25,4 +25,8 @@ void log_error(const char *fmt, ...) __attribute__((format(printf, 1, 2))); /* D
 void log_info(const char *fmt, ...) __attribute__((format(printf, 1, 2))); /* DevSkim: ignore DS154189 - 'printf' here is a GCC attribute keyword, not a function call */
 void pusb_log_init(t_pusb_options *opts);
 
+int pusb_log_get_debug(void);
+int pusb_log_get_quiet(void);
+int pusb_log_get_color(void);
+
 #endif /* !PUSB_LOG_H_ */

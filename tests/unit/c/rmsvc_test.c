@@ -15,7 +15,7 @@
 #include <cmocka.h>
 
 /* Include source directly to access static functions */
-#include "../../../src/rmsvc.c"
+#include "../../../src/rmsvc.h"
 
 /* Fixture paths */
 #define FIXTURES "tests/unit/c/fixtures"

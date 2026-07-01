@@ -170,29 +170,44 @@ test-c-conf: src/conf.o src/xpath.o src/mem.o src/log.o
 	$(CC) $(TEST_CFLAGS) tests/unit/c/conf_test.c $^ $(CONF_LDFLAGS) -o tests/unit/c/conf_test
 	./tests/unit/c/conf_test
 
-test-c-tmux: src/process.o src/mem.o src/log.o
-	$(CC) $(TEST_CFLAGS) tests/unit/c/tmux_test.c $^ -Wl,--wrap=popen,--wrap=pclose $(TMUX_LDFLAGS) -o tests/unit/c/tmux_test
+# Test-specific object files compiled with -DUNIT_TESTING so PUSB_STATIC expands
+# to nothing and internal helpers become linkable.  These are separate from the
+# production .o files built by the generic %.o rule (which never set UNIT_TESTING).
+src/tmux_test.o: src/tmux.c
+	$(CC) $(TEST_CFLAGS) -DUNIT_TESTING -c $< -o $@
+
+src/local_test.o: src/local.c
+	$(CC) $(TEST_CFLAGS) -DUNIT_TESTING -c $< -o $@
+
+src/rmsvc_test.o: src/rmsvc.c
+	$(CC) $(TEST_CFLAGS) -DUNIT_TESTING -c $< -o $@
+
+src/pad_test.o: src/pad.c
+	$(CC) $(TEST_CFLAGS) -DUNIT_TESTING -c $< -o $@
+
+test-c-tmux: src/tmux_test.o src/process.o src/mem.o src/log.o
+	$(CC) $(TEST_CFLAGS) -DUNIT_TESTING tests/unit/c/tmux_test.c $^ -Wl,--wrap=popen,--wrap=pclose $(TMUX_LDFLAGS) -o tests/unit/c/tmux_test
 	./tests/unit/c/tmux_test
 
-test-c-pad: src/conf.o src/xpath.o src/mem.o src/log.o
-	$(CC) $(TEST_CFLAGS) tests/unit/c/pad_test.c $^ $(PAD_LDFLAGS) -o tests/unit/c/pad_test
+test-c-pad: src/pad_test.o src/conf.o src/xpath.o src/mem.o src/log.o
+	$(CC) $(TEST_CFLAGS) -DUNIT_TESTING tests/unit/c/pad_test.c $^ $(PAD_LDFLAGS) -o tests/unit/c/pad_test
 	./tests/unit/c/pad_test
 
 test-c-process: src/process.o src/mem.o src/log.o
 	$(CC) $(TEST_CFLAGS) tests/unit/c/process_test.c $^ $(PROC_LDFLAGS) -o tests/unit/c/process_test
 	./tests/unit/c/process_test
 
-test-c-rmsvc: src/mem.o src/log.o
-	$(CC) $(TEST_CFLAGS) tests/unit/c/rmsvc_test.c $^ \
+test-c-rmsvc: src/rmsvc_test.o src/mem.o src/log.o
+	$(CC) $(TEST_CFLAGS) -DUNIT_TESTING tests/unit/c/rmsvc_test.c $^ \
 		$(RMSVC_LDFLAGS) -o tests/unit/c/rmsvc_test
 	./tests/unit/c/rmsvc_test
 
-test-c-local: src/process.o src/tmux.o src/rmsvc.o src/evdev.o src/mem.o src/log.o
-	$(CC) $(TEST_CFLAGS) tests/unit/c/local_test.c $^ \
+test-c-local: src/local_test.o src/process.o src/tmux_test.o src/rmsvc_test.o src/evdev.o src/mem.o src/log.o
+	$(CC) $(TEST_CFLAGS) -DUNIT_TESTING tests/unit/c/local_test.c $^ \
 		$(LOCAL_LDFLAGS) -o tests/unit/c/local_test
 	./tests/unit/c/local_test
 
-test-c-evdev: src/mem.o src/log.o
+test-c-evdev: src/evdev.o src/mem.o src/log.o
 	$(CC) $(TEST_CFLAGS) -DPAMUSB_EVDEV_HELPER_PATH=\"/nonexistent/pamusb-evdev-helper\" \
 		tests/unit/c/evdev_test.c \
 		tests/unit/c/fake_libevdev.c $^ \
@@ -207,13 +222,13 @@ test-c-pam: src/log.o
 		$(PAM_TEST_LDFLAGS) -o tests/unit/c/pam_test
 	./tests/unit/c/pam_test
 
-test-c-log: tests/unit/c/log_test.c src/log.c
-	$(CC) $(TEST_CFLAGS) tests/unit/c/log_test.c \
+test-c-log: src/log.o
+	$(CC) $(TEST_CFLAGS) tests/unit/c/log_test.c $^ \
 		$(LOG_TEST_LDFLAGS) -o tests/unit/c/log_test
 	./tests/unit/c/log_test
 
-test-c-mem: tests/unit/c/mem_test.c src/mem.c src/log.o
-	$(CC) $(TEST_CFLAGS) tests/unit/c/mem_test.c src/log.o \
+test-c-mem: src/mem.o src/log.o
+	$(CC) $(TEST_CFLAGS) tests/unit/c/mem_test.c $^ \
 		-Wl,--wrap=explicit_bzero,--wrap=__explicit_bzero_chk \
 		$(MEM_LDFLAGS) -o tests/unit/c/mem_test
 	./tests/unit/c/mem_test
@@ -253,6 +268,10 @@ clean:
 		$(PAMUSB_EVDEV_HELPER) \
 		$(OBJS) \
 		src/evdev-helper.o \
+		src/tmux_test.o \
+		src/local_test.o \
+		src/rmsvc_test.o \
+		src/pad_test.o \
 		$(PAMUSB_CHECK_OBJS) \
 		$(PAM_USB_OBJS)
 

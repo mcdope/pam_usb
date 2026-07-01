@@ -5,7 +5,8 @@
  * guards against regression to the old static-pointer pattern that caused
  * the thread-safety bug fixed in #355 (issue #350).
  *
- * log.c is included directly to access the static thread-local variables.
+ * log.h getters (pusb_log_get_debug/quiet/color) expose the thread-local state
+ * without direct variable access; log.o is linked at build time.
  */
 
 #define _GNU_SOURCE
@@ -15,22 +16,25 @@
 #include <string.h>
 #include <cmocka.h>
 
-#include "../../../src/log.c"
+#include "../../../src/log.h"
 
 /* ── pusb_log_init(NULL) ── */
 
 static void test_log_init_null_zeroes_all(void **state)
 {
 	(void)state;
-	pusb_log_debug = 1;
-	pusb_log_quiet = 1;
-	pusb_log_color = 1;
+	t_pusb_options opts;
+	memset(&opts, 0, sizeof(opts));
+	opts.debug = 1;
+	opts.quiet = 1;
+	opts.color_log = 1;
+	pusb_log_init(&opts);
 
 	pusb_log_init(NULL);
 
-	assert_int_equal(0, pusb_log_debug);
-	assert_int_equal(0, pusb_log_quiet);
-	assert_int_equal(0, pusb_log_color);
+	assert_int_equal(0, pusb_log_get_debug());
+	assert_int_equal(0, pusb_log_get_quiet());
+	assert_int_equal(0, pusb_log_get_color());
 }
 
 /* ── pusb_log_init(&opts) copies individual fields ── */
@@ -42,9 +46,9 @@ static void test_log_init_sets_debug(void **state)
 	memset(&opts, 0, sizeof(opts));
 	opts.debug = 1;
 	pusb_log_init(&opts);
-	assert_int_equal(1, pusb_log_debug);
-	assert_int_equal(0, pusb_log_quiet);
-	assert_int_equal(0, pusb_log_color);
+	assert_int_equal(1, pusb_log_get_debug());
+	assert_int_equal(0, pusb_log_get_quiet());
+	assert_int_equal(0, pusb_log_get_color());
 }
 
 static void test_log_init_sets_quiet(void **state)
@@ -54,9 +58,9 @@ static void test_log_init_sets_quiet(void **state)
 	memset(&opts, 0, sizeof(opts));
 	opts.quiet = 1;
 	pusb_log_init(&opts);
-	assert_int_equal(0, pusb_log_debug);
-	assert_int_equal(1, pusb_log_quiet);
-	assert_int_equal(0, pusb_log_color);
+	assert_int_equal(0, pusb_log_get_debug());
+	assert_int_equal(1, pusb_log_get_quiet());
+	assert_int_equal(0, pusb_log_get_color());
 }
 
 static void test_log_init_sets_color(void **state)
@@ -66,9 +70,9 @@ static void test_log_init_sets_color(void **state)
 	memset(&opts, 0, sizeof(opts));
 	opts.color_log = 1;
 	pusb_log_init(&opts);
-	assert_int_equal(0, pusb_log_debug);
-	assert_int_equal(0, pusb_log_quiet);
-	assert_int_equal(1, pusb_log_color);
+	assert_int_equal(0, pusb_log_get_debug());
+	assert_int_equal(0, pusb_log_get_quiet());
+	assert_int_equal(1, pusb_log_get_color());
 }
 
 /* ── Key regression guard: values are copied, not pointed to ──
@@ -93,9 +97,9 @@ static void test_log_init_copies_not_pointer(void **state)
 	opts.quiet = 0;
 	opts.color_log = 0;
 
-	assert_int_equal(1, pusb_log_debug);
-	assert_int_equal(1, pusb_log_quiet);
-	assert_int_equal(1, pusb_log_color);
+	assert_int_equal(1, pusb_log_get_debug());
+	assert_int_equal(1, pusb_log_get_quiet());
+	assert_int_equal(1, pusb_log_get_color());
 }
 
 /* ── Sequential calls overwrite previous values ── */
@@ -108,11 +112,11 @@ static void test_log_init_sequential_override(void **state)
 
 	opts.debug = 1;
 	pusb_log_init(&opts);
-	assert_int_equal(1, pusb_log_debug);
+	assert_int_equal(1, pusb_log_get_debug());
 
 	opts.debug = 0;
 	pusb_log_init(&opts);
-	assert_int_equal(0, pusb_log_debug);
+	assert_int_equal(0, pusb_log_get_debug());
 }
 
 int main(void)

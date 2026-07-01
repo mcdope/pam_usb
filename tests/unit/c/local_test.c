@@ -8,6 +8,7 @@
 #include <stdarg.h>
 #include <stddef.h>
 #include <setjmp.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -16,8 +17,8 @@
 #include <sys/mman.h>
 #include <cmocka.h>
 
-/* Include source directly to access static helper functions. */
-#include "../../../src/local.c"
+#include "../../../src/mem.h"
+#include "../../../src/local.h"
 
 static void test_utmpx_field_equals_exact_nul_padded(void **state)
 {

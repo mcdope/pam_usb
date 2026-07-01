@@ -22,13 +22,16 @@
 #include <sys/time.h>
 #include <sys/wait.h>
 #include <fcntl.h>
+#include <sys/file.h>
 #include <pwd.h>
 #include <time.h>
 #include <errno.h>
 #include <cmocka.h>
 
-/* Include pad.c source directly to access static functions */
-#include "../../../src/pad.c"
+#include "../../../src/conf.h"
+#include "../../../src/log.h"
+#include "../../../src/volume.h"
+#include "../../../src/pad.h"
 
 /* Stubs — pad.c calls these from pusb_pad_check only, which we don't test here */
 t_pusb_volume *pusb_volume_get(t_pusb_options *opts, UDisksClient *udisks)

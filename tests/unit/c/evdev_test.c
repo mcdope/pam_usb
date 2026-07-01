@@ -32,7 +32,7 @@ extern int           g_opendir_errno;
 void fake_evdev_reset(void);
 
 /* Include source directly */
-#include "../../../src/evdev.c"
+#include "../../../src/evdev.h"
 
 /* ── Helpers ── */
 
