@@ -18,7 +18,7 @@
 #include <malloc.h>
 #include <cmocka.h>
 
-#include "../../../src/mem.c"
+#include "../../../src/mem.h"
 
 /* ── explicit_bzero mock ── */
 

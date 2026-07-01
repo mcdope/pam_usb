@@ -30,16 +30,17 @@
 #include <arpa/inet.h>
 #include "log.h"
 #include "conf.h"
+#include "local.h"
 #include "process.h"
 #include "tmux.h"
 #include "mem.h"
 #include "rmsvc.h"
 #include "evdev.h"
+#include "pusb_testing.h"
 
 #define PUSB_DISPLAY_MAX 256
-#define CMDLINE_BUF_SIZE 4096
 
-static int pusb_utmpx_field_equals(const char *field, size_t field_len, const char *value)
+PUSB_STATIC int pusb_utmpx_field_equals(const char *field, size_t field_len, const char *value)
 {
 	size_t value_len;
 
@@ -62,7 +63,7 @@ static int pusb_utmpx_field_equals(const char *field, size_t field_len, const ch
 	return value_len == field_len || field[value_len] == '\0';
 }
 
-static int pusb_utmpx_field_starts_with(const char *field, size_t field_len, const char *prefix)
+PUSB_STATIC int pusb_utmpx_field_starts_with(const char *field, size_t field_len, const char *prefix)
 {
 	size_t prefix_len;
 
@@ -133,7 +134,7 @@ int pusb_is_tty_local(char *tty)
 	return (1);
 }
 
-static ssize_t pusb_read_cmdline(int fd, char *buf, size_t bufsize)
+PUSB_STATIC ssize_t pusb_read_cmdline(int fd, char *buf, size_t bufsize)
 {
 	if (buf == NULL || bufsize <= 1) return -1;
 	ssize_t n = read(fd, buf, bufsize - 1);
@@ -265,7 +266,7 @@ char *pusb_get_tty_by_xorg_display(const char *display, const char *user)
 	return NULL;
 }
 
-static const char *pusb_loginctl_parse_output(char *buf)
+PUSB_STATIC const char *pusb_loginctl_parse_output(char *buf)
 {
 	char *saveptr = NULL;
 	const char *val = strtok_r(buf, "\n", &saveptr);
@@ -278,10 +279,6 @@ static const char *pusb_loginctl_parse_output(char *buf)
  * properties instead, which do not include Remote or TTY.
  * export LC_ALL=C covers both loginctl and awk in the pipeline.
  */
-#define LOGINCTL_SHOW_SESSION_CMD \
-	"export LC_ALL=C; /usr/bin/loginctl show-session auto -p %s 2>/dev/null | " \
-	"/usr/bin/awk -F= '{print $2}'"
-
 static char *pusb_get_loginctl_session_property(const char *property)
 {
 	if (!property)

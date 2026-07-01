@@ -34,9 +34,8 @@
 #include "log.h"
 #include "volume.h"
 #include "pad.h"
+#include "pusb_testing.h"
 
-#define PUSB_PAD_SIZE     1024
-#define PUSB_PAD_PATH_MAX (1024 * 5)
 
 /* mkdir(path, 0700) atomically; on EEXIST verify path is a real directory (not a symlink).
  * Returns 1 if newly created, 0 if pre-existed and is a real directory, -1 on error. */
@@ -68,7 +67,7 @@ static int pusb_mkdir_safe(const char *path, const char *context)
 	return 0;
 }
 
-static int pusb_pad_build_device_path(
+PUSB_STATIC int pusb_pad_build_device_path(
 	t_pusb_options *opts,
 	const char *mnt_point,
 	const char *user,
@@ -104,7 +103,7 @@ static int pusb_pad_build_device_path(
 	return 1;
 }
 
-static int pusb_pad_build_system_path(
+PUSB_STATIC int pusb_pad_build_system_path(
 	t_pusb_options *opts,
 	const char *user,
 	char *path_out,
@@ -203,7 +202,7 @@ static int pusb_pad_build_system_path(
 	return 1;
 }
 
-static int open_pad_file_in_dir(const char *fullpath, int flags)
+PUSB_STATIC int open_pad_file_in_dir(const char *fullpath, int flags)
 {
 	char dirbuf[PUSB_PAD_PATH_MAX + 8];
 	int n = snprintf(dirbuf, sizeof(dirbuf), "%s", fullpath);
@@ -227,7 +226,7 @@ static int open_pad_file_in_dir(const char *fullpath, int flags)
 	return fd;
 }
 
-static FILE *pusb_pad_open_device(
+PUSB_STATIC FILE *pusb_pad_open_device(
 	t_pusb_options *opts,
 	const char *mnt_point,
 	const char *user,
@@ -316,7 +315,7 @@ static int pusb_pad_protect(const char *user, int fd)
 	return 1;
 }
 
-static int pusb_pad_should_update(t_pusb_options *opts, const char *user)
+PUSB_STATIC int pusb_pad_should_update(t_pusb_options *opts, const char *user)
 {
 	FILE *f_system = NULL;
 	struct stat st;
@@ -364,7 +363,7 @@ static int pusb_pad_should_update(t_pusb_options *opts, const char *user)
  * Requests > 256 bytes may return a short count when interrupted, hence the
  * retry loop.
  */
-static int generate_random_bytes(uint8_t *buf, size_t len)
+PUSB_STATIC int generate_random_bytes(uint8_t *buf, size_t len)
 {
 	size_t offset = 0;
 
@@ -543,7 +542,7 @@ static int pusb_pad_write_and_install(
 	return 1;
 }
 
-static int pusb_pad_update(
+PUSB_STATIC int pusb_pad_update(
 	t_pusb_options *opts,
 	const char *volume,
 	const char *user
@@ -622,7 +621,7 @@ static int pusb_pad_update(
 	return retval;
 }
 
-static int timingsafe_memcmp(const void *a, const void *b, size_t n)
+PUSB_STATIC int timingsafe_memcmp(const void *a, const void *b, size_t n)
 {
 	const uint8_t *pa = (const uint8_t *)a;
 	const uint8_t *pb = (const uint8_t *)b;
@@ -635,7 +634,7 @@ static int timingsafe_memcmp(const void *a, const void *b, size_t n)
 	return (int)diff;
 }
 
-static int pusb_pad_compare(
+PUSB_STATIC int pusb_pad_compare(
 	t_pusb_options *opts,
 	const char *volume,
 	const char *user

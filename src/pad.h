@@ -15,10 +15,28 @@
  * Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef PUSB_OTP_H_
-#define PUSB_OTP_H_
+#ifndef PUSB_PAD_H_
+#define PUSB_PAD_H_
+#include <stdio.h>
+#include <stdint.h>
 #include <udisks/udisks.h>
+#include "conf.h"
+
+#define PUSB_PAD_PATH_MAX (1024 * 5)
+#define PUSB_PAD_SIZE     1024
 
 int pusb_pad_check(t_pusb_options *opts, UDisksClient *udisks, const char *user);
 
-#endif /* !PUSB_OTP_H_ */
+#ifdef UNIT_TESTING
+int   pusb_pad_build_device_path(t_pusb_options *opts, const char *mnt_point, const char *user, char *path_out, size_t path_size);
+int   pusb_pad_build_system_path(t_pusb_options *opts, const char *user, char *path_out, size_t path_size);
+FILE *pusb_pad_open_device(t_pusb_options *opts, const char *mnt_point, const char *user, const char *mode);
+int   pusb_pad_should_update(t_pusb_options *opts, const char *user);
+int   pusb_pad_compare(t_pusb_options *opts, const char *volume, const char *user);
+int   pusb_pad_update(t_pusb_options *opts, const char *volume, const char *user);
+int   open_pad_file_in_dir(const char *fullpath, int flags);
+int   generate_random_bytes(uint8_t *buf, size_t len);
+int   timingsafe_memcmp(const void *a, const void *b, size_t n);
+#endif
+
+#endif /* !PUSB_PAD_H_ */

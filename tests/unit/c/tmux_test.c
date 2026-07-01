@@ -21,8 +21,10 @@
 #include <unistd.h>
 #include <cmocka.h>
 
-/* Include source directly to access static functions */
-#include "../../../src/tmux.c"
+#include "../../../src/conf.h"
+#include "../../../src/log.h"
+#include "../../../src/mem.h"
+#include "../../../src/tmux.h"
 
 /* ── popen/pclose mock ── */
 
@@ -291,6 +293,15 @@ static void test_has_remote_wrong_user_dot_regression(void **state)
 }
 
 /* ── pusb_tmux_get_client_tty ── */
+/*
+ * Use xfree(), not free(), to release the returned string.
+ * This binary is compiled with -DUNIT_TESTING which causes cmocka.h to
+ * macro-redefine free() → _test_free().  _test_free() expects its own guard
+ * blocks; the string here comes from xstrdup() → strdup() → glibc malloc (no
+ * guard blocks), so bare free() would produce a "Guard block is corrupt" abort.
+ * xfree() lives in mem.o which is compiled without -DUNIT_TESTING, so its
+ * internal free() call bypasses the macro and reaches glibc correctly.
+ */
 
 static void test_get_client_tty_no_tmux_env(void **state)
 {
@@ -329,7 +340,7 @@ static void test_get_client_tty_valid(void **state)
 	char *result = pusb_tmux_get_client_tty(0);
 	assert_non_null(result);
 	assert_string_equal("pts/1", result);
-	free(result);
+	xfree(result);
 	unsetenv("TMUX");
 }
 
@@ -345,7 +356,7 @@ static void test_get_client_tty_uses_absolute_tmux_path(void **state)
 	assert_non_null(result);
 	assert_non_null(strstr(g_last_popen_cmd, "LC_ALL=C; /usr/bin/tmux -S "));
 	assert_null(strstr(g_last_popen_cmd, "LC_ALL=C; tmux -S "));
-	free(result);
+	xfree(result);
 	unsetenv("TMUX");
 }
 
@@ -375,7 +386,7 @@ static void test_get_client_tty_does_not_corrupt_tmux_env(void **state)
 
 	assert_non_null(result);
 	assert_string_equal("pts/1", result);
-	free(result);
+	xfree(result);
 
 	/* Environment variable must be byte-for-byte intact after the call */
 	const char *after = getenv("TMUX");

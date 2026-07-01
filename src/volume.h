@@ -17,6 +17,7 @@
 
 #ifndef VOLUME_H_
 # define VOLUME_H_
+# include "conf.h"
 # include <udisks/udisks.h>
 
 typedef struct pusb_volume

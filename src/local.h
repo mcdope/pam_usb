@@ -18,6 +18,14 @@
 #ifndef PUSB_LOCAL_H_
 #define PUSB_LOCAL_H_
 
+#include <sys/types.h>
+#include "conf.h"
+
+#define CMDLINE_BUF_SIZE 4096
+#define LOGINCTL_SHOW_SESSION_CMD \
+	"export LC_ALL=C; /usr/bin/loginctl show-session auto -p %s 2>/dev/null | " \
+	"/usr/bin/awk -F= '{print $2}'"
+
 int pusb_local_login(t_pusb_options *opts, const char *user, const char *service);
 
 int pusb_is_tty_local(char *tty);
@@ -27,5 +35,12 @@ char *pusb_get_tty_from_display_server(const char *display);
 char *pusb_get_tty_by_xorg_display(const char *display, const char *user);
 
 char *pusb_get_tty_by_loginctl();
+
+#ifdef UNIT_TESTING
+int         pusb_utmpx_field_equals(const char *field, size_t field_len, const char *value);
+int         pusb_utmpx_field_starts_with(const char *field, size_t field_len, const char *prefix);
+const char *pusb_loginctl_parse_output(char *buf);
+ssize_t     pusb_read_cmdline(int fd, char *buf, size_t bufsize);
+#endif
 
 #endif /* !PUSB_LOCAL_H_ */

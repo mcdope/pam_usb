@@ -114,3 +114,7 @@ void pusb_log_init(t_pusb_options *opts)
 	pusb_log_quiet = opts ? opts->quiet     : 0;
 	pusb_log_color = opts ? opts->color_log : 0;
 }
+
+int pusb_log_get_debug(void) { return pusb_log_debug; }
+int pusb_log_get_quiet(void) { return pusb_log_quiet; }
+int pusb_log_get_color(void) { return pusb_log_color; }

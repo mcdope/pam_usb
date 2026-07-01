@@ -24,9 +24,10 @@
 #include "log.h"
 #include "process.h"
 #include "mem.h"
+#include "pusb_testing.h"
 
 /* Reject characters that could break out of shell double-quotes or inject commands. */
-static int pusb_tmux_is_safe_socket_path(const char *path)
+PUSB_STATIC int pusb_tmux_is_safe_socket_path(const char *path)
 {
     if (!path || *path == '\0') return 0;
     for (const char *p = path; *p; p++) {
@@ -42,7 +43,7 @@ static int pusb_tmux_is_safe_socket_path(const char *path)
 }
 
 /* Client ID from TMUX must be purely numeric. */
-static int pusb_tmux_is_numeric_id(const char *s)
+PUSB_STATIC int pusb_tmux_is_numeric_id(const char *s)
 {
     if (!s || *s == '\0') return 0;
     for (; *s; s++) {
@@ -52,7 +53,7 @@ static int pusb_tmux_is_numeric_id(const char *s)
 }
 
 /* Escape ERE metacharacters in username so it matches literally in the regex. */
-static void pusb_tmux_escape_for_regex(const char *src, char *dst, size_t dstlen)
+PUSB_STATIC void pusb_tmux_escape_for_regex(const char *src, char *dst, size_t dstlen)
 {
     const char *metachar = "\\.^$*+?{}[]|()";
     size_t j = 0;

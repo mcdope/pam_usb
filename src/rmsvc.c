@@ -27,13 +27,14 @@
 #include <limits.h>
 #include "conf.h"
 #include "log.h"
+#include "pusb_testing.h"
 
 /*
  * Returns 1 if raw_addr (as read from /proc/net/tcp in host byte order) is a
  * 127.x.x.x loopback address. Uses htonl so the comparison is correct on both
  * little-endian and big-endian machines.
  */
-static int pusb_proc_tcp_is_loopback_v4(uint32_t raw_addr)
+PUSB_STATIC int pusb_proc_tcp_is_loopback_v4(uint32_t raw_addr)
 {
 	return (htonl(raw_addr) >> 24) == 127;
 }
@@ -47,7 +48,7 @@ static int pusb_proc_tcp_is_loopback_v4(uint32_t raw_addr)
  * On big-endian it would be "00000000000000000000000000000001".
  * We check both representations.
  */
-static int pusb_proc_tcp6_is_loopback(const char *hex32)
+PUSB_STATIC int pusb_proc_tcp6_is_loopback(const char *hex32)
 {
 	if (strnlen(hex32, 33) < 32)
 		return 0;
@@ -98,12 +99,12 @@ static int pusb_proc_tcp4_scan(const char *path, uint16_t port, int match_remote
 	return 0;
 }
 
-static int pusb_proc_tcp4_has_established(const char *path, uint16_t port)
+PUSB_STATIC int pusb_proc_tcp4_has_established(const char *path, uint16_t port)
 {
 	return pusb_proc_tcp4_scan(path, port, 0);
 }
 
-static int pusb_proc_tcp4_has_established_to(const char *path, uint16_t port)
+PUSB_STATIC int pusb_proc_tcp4_has_established_to(const char *path, uint16_t port)
 {
 	return pusb_proc_tcp4_scan(path, port, 1);
 }
@@ -158,12 +159,12 @@ static int pusb_proc_tcp6_scan(const char *path, uint16_t port, int match_remote
 	return 0;
 }
 
-static int pusb_proc_tcp6_has_established(const char *path, uint16_t port)
+PUSB_STATIC int pusb_proc_tcp6_has_established(const char *path, uint16_t port)
 {
 	return pusb_proc_tcp6_scan(path, port, 0);
 }
 
-static int pusb_proc_tcp6_has_established_to(const char *path, uint16_t port)
+PUSB_STATIC int pusb_proc_tcp6_has_established_to(const char *path, uint16_t port)
 {
 	return pusb_proc_tcp6_scan(path, port, 1);
 }
@@ -172,7 +173,7 @@ static int pusb_proc_tcp6_has_established_to(const char *path, uint16_t port)
  * Returns 1 if a process whose cmdline contains 'name' exists under procfs_root.
  * Scans procfs_root/PID/cmdline for all numeric PID directories.
  */
-static int pusb_process_name_exists(const char *procfs_root, const char *name)
+PUSB_STATIC int pusb_process_name_exists(const char *procfs_root, const char *name)
 {
 	DIR *d = opendir(procfs_root);
 	if (!d)

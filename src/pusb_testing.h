@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Tobias Bäumer <tobiasbaeumer@gmail.com>
+ * Copyright (c) 2026 Tobias Baeumer <tobiasbaeumer@gmail.com>
  *
  * This file is part of the pam_usb project. pam_usb is free software;
  * you can redistribute it and/or modify it under the terms of the GNU General
@@ -15,17 +15,23 @@
  * Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef PUSB_TMUX_H_
-# define PUSB_TMUX_H_
+#ifndef PUSB_TESTING_H_
+#define PUSB_TESTING_H_
 
-char *pusb_tmux_get_client_tty(pid_t tmux_pid);
-
-int pusb_tmux_has_remote_clients(const char* username);
-
+/*
+ * PUSB_STATIC controls linkage of internal helper functions that unit tests
+ * need to call directly.  In production builds the functions remain static
+ * (internal linkage, full optimizer freedom, no symbol pollution in the .so).
+ * When compiled with -DUNIT_TESTING the keyword is removed so the linker can
+ * resolve the symbols from the linked .o file.
+ *
+ * This header is the single source of truth for the macro — include it in
+ * every .c file that uses PUSB_STATIC, never define it inline.
+ */
 #ifdef UNIT_TESTING
-int  pusb_tmux_is_safe_socket_path(const char *path);
-int  pusb_tmux_is_numeric_id(const char *s);
-void pusb_tmux_escape_for_regex(const char *src, char *dst, size_t dstlen);
+# define PUSB_STATIC
+#else
+# define PUSB_STATIC static
 #endif
 
-#endif /* !PUSB_TMUX_H_ */
+#endif /* PUSB_TESTING_H_ */
