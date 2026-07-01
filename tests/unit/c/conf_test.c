@@ -378,13 +378,12 @@ static void test_parse_nonet_blocks_network_entity(void **state)
 	 * The entity reference is placed in the user's <device> element — the
 	 * canonical auth-bypass attack vector. If the entity were resolved,
 	 * it would expand to "real-device" and match the declared device, granting
-	 * access. With XML_PARSE_NONET the http:// load is blocked; the entity
-	 * expands to empty, so no real device is matched and device_list entries
-	 * remain blank (name[0] == '\0').
+	 * access. With XML_PARSE_NONET the http:// load is blocked; without
+	 * XML_PARSE_NOENT entity references are never substituted, so no device
+	 * name appears in the tree and device_list entries remain blank.
 	 *
-	 * Note: file:// entities bypass XML_PARSE_NONET; exploiting them requires
-	 * write access to the root-owned config file (already full system compromise).
-	 * Thread-safe per-context entity blocking needs libxml2 >= 2.13.
+	 * Note: XML_PARSE_NOENT is intentionally absent — it enables entity
+	 * substitution (including file:// URIs) and was the wrong mitigation.
 	 */
 	char tmpfile[] = "/tmp/pamusb_xxe_net_XXXXXX";
 	int fd = mkstemp(tmpfile);
@@ -420,42 +419,6 @@ static void test_parse_nonet_blocks_network_entity(void **state)
 	unlink(tmpfile);
 }
 
-static void test_parse_xml_with_internal_entities_is_accepted(void **state)
-{
-	(void)state;
-	/*
-	 * Positive regression: XML_PARSE_NOENT must not break configs that use
-	 * only safe internal entity declarations.
-	 */
-	char tmpfile[] = "/tmp/pamusb_xxe_internal_XXXXXX";
-	int fd = mkstemp(tmpfile);
-	assert_true(fd >= 0);
-	FILE *f = fdopen(fd, "w");
-	assert_non_null(f);
-	assert_true(fputs("<?xml version=\"1.0\"?>" /* DevSkim: ignore DS154189 */
-		"<!DOCTYPE configuration ["
-		"  <!ENTITY vendor \"TestVendor\">"
-		"]>"
-		"<configuration>"
-		"  <devices>"
-		"    <device id=\"dev1\"><vendor>&vendor;</vendor><model>M</model>"
-		"      <serial>S001</serial><volume_uuid>UUID-1</volume_uuid></device>"
-		"  </devices>"
-		"  <users>"
-		"    <user id=\"testuser\"><device>dev1</device></user>"
-		"  </users>"
-		"  <services><service id=\"login\"></service></services>"
-		"</configuration>", f) != EOF);
-	fclose(f);
-
-	t_pusb_options opts;
-	pusb_conf_init(&opts);
-	assert_int_equal(1, pusb_conf_parse(tmpfile, &opts, "testuser", "login"));
-	assert_int_equal(1, opts.device_count);
-	assert_string_equal("TestVendor", opts.device_list[0].vendor);
-	pusb_conf_free(&opts);
-	unlink(tmpfile);
-}
 
 /* ── per-device option isolation ── */
 
@@ -521,7 +484,6 @@ int main(void)
 		cmocka_unit_test(test_conf_parses_more_than_ten_devices),
 		cmocka_unit_test(test_parse_many_devices_no_false_positive),
 		cmocka_unit_test(test_parse_nonet_blocks_network_entity),
-		cmocka_unit_test(test_parse_xml_with_internal_entities_is_accepted),
 		cmocka_unit_test(test_device_options_not_applied),
 	};
 	return cmocka_run_group_tests(tests, NULL, NULL);

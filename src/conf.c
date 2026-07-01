@@ -233,15 +233,14 @@ int pusb_conf_parse(
 		return 0;
 	}
 	// XML_PARSE_NONET blocks all network-URI entity fetches (http://, ftp://). // DevSkim: ignore DS137138 - false positive, this is a comment not a URL
-	// XML_PARSE_NOENT forces eager substitution so that a NONET-blocked entity
-	// reference is expanded to empty content during parsing (where NONET is active)
-	// rather than being left as an unexpanded node that could be fetched later.
-	// file:// entities bypass NONET; exploiting them requires write access to the
-	// root-owned config file, which implies full system compromise already.
-	// Thread-safe per-context entity blocking (xmlCtxtSetExternalEntityLoader)
-	// is available only in libxml2 >= 2.13.
+	// XML_PARSE_NOENT is intentionally NOT set: it enables entity substitution
+	// (including file:// URIs that NONET does not block), which is the opposite
+	// of defence-in-depth. Without NOENT, entity references remain as inert
+	// entity-reference nodes; XPath text() queries do not yield their content.
+	// Thread-safe per-context blocking (xmlCtxtSetExternalEntityLoader) needs
+	// libxml2 >= 2.13 and is not universally available yet.
 	// lgtm[cpp/xxe]
-	if (!(doc = xmlReadFile(file, NULL, XML_PARSE_NONET | XML_PARSE_NOENT)))
+	if (!(doc = xmlReadFile(file, NULL, XML_PARSE_NONET)))
 	{
 		log_error("Unable to parse \"%s\".\n", file);
 		return 0;
