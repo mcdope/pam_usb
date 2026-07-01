@@ -58,6 +58,18 @@ for PUSB_FS_TYPE in vfat ext4 exfat; do
     ./test-conf-adds-device.sh
     ./test-conf-adds-user.sh
     ./test-conf-doesnt-add-user-twice-but-adds-a-second-device.sh
+    ./test-check-deny-remote-ssh.sh
+
+    # Scope the deny_remote bypass to just this user, so the SSH-ancestry
+    # denial path above stays testable while later tests can still call
+    # pamusb-check successfully over the SSH-driven CI runner.
+    if [ "$PAMUSB_CI_MODE" = "1" ]; then
+        WHOAMI=$(whoami)
+        if ! grep -q "<user id=\"$WHOAMI\"><option name=\"deny_remote\">false</option>" /etc/security/pam_usb.conf; then
+            sudo sed -i "s|<user id=\"$WHOAMI\">|<user id=\"$WHOAMI\"><option name=\"deny_remote\">false</option>|" /etc/security/pam_usb.conf
+        fi
+    fi
+
     ./test-check-verify-created-config.sh
     ./test-conf-reset-pads.sh
     ./test-check-recovers-stale-pad-tmp.sh
