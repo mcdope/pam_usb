@@ -438,9 +438,6 @@ for i in $(seq 1 12); do
 done
 [ $SETTLED -eq 1 ] || { echo "Error: VM did not settle after install (postinst timeout)" >&2; exit 1; }
 
-# Tests run inside an SSH session so deny_remote would block authentication
-$SSH_CMD "sudo sed -i 's/<defaults>/<defaults><option name=\"deny_remote\">false<\/option>/g' /etc/security/pam_usb.conf"
-
 $SSH_CMD "mkdir -p /tmp/pam_usb_tests"
 $SCP_CMD -r "$SCRIPT_DIR/." "${TEST_USER}@127.0.0.1:/tmp/pam_usb_tests/"
 
@@ -448,7 +445,7 @@ $SSH_CMD "cd /tmp/pam_usb_tests && ./setup-dummyhcd.sh"
 $SSH_CMD "cd /tmp/pam_usb_tests && ./prepare-mounting.sh"
 
 echo "Running functional test suite in $ARCH VM..."
-$SSH_CMD "cd /tmp/pam_usb_tests && ./run-tests.sh"
+$SSH_CMD "cd /tmp/pam_usb_tests && PAMUSB_CI_MODE=1 ./run-tests.sh"
 
 $SSH_CMD "sudo shutdown -h now" 2>/dev/null || true
 sleep 5
