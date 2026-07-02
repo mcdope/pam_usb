@@ -44,7 +44,7 @@ The syntax is the following:
 | `color_log`            | Boolean | `true`              | Enable colored output                                            |
 | `one_time_pad`         | Boolean | `true`              | Enable the use of one time device-associated pad files           |
 | `deny_remote`          | Boolean | `true`              | Deny access from remote host (SSH)                               |
-| `remote_desktop_check` | Boolean | `true`              | Deny access when remote desktop tools detected (TeamViewer etc.) (v0.8.8+) |
+| `remote_desktop_check` | Boolean | `true`              | Deny access when remote desktop tools detected (TeamViewer etc.). Only takes effect when `deny_remote` is `true`. (v0.9.0+) |
 | `superuser`            | Boolean | `false`             | Require a superuser-capable device for this service. Only meaningful on `<service>`. (v0.8.7+) |
 | `probe_timeout`        | Time    | `10s`               | Time to wait for the volume to be detected                       |
 | `pad_expiration`       | Time    | `1h`                | Time between pad file regeneration. Set to `0` to regenerate at every login. |
@@ -57,6 +57,12 @@ The syntax is the following:
 > Examples: `10s`, `5m`, `1h`, `2d`, `3600`.
 
 > **Boolean values** are case-sensitive. Only the exact strings `true` and `false` are accepted.
+
+> **`remote_desktop_check` and `/dev/input` access:** this check needs read access to
+> `/dev/input`. Since v0.9.3 packages install a setgid helper that handles this
+> automatically for non-root invocations (screen lockers, manual `pamusb-check` runs).
+> See [Troubleshooting](Troubleshooting#permission-errors-on-the-virtual-input-device-check-eacces--permission-denied)
+> if you see `EACCES`/"permission denied" in the debug log for this check.
 
 > **Option precedence:** Options defined in later scopes override those in earlier scopes.
 > The order is: `<defaults>` → `<users>` → `<services>`.
@@ -235,6 +241,29 @@ Services can use all options from the [Options](#options) section. The `superuse
 </service>
 ```
 
+### Default `deny_remote` service whitelist
+
+The configuration shipped with pam_usb (`/etc/security/pam_usb.conf`) sets
+`deny_remote=false` for a number of services out of the box:
+
+```
+pamusb-agent, gdm-password, xdm, lxdm, xscreensaver, lightdm, sddm,
+polkit-1, kde, login
+```
+
+These services are whitelisted because they typically run in a context where the
+remote signals pam_usb relies on (notably `PAM_RHOST`) are not set or not
+meaningful — e.g. a local display manager greeter, a local screensaver, or the
+local polkit agent. Leaving `deny_remote` enabled for them would cause false
+denials of legitimate **local** logins.
+
+> **Security note:** This is also why XDMCP and similar remote-display setups need
+> extra care — see the [Security page](https://github.com/mcdope/pam_usb/wiki/Security#warning-about-xdmcp).
+> If a whitelisted display manager is reachable remotely, the `PAM_RHOST` check
+> (which since v0.9.1 always runs regardless of `deny_remote`) and
+> `remote_desktop_check` are your remaining safeguards. You can remove a service
+> from the whitelist by setting `deny_remote=true` for it in your config.
+
 ----------
 
 ## Superuser device restriction
@@ -360,7 +389,7 @@ Device "StudentUSB" excluded for service "sudo" (no superuser attribute).
 
 - Adding more superuser-granted services requires only a new `<service>` entry — no change to device or user configuration.
 - If a user has no device with `superuser="true"` and authenticates against a superuser-marked service, pam_usb denies the request. The fallback PAM module (e.g. `pam_unix`) still runs if configured as `sufficient` rather than `required`.
-- Use `pamusb-conf --add-user=<username> --superuser` to mark the device as superuser-capable at configuration time. The `--superuser` flag sets `superuser="true"` on the `<device>` element automatically (available from v0.8.8).
+- Use `pamusb-conf --add-user=<username> --superuser` to mark the device as superuser-capable at configuration time. The `--superuser` flag sets `superuser="true"` on the `<device>` element automatically (available from v0.9.0).
 
 ----------
 
