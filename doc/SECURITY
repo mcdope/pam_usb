@@ -71,6 +71,15 @@ referenced by their GHSA identifier.
 | — | GHSA-rfcg-6wgv-77hw | Low | 1.9 | Integer overflow UB in `pusb_xpath_get_time()` via `atoi` and signed multiplication |
 | — | GHSA-chgp-j28w-mx9q | Low | 1.8 | Per-device config `<option>` elements were silently never applied during config parsing |
 
+### Fixed in 0.9.3
+
+| CVE | GHSA | Severity | CVSS | Summary |
+|-----|------|----------|:----:|---------|
+| — | GHSA-gc4c-v52c-2v34 | High | 7.4 | `deny_remote` bypassed by compressed IPv6 addresses (e.g. `::1`, `fe80::1`) in `pusb_tmux_has_remote_clients` |
+| — | GHSA-7583-9cqv-j9rf | High | 7.4 | `deny_remote` bypassed by zone-indexed IPv6 addresses (e.g. `fe80::1%eth0`) in `pusb_tmux_has_remote_clients` |
+| — | GHSA-ffx6-xjp6-x33g | High | 7.1 | `getenv()` in `pusb_local_login` allows the XRDP `deny_remote` block to be bypassed by unsetting `XRDP_SESSION` |
+| — | GHSA-gc6f-5hpq-ghxh | Medium | 4.4 | Heap out-of-bounds read in `pusb_get_tty_from_display_server` when `/proc/<pid>/cmdline` fills the read buffer |
+
 # Warning about XDMCP
 
 This warning has been **partially mitigated** since 0.9.1 but XDMCP + pam_usb is still not recommended. Read carefully.
