@@ -6,8 +6,8 @@ At every point in time only the most recent release is supported.
 
 | Version | Supported          |
 |---------| ------------------ |
-| 0.9.2   | ✅                 |
-| < 0.9.2 | ❌                 |
+| 0.9.3   | ✅                 |
+| < 0.9.3 | ❌                 |
 
 ## Reporting a Vulnerability
 

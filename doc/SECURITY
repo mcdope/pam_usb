@@ -6,6 +6,80 @@ Make sure you are aware of how it works and what you combine it with (see other 
 
 Also I want to point it that this is barely audited. I've tried to raise funds for it but there was literally no interest in it seemingly...
 
+# Known CVEs and security advisories
+
+pam_usb has gone through an ongoing security audit. The advisories below have been
+**published** and are **fixed** in the listed release — update to at least that
+version (ideally the latest) to be protected. Full write-ups (impact, affected
+versions, patches, credits) are available on the
+[GitHub Security Advisories page](https://github.com/mcdope/pam_usb/security/advisories).
+
+CVSS scores are v3.1 base scores as recorded on the advisory. Advisories scoring
+below CVSS 4.0 are not assigned a CVE (shown as `—` in the CVE column) and are
+referenced by their GHSA identifier.
+
+> **Note:** Additional advisories from later audit rounds are being prepared and
+> will be published together with the release that fixes them. Per our
+> [responsible disclosure policy](https://github.com/mcdope/pam_usb/blob/master/SECURITY.md),
+> unfixed issues are not detailed publicly until a fix ships.
+
+### Fixed in 0.8.7
+
+| CVE | GHSA | Severity | CVSS | Summary |
+|-----|------|----------|:----:|---------|
+| [CVE-2026-44713](https://github.com/mcdope/pam_usb/security/advisories/GHSA-822m-whrh-vrj8) | GHSA-822m-whrh-vrj8 | High | 8.8 | Command injection via `$TMUX` environment variable leads to RCE as root |
+| [CVE-2026-44712](https://github.com/mcdope/pam_usb/security/advisories/GHSA-jgv5-w6rm-7wxg) | GHSA-jgv5-w6rm-7wxg | High | 8.2 | Shell injection via device UUID and username in `pamusb-conf` / `pamusb-agent` |
+| [CVE-2026-44711](https://github.com/mcdope/pam_usb/security/advisories/GHSA-fjpm-p9pj-mp34) | GHSA-fjpm-p9pj-mp34 | High | 7.9 | Symlink attacks on the pad directory/files enable auth bypass and root file corruption |
+| [CVE-2026-44709](https://github.com/mcdope/pam_usb/security/advisories/GHSA-jxrj-q67x-wr4c) | GHSA-jxrj-q67x-wr4c | High | 7.8 | `PINENTRY_FALLBACK_APP` allows arbitrary command execution; keyring password exposed in process args |
+| [CVE-2026-44710](https://github.com/mcdope/pam_usb/security/advisories/GHSA-j8cq-2gv6-gfwf) | GHSA-j8cq-2gv6-gfwf | Medium | 4.6 | NULL pointer dereference from UDisks device fields causes PAM crash (login DoS) |
+
+### Fixed in 0.9.0
+
+| CVE | GHSA | Severity | CVSS | Summary |
+|-----|------|----------|:----:|---------|
+| [CVE-2026-47269](https://github.com/mcdope/pam_usb/security/advisories/GHSA-jmmj-qhrq-w45g) | GHSA-jmmj-qhrq-w45g | High | 7.4 | `deny_remote` incorrectly classifies IPv4-mapped IPv6 remote connections as local |
+| — | GHSA-7cgr-4c38-59h2 | High | 7.4 | Local authentication check bypass via incorrect process ancestry and session identity parsing |
+| [CVE-2026-47272](https://github.com/mcdope/pam_usb/security/advisories/GHSA-vx6f-rrqr-j87c) | GHSA-vx6f-rrqr-j87c | High | 7.1 | OTP pad authentication bypass via missing system pad check and uninitialized RNG buffer |
+| [CVE-2026-47273](https://github.com/mcdope/pam_usb/security/advisories/GHSA-vfj3-5h5v-6g93) | GHSA-vfj3-5h5v-6g93 | Medium | 6.5 | XPath injection via PAM-supplied identifiers in configuration queries |
+| [CVE-2026-47274](https://github.com/mcdope/pam_usb/security/advisories/GHSA-pp29-w28g-r9h9) | GHSA-pp29-w28g-r9h9 | Medium | 6.3 | Uncontrolled search path in the tools allows privilege escalation via `PATH` manipulation |
+| [CVE-2026-47270](https://github.com/mcdope/pam_usb/security/advisories/GHSA-j3xw-vc43-x7jg) | GHSA-j3xw-vc43-x7jg | Medium | 6.3 | `strtok()` race condition in multi-threaded PAM hosts can corrupt the `deny_remote` result |
+| [CVE-2026-47271](https://github.com/mcdope/pam_usb/security/advisories/GHSA-7rvx-jcc6-7hqq) | GHSA-7rvx-jcc6-7hqq | Medium | 5.1 | OOM guards removed by `-DNDEBUG` cause NULL dereference and auth process crash |
+
+### Fixed in 0.9.1
+
+| CVE | GHSA | Severity | CVSS | Summary |
+|-----|------|----------|:----:|---------|
+| [CVE-2026-48064](https://github.com/mcdope/pam_usb/security/advisories/GHSA-w38v-cw9r-x9p6) | GHSA-w38v-cw9r-x9p6 | High | 8.1 | `PAM_RHOST` check skipped when `deny_remote=false` allows XDMCP authentication bypass |
+| [CVE-2026-48065](https://github.com/mcdope/pam_usb/security/advisories/GHSA-24mw-m2vf-36vp) | GHSA-24mw-m2vf-36vp | Medium | 6.7 | Unchecked integer multiplication before `xmalloc()` allows heap overflow on 32-bit targets |
+| [CVE-2026-48066](https://github.com/mcdope/pam_usb/security/advisories/GHSA-qg76-57wq-mpv6) | GHSA-qg76-57wq-mpv6 | Medium | 5.7 | Thread-unsafe static pointer in `log.c` causes a data race under concurrent PAM auth |
+| [CVE-2026-48792](https://github.com/mcdope/pam_usb/security/advisories/GHSA-pvrg-chgw-x42c) | GHSA-pvrg-chgw-x42c | Medium | 4.4 | `pusb_has_virtual_input_device()` silently discards `EACCES`, disabling remote-desktop detection under non-root execution |
+
+### Fixed in 0.9.2
+
+| CVE | GHSA | Severity | CVSS | Summary |
+|-----|------|----------|:----:|---------|
+| [CVE-2026-48981](https://github.com/mcdope/pam_usb/security/advisories/GHSA-96vv-r4wc-28c2) | GHSA-96vv-r4wc-28c2 | Medium | 6.7 | `xmlReadFile` with default flags permits XXE network entity fetching in `conf.c` |
+| [CVE-2026-48980](https://github.com/mcdope/pam_usb/security/advisories/GHSA-qr83-mf3h-fvqr) | GHSA-qr83-mf3h-fvqr | Medium | 6.3 | `getenv()` in PAM context allows environment variable injection into local-check logic |
+| [CVE-2026-48982](https://github.com/mcdope/pam_usb/security/advisories/GHSA-hxh6-9574-5vp6) | GHSA-hxh6-9574-5vp6 | Medium | 5.8 | Missing `O_EXCL` on pad temp-file creation allows a concurrent update race |
+| [CVE-2026-48983](https://github.com/mcdope/pam_usb/security/advisories/GHSA-4j8q-67fq-3xc3) | GHSA-4j8q-67fq-3xc3 | Medium | 5.8 | TOCTOU race in pad directory creation allows symlink substitution |
+| [CVE-2026-48985](https://github.com/mcdope/pam_usb/security/advisories/GHSA-7j6h-wfc2-mg5q) | GHSA-7j6h-wfc2-mg5q | Medium | 5.5 | NULL dereference crash in `pusb_is_loginctl_local` when `loginctl` returns an empty Remote field |
+| [CVE-2026-48986](https://github.com/mcdope/pam_usb/security/advisories/GHSA-h28h-9hc3-v595) | GHSA-h28h-9hc3-v595 | Medium | 4.7 | Infinite-loop DoS in the process-tree walk when the parent process exits during authentication |
+| [CVE-2026-48984](https://github.com/mcdope/pam_usb/security/advisories/GHSA-rmp6-wfrq-wrrc) | GHSA-rmp6-wfrq-wrrc | Medium | 4.7 | `xfree()` does not call `explicit_bzero` — sensitive cryptographic material may linger in freed heap |
+| — | GHSA-64g7-3jrm-4jc3 | Low | 3.6 | Missing `O_NOFOLLOW` in `evdev.c` allows symlink following when opening device nodes |
+| — | GHSA-vw5x-vxgv-fgxm | Low | 3.3 | `BUFSIZ` truncation in `pusb_get_process_envvar` may cause false-negative TMUX detection |
+| — | GHSA-xgfj-3wm2-gvx8 | Low | 2.5 | `fopen` without `O_CLOEXEC` in `process.c` leaks `/proc` file descriptors into `popen` children |
+| — | GHSA-rfcg-6wgv-77hw | Low | 1.9 | Integer overflow UB in `pusb_xpath_get_time()` via `atoi` and signed multiplication |
+| — | GHSA-chgp-j28w-mx9q | Low | 1.8 | Per-device config `<option>` elements were silently never applied during config parsing |
+
+### Fixed in 0.9.3
+
+| CVE | GHSA | Severity | CVSS | Summary |
+|-----|------|----------|:----:|---------|
+| — | GHSA-gc4c-v52c-2v34 | High | 7.4 | `deny_remote` bypassed by compressed IPv6 addresses (e.g. `::1`, `fe80::1`) in `pusb_tmux_has_remote_clients` |
+| — | GHSA-7583-9cqv-j9rf | High | 7.4 | `deny_remote` bypassed by zone-indexed IPv6 addresses (e.g. `fe80::1%eth0`) in `pusb_tmux_has_remote_clients` |
+| — | GHSA-ffx6-xjp6-x33g | High | 7.1 | `getenv()` in `pusb_local_login` allows the XRDP `deny_remote` block to be bypassed by unsetting `XRDP_SESSION` |
+| — | GHSA-gc6f-5hpq-ghxh | Medium | 4.4 | Heap out-of-bounds read in `pusb_get_tty_from_display_server` when `/proc/<pid>/cmdline` fills the read buffer |
+
 # Warning about XDMCP
 
 This warning has been **partially mitigated** since 0.9.1 but XDMCP + pam_usb is still not recommended. Read carefully.
@@ -22,7 +96,7 @@ The `remote_desktop_check` option (enabled by default since 0.9.0) provides an a
 
 # Warning about remote desktop tools
 
-Since v0.8.8, pam_usb ships built-in remote desktop detection controlled by the `remote_desktop_check` option (default: `true`). When enabled, authentication is denied if a known remote desktop service is detected as active.
+Since v0.9.0, pam_usb ships built-in remote desktop detection controlled by the `remote_desktop_check` option (default: `true`). When enabled, authentication is denied if a known remote desktop service is detected as active. The check only runs when `deny_remote` is also enabled.
 
 ## What is detected
 
@@ -231,4 +305,4 @@ Device "StudentUSB" excluded for service "sudo" (no superuser attribute).
 - The restriction is configured entirely in `/etc/security/pam_usb.conf` — no PAM stack changes are needed.
 - Adding more superuser-granted services requires only a new `<service>` entry; no change to the device or user configuration is needed.
 - If a user has no device with `superuser="true"` and authenticates against a superuser-marked service, pam_usb denies the request. The fallback PAM module (e.g. `pam_unix`) still runs if configured as `sufficient` rather than `required`.
-- `pamusb-conf` does not yet have a CLI flag for the `superuser` attribute — add it manually to the `<device>` element in the config file after running `pamusb-conf --add-user`. Tracked in [issue #337](https://github.com/mcdope/pam_usb/issues/337).
+- Use `pamusb-conf --add-user=<username> --superuser` to set `superuser="true"` on the `<device>` element automatically (available from v0.9.0). The `--superuser` flag can only be combined with `--add-user`. Alternatively, add the attribute manually to the `<device>` element in the config file.

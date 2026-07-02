@@ -465,7 +465,7 @@ def resetPads():
 	sys.exit(0)
 
 def usage():
-	print('Version 0.9.2')
+	print('Version 0.9.3')
 	print('Usage: %s [--help] [--verbose] [--yes] [--config=path] [--reset-pads=username]' % os.path.basename(__file__))
 	print('                [[--add-user=name [--superuser]] | [--add-device=name [[--device=number] [--volume=number]]]]')
 	sys.exit(1)

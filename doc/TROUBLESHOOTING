@@ -249,7 +249,7 @@ Both must clear for authentication to proceed.
 |---|---|
 | **AnyDesk** | Process `anydesk` is running (any connection state) |
 | **VNC** (gnome-remote-desktop, x11vnc, Xvnc) | External ESTABLISHED connection on local TCP port 5900 **and** a matching VNC server process |
-| **RDP** (gnome-remote-desktop) | External ESTABLISHED connection on local TCP port 3389 **and** `gnome-remote-de` process running |
+| **RDP** (gnome-remote-desktop, xrdp) | External ESTABLISHED connection on local TCP port 3389 **and** a matching process (`gnome-remote-de`, `xrdp`) running |
 | **TeamViewer** | Outbound ESTABLISHED connection to remote TCP port 5938 **and** `TeamViewer_Desk` or `teamviewerd` process running |
 
 All checks use `/proc/net/tcp` (IPv4) and `/proc/net/tcp6` (IPv6). Loopback connections (`127.x.x.x`, `::1`) are never counted as external.
@@ -314,6 +314,40 @@ grep ' 1742 ' /proc/net/tcp6
 
 If you see `01` in the state column, TeamViewer has an active relay connection.
 
+#### Permission errors on the virtual input device check (`EACCES` / "permission denied")
+
+The virtual input device check needs read access to `/dev/input`, which is normally
+restricted to root and members of the `input` group. Since v0.9.3, packages install a
+setgid helper binary, `/usr/lib/pam_usb/pamusb-evdev-helper` (owned `root:input`, setgid
+bit set), so the check works for non-root invocations — e.g. screen lockers
+(i3lock, swaylock, gnome-screensaver) or a manually run `pamusb-check` — without any
+group membership changes. This is automatic for package installs and for `make install`
+when the `input` group exists on the system; no action is required.
+
+If you see a debug line like:
+
+```
+Checking for virtual input devices...
+Failed to open /dev/input/eventX: Permission denied
+```
+
+it means the helper is missing or not installed with the correct setgid permissions
+(e.g. a manual install without the `input` group present at install time, or a custom
+`PREFIX` build). Re-running `make install` after creating the `input` group, or
+reinstalling the package, will pick up the setgid bit.
+
+As a manual fallback (only if the helper cannot be used), add the user to the `input`
+group:
+
+```sh
+sudo usermod -aG input <username>
+```
+
+**Warning:** membership in the `input` group grants read access to *all* input devices,
+including keyboards — effectively keylogger-level access for every process the user
+runs. Only use this on trusted, single-user systems, and prefer the setgid helper
+wherever possible. See `man pamusb-conf` (NOTES section) for details.
+
 #### Diagnosing a deny
 
 Enable debug logging in `pam_usb.conf`:
@@ -336,7 +370,7 @@ Virtual input device detected (possible remote desktop tool), denying.
 ```
 
 ```
-XRDP session detected, denying.
+XRDP session detected (<reason>), denying.
 ```
 
 The debug output will name the exact check that fired.
