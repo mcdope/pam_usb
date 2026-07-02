@@ -7,8 +7,36 @@ on:
 
 jobs:
 
+  CheckForChanges:
+
+    runs-on: ubuntu-22.04
+    outputs:
+      has_changes: ${{ steps.check.outputs.has_changes }}
+
+    steps:
+    - name: Compare master HEAD against last nightly build
+      id: check
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        HEAD_SHA=$(git ls-remote https://github.com/${{ github.repository }}.git refs/heads/master | cut -f1)
+        NIGHTLY_SHA=$(gh api repos/${{ github.repository }}/git/refs/tags/nightly --jq '.object.sha' 2>/dev/null || echo "")
+        echo "master HEAD: $HEAD_SHA"
+        echo "last nightly build: $NIGHTLY_SHA"
+        if [ "$GITHUB_EVENT_NAME" != "schedule" ]; then
+          echo "Manually triggered run, building regardless of changes."
+          echo "has_changes=true" >> "$GITHUB_OUTPUT"
+        elif [ -n "$NIGHTLY_SHA" ] && [ "$HEAD_SHA" = "$NIGHTLY_SHA" ]; then
+          echo "No new commits since last nightly build, skipping."
+          echo "has_changes=false" >> "$GITHUB_OUTPUT"
+        else
+          echo "has_changes=true" >> "$GITHUB_OUTPUT"
+        fi
+
   GenerateNightly:
 
+    needs: CheckForChanges
+    if: needs.CheckForChanges.outputs.has_changes == 'true'
     runs-on: ubuntu-22.04
 
     steps:
