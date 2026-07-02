@@ -1,4 +1,4 @@
-name: Nightly builds (tar.gz, deb, rpm, zst)
+name: Nightly builds (deb, rpm, zst)
 
 on:
   schedule:
@@ -7,8 +7,36 @@ on:
 
 jobs:
 
+  CheckForChanges:
+
+    runs-on: ubuntu-22.04
+    outputs:
+      has_changes: ${{ steps.check.outputs.has_changes }}
+
+    steps:
+    - name: Compare master HEAD against last nightly build
+      id: check
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        HEAD_SHA=$(git ls-remote https://github.com/${{ github.repository }}.git refs/heads/master | cut -f1)
+        NIGHTLY_SHA=$(gh api repos/${{ github.repository }}/git/refs/tags/nightly --jq '.object.sha' 2>/dev/null || echo "")
+        echo "master HEAD: $HEAD_SHA"
+        echo "last nightly build: $NIGHTLY_SHA"
+        if [ "$GITHUB_EVENT_NAME" != "schedule" ]; then
+          echo "Manually triggered run, building regardless of changes."
+          echo "has_changes=true" >> "$GITHUB_OUTPUT"
+        elif [ -n "$NIGHTLY_SHA" ] && [ "$HEAD_SHA" = "$NIGHTLY_SHA" ]; then
+          echo "No new commits since last nightly build, skipping."
+          echo "has_changes=false" >> "$GITHUB_OUTPUT"
+        else
+          echo "has_changes=true" >> "$GITHUB_OUTPUT"
+        fi
+
   GenerateNightly:
 
+    needs: CheckForChanges
+    if: needs.CheckForChanges.outputs.has_changes == 'true'
     runs-on: ubuntu-22.04
 
     steps:
@@ -24,13 +52,6 @@ jobs:
         TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
         REF_TO_CHECKOUT: ${{ github.head_ref }}
       run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -tt -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "sudo rm -rf ~/pam_usb_nightly_$GITHUB_RUN_ID && git clone https://github.com/mcdope/pam_usb.git ~/pam_usb_nightly_$GITHUB_RUN_ID && cd ~/pam_usb_nightly_$GITHUB_RUN_ID && git switch -f $REF_TO_CHECKOUT || git switch -f master && git pull"
-    - name: Build .tar.gz source package
-      env:
-        TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
-        TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
-        TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
-        TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
-      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "cd ~/pam_usb_nightly_$GITHUB_RUN_ID && make sourcegz"
     - name: Generate Debian build environment
       env:
         TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
@@ -140,7 +161,7 @@ jobs:
       run: |
         DATE=$(date +%Y%m%d)
         rm -f .build/pam_usb-git-debug*
-        for f in .build/*.deb .build/*.rpm .build/*.zst .build/*.gz; do
+        for f in .build/*.deb .build/*.rpm .build/*.zst; do
           [ -f "$f" ] && mv "$f" ".build/pam_usb-nightly-${DATE}-$(basename $f)"
         done
     - name: Upload nightly packages
@@ -150,7 +171,6 @@ jobs:
         tag: nightly
         token: ${{ secrets.GITHUB_TOKEN }}
         files: |
-          ./.build/*.gz
           ./.build/*.deb
           ./.build/*.rpm
           ./.build/*.zst
