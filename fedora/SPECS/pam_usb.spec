@@ -1,7 +1,7 @@
 %define _topdir         /usr/local/src/pam_usb/fedora
 %define name            pam_usb 
 %define release         1
-%define version         0.9.2
+%define version         0.9.3
 %define buildroot       %{_topdir}/%{name}‑%{version}‑root
 
 BuildRoot: %{buildroot}
@@ -64,6 +64,26 @@ rm -rf %{buildroot}/usr/share/pam-configs
 %doc %attr(0644,root,root) /usr/share/doc/pam_usb/TROUBLESHOOTING
 
 %changelog
+
+* Thu Jul 02 2026 Tobias Bäumer <tobiasbaeumer@gmail.com> - 0.9.3
+- [CI/Tests] Maximize deny_remote functional/QEMU test coverage (#444, #445)
+- [Security] Remove XML_PARSE_NOENT: it enables entity XXE, not prevents it (issue #367) (#442)
+- [Security] Security audit round 8: deny_remote NUL-termination + correctness/UB fixes in xpath.c (#440)
+- [Bug] Recover from orphaned .tmp pad files after interrupted update (#439)
+- [Enhancement] Add pamusb-evdev-helper setgid binary + input group notice in --add-user (#437)
+- [Bug] Fix deny_remote false-deny when user has multiple sessions (#436)
+- [Enhancement] Multi-architecture build (arm64, armhf, i386, m68k, riscv64) + QEMU functional tests (#429)
+- [Bug] Fix make deinstall leaving PAM config behind due to wrong path (#422)
+- [Security] Fixed GHSA-gc6f-5hpq-ghxh (heap OOB read in pusb_get_tty_from_display_server cmdline scan) (#426)
+- [Security] Fixed GHSA-gc4c-v52c-2v34 / GHSA-7583-9cqv-j9rf (deny_remote IPv6 bypass vectors in tmux.c) (#423)
+- [Bug] Fix deny_remote breaking on alphanumeric loginctl session IDs (#418)
+- [Bug] Fix pinentry-pamusb.1.gz not removed on make deinstall (#421)
+- [Security] Fixed GHSA-ffx6-xjp6-x33g (XRDP session bypass via env var manipulation) (#417)
+- [Enhancement] Fix chaotic pam_usb.conf formatting after tool runs (#415)
+- [CI/Tests] Add multi-filesystem functional test coverage (ext4, exFAT) (#409)
+- [Packaging] Sync packaging exclude lists across all build methods (#408)
+- [Enhancement] Add zst-sign Makefile target for Arch package signing
+- [Bug] pamusb-check debug output broken (#404)
 
 * Sat May 23 2026 Tobias Bäumer <tobiasbaeumer@gmail.com> - 0.9.2
 - [Enhancement] Emit log_error when superuser device filtering removes all devices (#399)

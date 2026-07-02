@@ -2,7 +2,7 @@
 # Contributor: Pekka Helenius <fincer89 [at] hotmail [dot] com>
 
 pkgname=pam_usb
-pkgver=0.9.2
+pkgver=0.9.3
 pkgrel=1
 pkgdesc='Hardware authentication for Linux using ordinary flash media (USB & Card based).'
 arch=($CARCH)
@@ -14,7 +14,7 @@ backup=("etc/security/pam_usb.conf")
 install=pam_usb.install
 source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/$pkgver.tar.gz"
         "pamusb-agent.service")
-sha256sums=('6ddd263e22dbf0c1b7321bcd257b63b1926e1e4ff2bdc07038d54efabe5ff574'
+sha256sums=('SKIP'
             'f5875f0669b2638f36885c305d719072798b5097b15e6c94a8a852bb896bfc5c')
 
 build() {
