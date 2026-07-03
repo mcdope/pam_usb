@@ -5,9 +5,10 @@
 # Host prerequisites:
 #   arm64:   qemu-system-aarch64, qemu-efi-aarch64, cloud-image-utils
 #   armhf:   qemu-system-arm, qemu-efi-arm, cloud-image-utils
+#   amd64:   qemu-system-x86, qemu-utils, cloud-image-utils
 #
 # Usage: run-tests-in-qemu.sh <arch> <deb_path>
-#   arch     : arm64 | armhf
+#   arch     : arm64 | armhf | amd64
 #   deb_path : path to the libpam-usb .deb package to test
 #
 # Golden image strategy:
@@ -103,8 +104,20 @@ case "$ARCH" in
         QEMU_BLK_DEV="virtio-blk-device"
         QEMU_NET_DEV="virtio-net-device"
         ;;
+    amd64)
+        PROVISION_VERSION="1"
+        QEMU_BIN="qemu-system-x86_64"
+        IMAGE_URL="https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img"
+        IMAGE_CACHE="${CACHE_DIR}/jammy-amd64.img"
+        QEMU_MACHINE="-M q35 -cpu max -smp 2 -m 2048"
+        # Default SeaBIOS boots the amd64 cloud image on q35 fine; no OVMF needed.
+        QEMU_BIOS=""
+        QEMU_KERNEL=""
+        QEMU_BLK_DEV="virtio-blk-pci"
+        QEMU_NET_DEV="virtio-net-pci"
+        ;;
     *)
-        echo "Unsupported arch: $ARCH (supported: arm64, armhf)" >&2
+        echo "Unsupported arch: $ARCH (supported: arm64, armhf, amd64)" >&2
         exit 1
         ;;
 esac
@@ -131,8 +144,7 @@ if ! command -v "$QEMU_BIN" > /dev/null 2>&1; then
     echo "Error: $QEMU_BIN not found. Install the required package first:" >&2
     echo "  arm64:   sudo apt install qemu-system-arm qemu-efi-aarch64 cloud-image-utils" >&2
     echo "  armhf:   sudo apt install qemu-system-arm qemu-efi-arm u-boot-qemu cloud-image-utils" >&2
-    echo "  ppc64el: sudo apt install qemu-system-ppc qemu-utils cloud-image-utils" >&2
-    echo "  riscv64: sudo apt install qemu-system-misc qemu-efi-riscv64 qemu-utils cloud-image-utils" >&2
+    echo "  amd64:   sudo apt install qemu-system-x86 qemu-utils cloud-image-utils" >&2
     exit 1
 fi
 
