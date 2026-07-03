@@ -70,6 +70,7 @@ case "$ARCH" in
     arm64)
         PROVISION_VERSION="5"
         QEMU_BIN="qemu-system-aarch64"
+        HOST_PKGS="qemu-system-arm qemu-efi-aarch64 qemu-utils cloud-image-utils"
         IMAGE_URL="https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-arm64.img"
         IMAGE_CACHE="${CACHE_DIR}/jammy-arm64.img"
         QEMU_MACHINE="-M virt -cpu cortex-a57 -smp 8 -m 2048"
@@ -88,6 +89,7 @@ case "$ARCH" in
     armhf)
         PROVISION_VERSION="5"
         QEMU_BIN="qemu-system-arm"
+        HOST_PKGS="qemu-system-arm qemu-efi-arm u-boot-qemu qemu-utils cloud-image-utils"
         IMAGE_URL="https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-armhf.img"
         IMAGE_CACHE="${CACHE_DIR}/jammy-armhf.img"
         QEMU_MACHINE="-M virt -cpu cortex-a15 -smp 2 -m 2048"
@@ -107,6 +109,7 @@ case "$ARCH" in
     amd64)
         PROVISION_VERSION="1"
         QEMU_BIN="qemu-system-x86_64"
+        HOST_PKGS="qemu-system-x86 qemu-utils cloud-image-utils"
         IMAGE_URL="https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img"
         IMAGE_CACHE="${CACHE_DIR}/jammy-amd64.img"
         QEMU_MACHINE="-M q35 -cpu max -smp 2 -m 2048"
@@ -139,12 +142,26 @@ if [ "$_PROVISION_MODE" -eq 1 ] && [ -f "$PROVISIONED_CACHE" ] && [ -f "$SSH_KEY
     exit 0
 fi
 
-# --- pre-flight: verify QEMU binary is installed (only reached when we actually need it) ---
+# --- pre-flight: ensure host QEMU tooling is present (only reached when we actually
+# need it). On Debian/Ubuntu hosts the required packages are installed automatically
+# so newcomers get a single-command workflow; other hosts (e.g. NixOS, where qemu is
+# provided via the package manager / nix-shell) just need the binaries on PATH. ---
+if ! command -v "$QEMU_BIN" > /dev/null 2>&1 \
+    || ! command -v qemu-img > /dev/null 2>&1 \
+    || ! command -v cloud-localds > /dev/null 2>&1; then
+    if command -v apt-get > /dev/null 2>&1; then
+        echo "Installing missing QEMU host prerequisites for ${ARCH}: ${HOST_PKGS}"
+        SUDO=""
+        [ "$(id -u)" -ne 0 ] && SUDO="sudo"
+        $SUDO apt-get update -qq || true
+        $SUDO apt-get install -y $HOST_PKGS || true
+    fi
+fi
 if ! command -v "$QEMU_BIN" > /dev/null 2>&1; then
-    echo "Error: $QEMU_BIN not found. Install the required package first:" >&2
-    echo "  arm64:   sudo apt install qemu-system-arm qemu-efi-aarch64 cloud-image-utils" >&2
-    echo "  armhf:   sudo apt install qemu-system-arm qemu-efi-arm u-boot-qemu cloud-image-utils" >&2
-    echo "  amd64:   sudo apt install qemu-system-x86 qemu-utils cloud-image-utils" >&2
+    echo "Error: $QEMU_BIN not found and could not be installed automatically." >&2
+    echo "Install the host prerequisites for ${ARCH} manually:" >&2
+    echo "  Debian/Ubuntu:  sudo apt install ${HOST_PKGS}" >&2
+    echo "  NixOS/other:    provide qemu + cloud-image-utils via your package manager" >&2
     exit 1
 fi
 
