@@ -691,4 +691,141 @@ jobs:
       run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -tt -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "sudo rm -rf ~/pam_usb_deb_armhf_$GITHUB_RUN_ID; docker image prune -f || true"
 
 
+  # Push builds: serialize amd64 after FunctionalTest-armhf so only one full-system
+  # QEMU VM runs at a time on the shared runner. PR builds use FunctionalTest-amd64-pr
+  # below, which gates on Debian only and does not wait for the push-only armhf chain.
+  FunctionalTest-amd64:
+    needs: [Debian, FunctionalTest-armhf]
+    if: ${{ github.event_name == 'push' && !cancelled() }}
+    continue-on-error: true
 
+    runs-on: ubuntu-22.04
+
+    steps:
+    - name: Install sshpass on Github runner
+      run: sudo apt install sshpass
+    - name: FURTHER STEPS EXECUTED ON CONFIGURED RUNNER
+      run: exit 0
+    - name: Free runner disk before build
+      env:
+        TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
+        TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
+        TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
+        TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "killall -q qemu-system-x86_64 2>/dev/null || true; rm -rf /tmp/pam_usb_qemu_* || true"
+    - name: Ensure amd64 checkout and .deb exist (rerun resilience)
+      env:
+        TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
+        TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
+        TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
+        TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
+        REF_TO_CHECKOUT: ${{ github.head_ref }}
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -o ServerAliveCountMax=10 -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "ls ~/pam_usb_deb_amd64_$GITHUB_RUN_ID/.build/libpam-usb_*_amd64.deb > /dev/null 2>&1 || (sudo rm -rf ~/pam_usb_deb_amd64_$GITHUB_RUN_ID && git clone https://github.com/mcdope/pam_usb.git ~/pam_usb_deb_amd64_$GITHUB_RUN_ID && cd ~/pam_usb_deb_amd64_$GITHUB_RUN_ID && { git switch -f $REF_TO_CHECKOUT || git switch -f master; } && git pull && make buildenv-debian && make build-debian)"
+    - name: Check amd64 QEMU golden image exists
+      id: check_image_amd64
+      env:
+        TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
+        TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
+        TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
+        TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
+      run: |
+        sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "
+          PROVISION_VERSION=\$(grep -A1 'amd64)' ~/pam_usb_deb_amd64_$GITHUB_RUN_ID/tests/can-actually-be-used/run-tests-in-qemu.sh | grep 'PROVISION_VERSION=' | cut -d'\"' -f2)
+          CACHE=\"\$HOME/.cache/pam_usb-qemu\"
+          test -f \"\${CACHE}/jammy-amd64-provisioned-v\${PROVISION_VERSION}.qcow2\" \
+            && test -f \"\${CACHE}/jammy-amd64-key-v\${PROVISION_VERSION}\" \
+            || { echo \"Error: golden image not found for amd64 (v\${PROVISION_VERSION}). Run 'make provision-qemu-images' on the CI runner first.\" >&2; exit 1; }
+        "
+    - name: Install QEMU test prerequisites on runner
+      env:
+        TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
+        TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
+        TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
+        TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "sudo apt-get install -y qemu-system-x86 qemu-utils cloud-image-utils 2>/dev/null || true"
+    - name: Run functional test suite in amd64 QEMU VM
+      env:
+        TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
+        TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
+        TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
+        TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ServerAliveCountMax=20 -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW 'cd ~/pam_usb_deb_amd64_'"$GITHUB_RUN_ID"' && tests/can-actually-be-used/run-tests-in-qemu.sh amd64 $(ls .build/libpam-usb_*_amd64.deb | head -1)'
+    - name: Cleanup
+      if: always()
+      env:
+        TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
+        TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
+        TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
+        TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -tt -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "sudo rm -rf ~/pam_usb_deb_amd64_$GITHUB_RUN_ID; docker image prune -f || true"
+
+
+  # PR builds: the armhf functional job is push-only (skipped on PRs), so there is no
+  # concurrent full-system QEMU to serialize against — gate on the native Debian build
+  # only and run as soon as it finishes, instead of waiting for the skipped armhf chain.
+  # Identical steps to FunctionalTest-amd64 (GitHub Actions has no YAML anchors); only
+  # one of the two variants runs per event, so they never collide on the checkout dir.
+  FunctionalTest-amd64-pr:
+    needs: [Debian]
+    if: ${{ github.event_name == 'pull_request' && !cancelled() }}
+    continue-on-error: true
+
+    runs-on: ubuntu-22.04
+
+    steps:
+    - name: Install sshpass on Github runner
+      run: sudo apt install sshpass
+    - name: FURTHER STEPS EXECUTED ON CONFIGURED RUNNER
+      run: exit 0
+    - name: Free runner disk before build
+      env:
+        TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
+        TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
+        TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
+        TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "killall -q qemu-system-x86_64 2>/dev/null || true; rm -rf /tmp/pam_usb_qemu_* || true"
+    - name: Ensure amd64 checkout and .deb exist (rerun resilience)
+      env:
+        TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
+        TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
+        TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
+        TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
+        REF_TO_CHECKOUT: ${{ github.head_ref }}
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -o ServerAliveCountMax=10 -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "ls ~/pam_usb_deb_amd64_$GITHUB_RUN_ID/.build/libpam-usb_*_amd64.deb > /dev/null 2>&1 || (sudo rm -rf ~/pam_usb_deb_amd64_$GITHUB_RUN_ID && git clone https://github.com/mcdope/pam_usb.git ~/pam_usb_deb_amd64_$GITHUB_RUN_ID && cd ~/pam_usb_deb_amd64_$GITHUB_RUN_ID && { git switch -f $REF_TO_CHECKOUT || git switch -f master; } && git pull && make buildenv-debian && make build-debian)"
+    - name: Check amd64 QEMU golden image exists
+      id: check_image_amd64
+      env:
+        TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
+        TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
+        TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
+        TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
+      run: |
+        sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "
+          PROVISION_VERSION=\$(grep -A1 'amd64)' ~/pam_usb_deb_amd64_$GITHUB_RUN_ID/tests/can-actually-be-used/run-tests-in-qemu.sh | grep 'PROVISION_VERSION=' | cut -d'\"' -f2)
+          CACHE=\"\$HOME/.cache/pam_usb-qemu\"
+          test -f \"\${CACHE}/jammy-amd64-provisioned-v\${PROVISION_VERSION}.qcow2\" \
+            && test -f \"\${CACHE}/jammy-amd64-key-v\${PROVISION_VERSION}\" \
+            || { echo \"Error: golden image not found for amd64 (v\${PROVISION_VERSION}). Run 'make provision-qemu-images' on the CI runner first.\" >&2; exit 1; }
+        "
+    - name: Install QEMU test prerequisites on runner
+      env:
+        TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
+        TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
+        TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
+        TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "sudo apt-get install -y qemu-system-x86 qemu-utils cloud-image-utils 2>/dev/null || true"
+    - name: Run functional test suite in amd64 QEMU VM
+      env:
+        TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
+        TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
+        TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
+        TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -o ServerAliveCountMax=20 -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW 'cd ~/pam_usb_deb_amd64_'"$GITHUB_RUN_ID"' && tests/can-actually-be-used/run-tests-in-qemu.sh amd64 $(ls .build/libpam-usb_*_amd64.deb | head -1)'
+    - name: Cleanup
+      if: always()
+      env:
+        TEST_RUNNER_HOST_NEW: ${{ secrets.TEST_RUNNER_HOST_NEW }}
+        TEST_RUNNER_USER_NEW: ${{ secrets.TEST_RUNNER_USER_NEW }}
+        TEST_RUNNER_PASS_NEW: ${{ secrets.TEST_RUNNER_PASS_2025 }}
+        TEST_RUNNER_PORT_NEW: ${{ secrets.TEST_RUNNER_PORT_NEW }}
+      run: sshpass -p "$TEST_RUNNER_PASS_NEW" ssh -tt -o StrictHostKeyChecking=no -p $TEST_RUNNER_PORT_NEW $TEST_RUNNER_USER_NEW@$TEST_RUNNER_HOST_NEW "sudo rm -rf ~/pam_usb_deb_amd64_$GITHUB_RUN_ID; docker image prune -f || true"

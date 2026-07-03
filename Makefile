@@ -413,6 +413,10 @@ build-debian: buildenv-debian
 		--rm mcdope/pam_usb-ubuntu-build \
 		sh -c "make deb && chown -R $(UID):$(GID) .build debian"
 
+# Native x86_64 build already produces libpam-usb_*_amd64.deb; provide an
+# explicitly-named target so packagers can reproduce the amd64 QEMU test path.
+build-debian-amd64: build-debian
+
 build-fedora: buildenv-fedora
 	$(DOCKER) run -i \
 		-v`pwd`/.build:/usr/local/src \
@@ -510,7 +514,8 @@ build-debian-riscv64: buildenv-debian-riscv64
 provision-qemu-images:
 	tests/can-actually-be-used/run-tests-in-qemu.sh --provision arm64; R1=$$?; \
 	tests/can-actually-be-used/run-tests-in-qemu.sh --provision armhf; R2=$$?; \
-	exit $$((R1 || R2))
+	tests/can-actually-be-used/run-tests-in-qemu.sh --provision amd64; R3=$$?; \
+	exit $$((R1 || R2 || R3))
 
 clean-qemu-images:
 	rm -f $(HOME)/.cache/pam_usb-qemu/jammy-*-provisioned-*.qcow2 \
